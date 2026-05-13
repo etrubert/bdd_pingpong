@@ -1,0 +1,12 @@
+{
+  "name": "bdd-pingpong",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "npm --prefix Strav_pingpang run dev",
+    "build": "npm --prefix Strav_pingpang run build",
+    "preview": "npm --prefix Strav_pingpang run preview",
+    "lint": "npm --prefix Strav_pingpang run lint",
+    "install:app": "npm --prefix Strav_pingpang install"
+  }
+}

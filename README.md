@@ -1,5 +1,32 @@
 ## PingPong France — Scraper
 
+### Application web
+
+L'application React/Vite est dans `Strav_pingpang`, mais les scripts npm sont aussi disponibles depuis la racine du projet.
+
+```bash
+npm run dev
+```
+
+Si les dependances de l'application ne sont pas encore installees :
+
+```bash
+npm run install:app
+npm run dev
+```
+
+Commandes utiles :
+
+```bash
+npm run build
+npm run preview
+npm run lint
+```
+
+Les scripts Python, CSV, JSON et GeoJSON restent a la racine du depot. L'app web reste dans `Strav_pingpang` pour garder le frontend separe des fichiers de donnees et de scraping.
+
+---
+
 Script unique pour scraper :
 - **Joueurs FFTT** (échantillon multi-niveaux)
 - **Lieux pour jouer** (clubs FFTT + tables OpenStreetMap + équipements `data-es` via data.gouv)
