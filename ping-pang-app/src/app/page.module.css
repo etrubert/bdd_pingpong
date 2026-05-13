@@ -1,0 +1,352 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 280px;
+  background-color: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-6) var(--spacing-4);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.logo {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--foreground);
+  margin-bottom: var(--spacing-8);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.logo span {
+  color: var(--primary);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  flex-grow: 1;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.navItem:hover {
+  background-color: var(--surface-hover);
+  color: var(--foreground);
+}
+
+.navItem.active {
+  background-color: var(--primary);
+  color: white;
+}
+
+.main {
+  flex: 1;
+  padding: var(--spacing-8) var(--spacing-8);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-8);
+}
+
+.headerTitle {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  background-color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: white;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--spacing-6);
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-6);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-4);
+}
+
+.cardTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-4);
+}
+
+.statItem {
+  background-color: var(--background);
+  padding: var(--spacing-4);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.statLabel {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-top: var(--spacing-1);
+}
+
+.feedItem {
+  display: flex;
+  gap: var(--spacing-4);
+  padding-bottom: var(--spacing-4);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--spacing-4);
+}
+
+.feedItem:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.feedAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background-color: var(--surface-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.feedContent {
+  flex: 1;
+}
+
+.feedText {
+  font-size: 0.95rem;
+}
+
+.feedTime {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: var(--spacing-1);
+}
+
+.tag {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: rgba(244, 44, 44, 0.1);
+  color: var(--primary);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.btnPrimary {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+}
+
+.btnPrimary:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-2px);
+}
+
+.btnOutline {
+  background-color: transparent;
+  color: var(--foreground);
+  border: 1px solid var(--border);
+}
+
+.btnOutline:hover {
+  background-color: var(--surface-hover);
+}
+
+.chartPlaceholder {
+  height: 200px;
+  background: linear-gradient(to top, rgba(244, 44, 44, 0.2), transparent);
+  border-radius: var(--radius-md);
+  border-bottom: 2px solid var(--primary);
+  position: relative;
+  margin-top: var(--spacing-4);
+}
+
+.chartBars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 100%;
+  padding: var(--spacing-4);
+  gap: 8px;
+}
+
+.bar {
+  flex: 1;
+  background-color: var(--primary);
+  border-radius: 4px 4px 0 0;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.bar:hover {
+  opacity: 1;
+}
+
+.challengeCard {
+  background: linear-gradient(135deg, var(--surface) 0%, #2a0808 100%);
+  border: 1px solid var(--primary);
+}
+
+.progressBar {
+  height: 8px;
+  background-color: var(--background);
+  border-radius: var(--radius-full);
+  margin-top: var(--spacing-2);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background-color: var(--primary);
+  border-radius: var(--radius-full);
+}
+
+/* Map specific styles */
+.mapCard {
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.mapPlaceholder {
+  height: 200px;
+  background-color: #1a1a24;
+  background-image: radial-gradient(circle at 50% 50%, #2a2a35 2px, transparent 2px);
+  background-size: 20px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.mapMarker {
+  position: absolute;
+  color: var(--primary);
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@media (max-width: 768px) {
+  .layout {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: var(--spacing-4);
+  }
+  
+  .nav {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+  
+  .navItem {
+    padding: var(--spacing-2) var(--spacing-3);
+    white-space: nowrap;
+  }
+  
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .main {
+    padding: var(--spacing-4);
+  }
+}
