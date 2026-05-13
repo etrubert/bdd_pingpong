@@ -1,42 +1,48 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
 import { C, fontDisplay, fontSans, kicker, inputStyle } from '../theme';
 import Card from '../components/Card';
 
-const PARIS = { lat: 48.8566, lng: 2.3522 };
-const MAP_SCRIPT_ID = 'google-maps-js';
+// Fix Leaflet marker icons (Vite ne bundle pas les assets statiques de leaflet par defaut)
+import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
+import markerIcon2xUrl from 'leaflet/dist/images/marker-icon-2x.png';
+import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
 
-function loadGoogleMaps(apiKey) {
-  if (window.google?.maps) return Promise.resolve(window.google.maps);
+L.Icon.Default.mergeOptions({
+  iconUrl: markerIconUrl,
+  iconRetinaUrl: markerIcon2xUrl,
+  shadowUrl: markerShadowUrl,
+});
 
-  const existing = document.getElementById(MAP_SCRIPT_ID);
-  if (existing) {
-    return new Promise((resolve, reject) => {
-      existing.addEventListener('load', () => resolve(window.google.maps), { once: true });
-      existing.addEventListener('error', reject, { once: true });
-    });
-  }
+const PARIS = [48.8566, 2.3522];
+const DEFAULT_ZOOM = 12;
+const FOCUS_ZOOM = 16;
 
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.id = MAP_SCRIPT_ID;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&v=weekly&language=fr&region=FR`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve(window.google.maps);
-    script.onerror = () => reject(new Error('Google Maps could not be loaded.'));
-    document.head.appendChild(script);
-  });
-}
+// Pin custom style Google Maps : teardrop bleu avec point blanc au centre
+const googleStylePin = L.divIcon({
+  className: 'gmaps-pin',
+  html: `
+    <svg width="32" height="44" viewBox="0 0 32 44" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));">
+      <path d="M16 0C7.16 0 0 7.16 0 16c0 11.5 16 28 16 28s16-16.5 16-28c0-8.84-7.16-16-16-16z" fill="#4285F4"/>
+      <path d="M16 1.5C8 1.5 1.5 8 1.5 16c0 10.5 14.5 26 14.5 26s14.5-15.5 14.5-26C30.5 8 24 1.5 16 1.5z" fill="none" stroke="#fff" stroke-width="1.2"/>
+      <circle cx="16" cy="16" r="5" fill="#fff"/>
+    </svg>
+  `,
+  iconSize: [32, 44],
+  iconAnchor: [16, 44],
+  popupAnchor: [0, -38],
+});
 
 function parseCsvLine(line) {
   const cells = [];
   let current = '';
   let quoted = false;
-
   for (let i = 0; i < line.length; i += 1) {
     const char = line[i];
     const next = line[i + 1];
-
     if (char === '"' && quoted && next === '"') {
       current += '"';
       i += 1;
@@ -49,38 +55,40 @@ function parseCsvLine(line) {
       current += char;
     }
   }
-
   cells.push(current);
   return cells.map(cell => cell.trim());
 }
 
 function parseClubsCsv(csvText) {
   const lines = csvText.split(/\r?\n/).filter(Boolean);
-  const headers = parseCsvLine(lines.shift() || '').map(header => header.replace(/^\uFEFF/, ''));
-
+  const headers = parseCsvLine(lines.shift() || '').map(header => header.replace(/^﻿/, ''));
   return lines.map((line) => {
     const cells = parseCsvLine(line);
     return headers.reduce((club, header, index) => {
       club[header] = cells[index] || '';
       return club;
     }, {});
-  }).filter(club => club.club_nom && club.pays === 'France');
+  }).filter(club => club.club_nom);  // tous pays
 }
 
-function buildClubSearch(club) {
-  return `${club.club_nom} tennis de table Paris France`;
+// Composant interne pour piloter la map depuis l'exterieur via useMap()
+function MapController({ center, zoom }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center) {
+      map.flyTo(center, zoom, { animate: true, duration: 0.8 });
+    }
+  }, [center, zoom, map]);
+  return null;
 }
 
 export default function FinderScreen() {
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-  const mapRef = useRef(null);
-  const googleMap = useRef(null);
-  const markers = useRef([]);
-  const infoWindow = useRef(null);
   const [clubs, setClubs] = useState([]);
   const [selectedClub, setSelectedClub] = useState(null);
   const [query, setQuery] = useState('');
-  const [status, setStatus] = useState(apiKey ? 'Chargement de la carte...' : 'Cle Google Maps manquante');
+  const [status, setStatus] = useState('Chargement des clubs...');
+  const mapCardRef = useRef(null);
+  const markersRef = useRef({});
 
   useEffect(() => {
     fetch('/data/maps_clubs.csv')
@@ -88,106 +96,73 @@ export default function FinderScreen() {
         if (!response.ok) throw new Error('CSV introuvable');
         return response.text();
       })
-      .then(text => setClubs(parseClubsCsv(text)))
+      .then(text => {
+        const parsed = parseClubsCsv(text);
+        setClubs(parsed);
+        setStatus(parsed.length === 0 ? 'Aucun club France trouve' : '');
+      })
       .catch(() => setStatus('Impossible de charger les clubs'));
   }, []);
+
+  // Clubs avec coordonnees valides pour les marqueurs
+  const clubsGeoloc = useMemo(() => {
+    return clubs.filter(c => {
+      const lat = parseFloat(c.latitude);
+      const lon = parseFloat(c.longitude);
+      return Number.isFinite(lat) && Number.isFinite(lon);
+    });
+  }, [clubs]);
 
   const filteredClubs = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     const source = normalizedQuery
       ? clubs.filter(club => club.club_nom.toLowerCase().includes(normalizedQuery))
       : clubs;
-
-    return source.slice(0, 28);
+    return source.slice(0, 50);
   }, [clubs, query]);
 
+  // Auto-select premier resultat de recherche
   useEffect(() => {
-    if (!apiKey || !mapRef.current) return undefined;
+    if (query.trim() && filteredClubs.length > 0) {
+      const first = filteredClubs[0];
+      const lat = parseFloat(first.latitude);
+      const lon = parseFloat(first.longitude);
+      if (Number.isFinite(lat) && Number.isFinite(lon)) {
+        setSelectedClub(first);
+      }
+    }
+  }, [query, filteredClubs]);
 
-    let cancelled = false;
+  // Centre de la carte
+  const mapCenter = useMemo(() => {
+    if (selectedClub) {
+      const lat = parseFloat(selectedClub.latitude);
+      const lon = parseFloat(selectedClub.longitude);
+      if (Number.isFinite(lat) && Number.isFinite(lon)) return [lat, lon];
+    }
+    return PARIS;
+  }, [selectedClub]);
 
-    loadGoogleMaps(apiKey)
-      .then((maps) => {
-        if (cancelled || !mapRef.current) return;
-
-        googleMap.current = new maps.Map(mapRef.current, {
-          center: PARIS,
-          zoom: 12,
-          mapTypeControl: false,
-          fullscreenControl: false,
-          streetViewControl: false,
-          clickableIcons: false,
-        });
-        infoWindow.current = new maps.InfoWindow();
-        setStatus('');
-      })
-      .catch(() => setStatus('Erreur de chargement Google Maps'));
-
-    return () => {
-      cancelled = true;
-    };
-  }, [apiKey]);
-
-  useEffect(() => {
-    if (!apiKey || !googleMap.current || !window.google?.maps || filteredClubs.length === 0) return;
-
-    const maps = window.google.maps;
-    const geocoder = new maps.Geocoder();
-    let cancelled = false;
-
-    markers.current.forEach(marker => marker.setMap(null));
-    markers.current = [];
-
-    filteredClubs.slice(0, 16).forEach((club, index) => {
-      window.setTimeout(() => {
-        if (cancelled) return;
-
-        geocoder.geocode({ address: buildClubSearch(club), region: 'FR' }, (results, geocodeStatus) => {
-          if (cancelled || geocodeStatus !== 'OK' || !results?.[0]) return;
-
-          const marker = new maps.Marker({
-            map: googleMap.current,
-            position: results[0].geometry.location,
-            title: club.club_nom,
-          });
-
-          marker.addListener('click', () => {
-            setSelectedClub(club);
-            infoWindow.current.setContent(`<strong>${club.club_nom}</strong><br>${club.pays}`);
-            infoWindow.current.open({ map: googleMap.current, anchor: marker });
-          });
-
-          markers.current.push(marker);
-        });
-      }, index * 150);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [apiKey, filteredClubs]);
+  const mapZoom = selectedClub ? FOCUS_ZOOM : DEFAULT_ZOOM;
 
   function focusClub(club) {
-    setSelectedClub(club);
-
-    if (!apiKey || !googleMap.current || !window.google?.maps) {
-      window.open(club.url, '_blank', 'noopener,noreferrer');
+    const lat = parseFloat(club.latitude);
+    const lon = parseFloat(club.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      // Pas de coordonnees -> ouvrir le lien Google Maps directement
+      if (club.url) window.open(club.url, '_blank', 'noopener,noreferrer');
       return;
     }
-
-    const maps = window.google.maps;
-    const geocoder = new maps.Geocoder();
-
-    geocoder.geocode({ address: buildClubSearch(club), region: 'FR' }, (results, geocodeStatus) => {
-      if (geocodeStatus !== 'OK' || !results?.[0]) {
-        window.open(club.url, '_blank', 'noopener,noreferrer');
-        return;
-      }
-
-      const position = results[0].geometry.location;
-      googleMap.current.panTo(position);
-      googleMap.current.setZoom(15);
-    });
+    setSelectedClub(club);
+    // Scroll vers la carte
+    if (mapCardRef.current) {
+      mapCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    // Ouvre le popup correspondant
+    setTimeout(() => {
+      const marker = markersRef.current[club.club_nom];
+      if (marker) marker.openPopup();
+    }, 850);
   }
 
   return (
@@ -202,29 +177,96 @@ export default function FinderScreen() {
           color: C.ink,
           letterSpacing: '0.02em',
           marginTop: 6,
-        }}>PARIS CLUBS</div>
+        }}>WORLD CLUBS</div>
       </div>
 
-      <Card style={{ padding: 12, overflow: 'hidden' }}>
-        <div ref={mapRef} style={{
-          height: 360,
-          borderRadius: 16,
-          overflow: 'hidden',
-          background: '#10251d',
-          border: `1px solid ${C.border}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: C.inkDim,
-          fontFamily: fontSans,
-          fontSize: 13,
-          textAlign: 'center',
-          padding: 18,
-          boxSizing: 'border-box',
-        }}>
-          {status}
-        </div>
-      </Card>
+      <div ref={mapCardRef}>
+        <Card style={{ padding: 12, overflow: 'hidden' }}>
+          {status ? (
+            <div style={{
+              height: 360,
+              borderRadius: 16,
+              background: '#10251d',
+              border: `1px solid ${C.border}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: C.inkDim,
+              fontFamily: fontSans,
+              fontSize: 13,
+              textAlign: 'center',
+              padding: 18,
+              boxSizing: 'border-box',
+            }}>
+              {status}
+            </div>
+          ) : (
+            <div style={{ borderRadius: 16, overflow: 'hidden', height: 360 }}>
+              <MapContainer
+                center={PARIS}
+                zoom={DEFAULT_ZOOM}
+                scrollWheelZoom
+                style={{ height: '100%', width: '100%' }}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <MapController center={mapCenter} zoom={mapZoom} />
+                {clubsGeoloc.map((club) => {
+                  const lat = parseFloat(club.latitude);
+                  const lon = parseFloat(club.longitude);
+                  return (
+                    <Marker
+                      key={club.club_nom}
+                      position={[lat, lon]}
+                      icon={googleStylePin}
+                      ref={(ref) => {
+                        if (ref) markersRef.current[club.club_nom] = ref;
+                      }}
+                      eventHandlers={{
+                        click: () => setSelectedClub(club),
+                      }}
+                    >
+                      <Popup>
+                        <div style={{ fontFamily: 'sans-serif', fontSize: 13 }}>
+                          <strong>{club.club_nom}</strong>
+                          <br />
+                          {club.url && (
+                            <a href={club.url} target="_blank" rel="noopener noreferrer">
+                              Voir sur Google Maps
+                            </a>
+                          )}
+                        </div>
+                      </Popup>
+                    </Marker>
+                  );
+                })}
+              </MapContainer>
+            </div>
+          )}
+          {selectedClub && (
+            <div style={{
+              marginTop: 10,
+              fontFamily: fontSans,
+              fontSize: 13,
+              color: C.inkDim,
+              textAlign: 'center',
+            }}>
+              <strong style={{ color: C.ink }}>{selectedClub.club_nom}</strong>
+            </div>
+          )}
+          <div style={{
+            marginTop: 8,
+            fontFamily: fontSans,
+            fontSize: 11,
+            color: C.inkDim,
+            textAlign: 'center',
+          }}>
+            {clubsGeoloc.length}/{clubs.length} clubs localises sur la carte
+          </div>
+        </Card>
+      </div>
 
       <input
         value={query}
@@ -234,34 +276,50 @@ export default function FinderScreen() {
       />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {filteredClubs.map(club => (
-          <button
-            key={`${club.club_nom}-${club.pays}`}
-            onClick={() => focusClub(club)}
-            style={{
-              all: 'unset',
-              cursor: 'pointer',
-              display: 'block',
-            }}
-          >
-            <Card style={{
-              padding: '14px 16px',
-              borderColor: selectedClub?.club_nom === club.club_nom ? C.cream : C.border,
-              background: selectedClub?.club_nom === club.club_nom ? 'rgba(239,229,200,0.08)' : C.card,
-            }}>
-              <div style={{
-                fontFamily: fontSans,
-                fontWeight: 700,
-                fontSize: 14,
-                color: C.ink,
-                letterSpacing: '0.04em',
-              }}>{club.club_nom}</div>
-              <div style={{ marginTop: 4, fontFamily: fontSans, fontSize: 12, color: C.inkDim }}>
-                {club.pays}
-              </div>
-            </Card>
-          </button>
-        ))}
+        {filteredClubs.map(club => {
+          const hasCoords = Number.isFinite(parseFloat(club.latitude))
+            && Number.isFinite(parseFloat(club.longitude));
+          return (
+            <button
+              key={`${club.club_nom}-${club.pays}`}
+              onClick={() => focusClub(club)}
+              style={{
+                all: 'unset',
+                cursor: 'pointer',
+                display: 'block',
+              }}
+            >
+              <Card style={{
+                padding: '14px 16px',
+                borderColor: selectedClub?.club_nom === club.club_nom ? C.cream : C.border,
+                background: selectedClub?.club_nom === club.club_nom ? 'rgba(239,229,200,0.08)' : C.card,
+                opacity: hasCoords ? 1 : 0.55,
+              }}>
+                <div style={{
+                  fontFamily: fontSans,
+                  fontWeight: 700,
+                  fontSize: 14,
+                  color: C.ink,
+                  letterSpacing: '0.04em',
+                }}>{club.club_nom}</div>
+                <div style={{ marginTop: 4, fontFamily: fontSans, fontSize: 12, color: C.inkDim }}>
+                  {club.pays}{!hasCoords && ' · (non geolocalise)'}
+                </div>
+              </Card>
+            </button>
+          );
+        })}
+        {filteredClubs.length === 0 && !status && (
+          <div style={{
+            padding: '20px 0',
+            textAlign: 'center',
+            fontFamily: fontSans,
+            fontSize: 13,
+            color: C.inkDim,
+          }}>
+            Aucun club ne correspond
+          </div>
+        )}
       </div>
     </div>
   );
