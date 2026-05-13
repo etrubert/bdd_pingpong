@@ -1,66 +1,5 @@
-.layout {
-  display: flex;
-  min-height: 100vh;
-}
-
-.sidebar {
-  width: 280px;
-  background-color: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  padding: var(--spacing-6) var(--spacing-4);
-  position: sticky;
-  top: 0;
-  height: 100vh;
-}
-
-.logo {
-  font-family: 'Outfit', sans-serif;
-  font-size: 1.75rem;
-  font-weight: 800;
-  color: var(--foreground);
-  margin-bottom: var(--spacing-8);
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-}
-
-.logo span {
-  color: var(--primary);
-}
-
-.nav {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
-  flex-grow: 1;
-}
-
-.navItem {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
-  padding: var(--spacing-3) var(--spacing-4);
-  border-radius: var(--radius-md);
-  color: var(--text-muted);
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.navItem:hover {
-  background-color: var(--surface-hover);
-  color: var(--foreground);
-}
-
-.navItem.active {
-  background-color: var(--primary);
-  color: white;
-}
-
 .main {
-  flex: 1;
-  padding: var(--spacing-8) var(--spacing-8);
+  padding: var(--spacing-8);
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -68,13 +7,45 @@
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: var(--spacing-8);
 }
 
 .headerTitle {
   font-size: 2rem;
   font-weight: 700;
+}
+
+.headerControls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.timeToggle {
+  display: flex;
+  background-color: var(--surface);
+  border-radius: var(--radius-full);
+  padding: 4px;
+  border: 1px solid var(--border);
+}
+
+.timeToggleBtn {
+  padding: var(--spacing-1) var(--spacing-3);
+  border-radius: var(--radius-full);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+
+.timeToggleBtn:hover {
+  color: var(--foreground);
+}
+
+.timeToggleBtn.active {
+  background-color: var(--primary);
+  color: white;
 }
 
 .profile {
@@ -202,8 +173,8 @@
   border-radius: var(--radius-sm);
   font-size: 0.75rem;
   font-weight: 600;
-  background-color: rgba(244, 44, 44, 0.1);
-  color: var(--primary);
+  background-color: rgba(15, 76, 58, 0.2);
+  color: #1ed760;
 }
 
 .btn {
@@ -242,7 +213,7 @@
 
 .chartPlaceholder {
   height: 200px;
-  background: linear-gradient(to top, rgba(244, 44, 44, 0.2), transparent);
+  background: linear-gradient(to top, rgba(15, 76, 58, 0.1), transparent);
   border-radius: var(--radius-md);
   border-bottom: 2px solid var(--primary);
   position: relative;
@@ -271,7 +242,7 @@
 }
 
 .challengeCard {
-  background: linear-gradient(135deg, var(--surface) 0%, #2a0808 100%);
+  background: linear-gradient(135deg, var(--surface) 0%, #032b1c 100%);
   border: 1px solid var(--primary);
 }
 
@@ -289,7 +260,6 @@
   border-radius: var(--radius-full);
 }
 
-/* Map specific styles */
 .mapCard {
   padding: 0;
   overflow: hidden;
@@ -298,19 +268,32 @@
 
 .mapPlaceholder {
   height: 200px;
-  background-color: #1a1a24;
-  background-image: radial-gradient(circle at 50% 50%, #2a2a35 2px, transparent 2px);
+  background-color: #05140f;
+  background-image: 
+    radial-gradient(circle at 30% 40%, rgba(15, 76, 58, 0.5) 2px, transparent 2px),
+    radial-gradient(circle at 70% 60%, rgba(15, 76, 58, 0.5) 2px, transparent 2px);
   background-size: 20px 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+  overflow: hidden;
+}
+
+.mapPlaceholder::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: 
+    linear-gradient(90deg, rgba(31, 31, 31, 0.4) 1px, transparent 1px) 0 0 / 40px 40px,
+    linear-gradient(rgba(31, 31, 31, 0.4) 1px, transparent 1px) 0 0 / 40px 40px;
 }
 
 .mapMarker {
   position: absolute;
-  color: var(--primary);
+  color: #1ed760;
   animation: bounce 2s infinite;
+  z-index: 2;
 }
 
 @keyframes bounce {
@@ -319,29 +302,11 @@
 }
 
 @media (max-width: 768px) {
-  .layout {
+  .header {
     flex-direction: column;
+    gap: var(--spacing-4);
   }
-  
-  .sidebar {
-    width: 100%;
-    height: auto;
-    position: static;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    padding: var(--spacing-4);
-  }
-  
-  .nav {
-    flex-direction: row;
-    overflow-x: auto;
-  }
-  
-  .navItem {
-    padding: var(--spacing-2) var(--spacing-3);
-    white-space: nowrap;
-  }
-  
+
   .grid {
     grid-template-columns: 1fr;
   }

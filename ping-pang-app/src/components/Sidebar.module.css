@@ -1,0 +1,130 @@
+.sidebar {
+  width: 280px;
+  background-color: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-6) var(--spacing-4);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.logo {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--foreground);
+  margin-bottom: var(--spacing-8);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.logo span {
+  color: var(--primary);
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background-color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: white;
+  font-size: 1rem;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  flex-grow: 1;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.navItem:hover {
+  background-color: var(--surface-hover);
+  color: var(--foreground);
+}
+
+.navItem.active {
+  background-color: var(--primary);
+  color: white;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+.btnPrimary {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+}
+
+.btnPrimary:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: fixed;
+    bottom: 0;
+    top: auto;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    padding: var(--spacing-2);
+    z-index: 50;
+  }
+  
+  .logo {
+    display: none;
+  }
+  
+  .nav {
+    flex-direction: row;
+    justify-content: space-around;
+  }
+  
+  .navItem {
+    padding: var(--spacing-2);
+    flex-direction: column;
+    gap: var(--spacing-1);
+    font-size: 0.7rem;
+  }
+
+  .navItem span {
+    display: none;
+  }
+  
+  .btn {
+    display: none;
+  }
+}

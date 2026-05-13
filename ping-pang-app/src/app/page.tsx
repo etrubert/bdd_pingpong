@@ -1,214 +1,210 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 import styles from "./page.module.css";
 import { 
   Activity, MapPin, Play, Trophy, Users, 
   Video, Flame, Plus, ChevronRight, TrendingUp,
-  Map as MapIcon, Target
+  Map as MapIcon, Target, Search
 } from "lucide-react";
 
 export default function Home() {
-  return (
-    <div className={styles.layout}>
-      {/* Sidebar */}
-      <aside className={styles.sidebar}>
-        <div className={styles.logo}>
-          <div className={styles.avatar} style={{ width: '32px', height: '32px', fontSize: '1rem' }}>P</div>
-          Ping Pang <span>Paris</span>
-        </div>
-        
-        <nav className={styles.nav}>
-          <a href="#" className={`${styles.navItem} ${styles.active}`}>
-            <Activity size={20} />
-            Dashboard
-          </a>
-          <a href="#" className={styles.navItem}>
-            <Target size={20} />
-            Journal (Logbook)
-          </a>
-          <a href="#" className={styles.navItem}>
-            <MapIcon size={20} />
-            Map & Clubs
-          </a>
-          <a href="#" className={styles.navItem}>
-            <Play size={20} />
-            Coaching & Vidéo
-          </a>
-          <a href="#" className={styles.navItem}>
-            <Users size={20} />
-            Communauté
-          </a>
-        </nav>
-        
-        <div style={{ marginTop: 'auto' }}>
-          <button className={`${styles.btn} ${styles.btnPrimary}`} style={{ width: '100%' }}>
-            <Plus size={18} />
-            Nouvelle Session
-          </button>
-        </div>
-      </aside>
+  const [timeView, setTimeView] = useState("Mois");
 
-      {/* Main Content */}
-      <main className={styles.main}>
-        <header className={styles.header}>
+  return (
+    <main className={styles.main}>
+      <header className={styles.header}>
+        <div>
           <h1 className={styles.headerTitle}>Bonjour, Amaury 👋</h1>
+          <p style={{ color: 'var(--text-muted)' }}>Voici ton résumé d'activité Ping Pang.</p>
+        </div>
+        
+        <div className={styles.headerControls}>
+          <div className={styles.timeToggle}>
+            {["Jour", "Semaine", "Mois"].map(view => (
+              <button 
+                key={view}
+                className={`${styles.timeToggleBtn} ${timeView === view ? styles.active : ""}`}
+                onClick={() => setTimeView(view)}
+              >
+                {view}
+              </button>
+            ))}
+          </div>
+
           <div className={styles.profile}>
             <button className={styles.btnOutline} style={{ padding: '0.5rem', borderRadius: '50%' }}>
               <Flame size={20} color="var(--primary)" />
             </button>
             <div className={styles.avatar}>A</div>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <div className={styles.grid}>
-          {/* Column 1: Stats & Feed */}
-          <div className={styles.col}>
-            {/* Stats Card */}
-            <div className={styles.card}>
-              <div className={styles.cardHeader}>
-                <h2 className={styles.cardTitle}>
-                  <TrendingUp size={20} color="var(--primary)" />
-                  Progression (Volume vs Elo)
-                </h2>
-                <span className={styles.tag}>Ce mois</span>
+      <div className={styles.grid}>
+        {/* Column 1: Stats & Feed */}
+        <div className={styles.col}>
+          {/* Stats Card */}
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>
+                <TrendingUp size={20} color="var(--primary)" />
+                Progression (Volume vs Elo)
+              </h2>
+              <span className={styles.tag}>Vue : {timeView}</span>
+            </div>
+            
+            <div className={styles.statGrid}>
+              <div className={styles.statItem}>
+                <div className={styles.statValue}>1,450</div>
+                <div className={styles.statLabel}>Points Elo</div>
               </div>
-              
-              <div className={styles.statGrid}>
-                <div className={styles.statItem}>
-                  <div className={styles.statValue}>1,450</div>
-                  <div className={styles.statLabel}>Points Elo</div>
+              <div className={styles.statItem}>
+                <div className={styles.statValue}>
+                  {timeView === "Jour" ? "1h" : timeView === "Semaine" ? "5h" : "12h"}
                 </div>
-                <div className={styles.statItem}>
-                  <div className={styles.statValue}>12h</div>
-                  <div className={styles.statLabel}>Temps de jeu</div>
-                </div>
-                <div className={styles.statItem}>
-                  <div className={styles.statValue}>+45</div>
-                  <div className={styles.statLabel}>Gain Elo</div>
-                </div>
+                <div className={styles.statLabel}>Temps de jeu</div>
               </div>
-
-              {/* Chart Placeholder */}
-              <div className={styles.chartPlaceholder}>
-                <div className={styles.chartBars}>
-                  <div className={styles.bar} style={{ height: '30%' }}></div>
-                  <div className={styles.bar} style={{ height: '50%' }}></div>
-                  <div className={styles.bar} style={{ height: '40%' }}></div>
-                  <div className={styles.bar} style={{ height: '70%' }}></div>
-                  <div className={styles.bar} style={{ height: '60%' }}></div>
-                  <div className={styles.bar} style={{ height: '90%' }}></div>
-                  <div className={styles.bar} style={{ height: '100%' }}></div>
+              <div className={styles.statItem}>
+                <div className={styles.statValue} style={{ color: '#1ed760' }}>
+                  {timeView === "Jour" ? "+5" : timeView === "Semaine" ? "+15" : "+45"}
                 </div>
+                <div className={styles.statLabel}>Gain Elo</div>
               </div>
             </div>
 
-            {/* Social Feed */}
-            <div className={styles.card}>
-              <div className={styles.cardHeader}>
-                <h2 className={styles.cardTitle}>
-                  <Users size={20} />
-                  Feed de la communauté
-                </h2>
-              </div>
-              
-              <div className={styles.feedItem}>
-                <div className={styles.feedAvatar}>T</div>
-                <div className={styles.feedContent}>
-                  <p className={styles.feedText}>
-                    <strong>Thomas</strong> a battu son record de vitesse de balle : <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>85 km/h</span> 🚀
-                  </p>
-                  <p className={styles.feedTime}>Il y a 2 heures</p>
-                </div>
-              </div>
-
-              <div className={styles.feedItem}>
-                <div className={styles.feedAvatar}>M</div>
-                <div className={styles.feedContent}>
-                  <p className={styles.feedText}>
-                    <strong>Marie</strong> a check-in au <strong>Ping Pang Café</strong> avec 3 amis.
-                  </p>
-                  <p className={styles.feedTime}>Il y a 4 heures</p>
-                </div>
-              </div>
-
-              <div className={styles.feedItem}>
-                <div className={styles.feedAvatar}>L</div>
-                <div className={styles.feedContent}>
-                  <p className={styles.feedText}>
-                    <strong>Lucas</strong> a terminé le drill <em>"Top-spin coup droit niveau avancé"</em>.
-                  </p>
-                  <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
-                    <span className={styles.tag}>Top-spin</span>
-                    <span className={styles.tag}>Technique</span>
-                  </div>
-                  <p className={styles.feedTime}>Hier</p>
-                </div>
+            {/* Chart Placeholder */}
+            <div className={styles.chartPlaceholder}>
+              <div className={styles.chartBars}>
+                <div className={styles.bar} style={{ height: '30%' }}></div>
+                <div className={styles.bar} style={{ height: '50%' }}></div>
+                <div className={styles.bar} style={{ height: '40%' }}></div>
+                <div className={styles.bar} style={{ height: '70%' }}></div>
+                <div className={styles.bar} style={{ height: '60%' }}></div>
+                <div className={styles.bar} style={{ height: '90%' }}></div>
+                <div className={styles.bar} style={{ height: '100%' }}></div>
               </div>
             </div>
           </div>
 
-          {/* Column 2: Challenges & Map */}
-          <div className={styles.col}>
-            {/* Challenge Card */}
-            <div className={`${styles.card} ${styles.challengeCard}`}>
-              <div className={styles.cardHeader}>
-                <h2 className={styles.cardTitle} style={{ color: 'white' }}>
-                  <Trophy size={20} color="var(--primary)" />
-                  Challenge du mois
-                </h2>
-              </div>
-              <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem', marginBottom: '1rem' }}>
-                Faire 1000 top-spins en mai pour gagner 20% de réduction chez Ping Pang Paris.
-              </p>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'white' }}>
-                <span>Progression</span>
-                <strong>750 / 1000</strong>
-              </div>
-              <div className={styles.progressBar}>
-                <div className={styles.progressFill} style={{ width: '75%' }}></div>
-              </div>
+          {/* Social Feed */}
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>
+                <Users size={20} />
+                Feed de la communauté
+              </h2>
             </div>
-
-            {/* Interactive Map Snippet */}
-            <div className={`${styles.card} ${styles.mapCard}`}>
-              <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
-                <h2 className={styles.cardTitle}>
-                  <MapPin size={20} />
-                  Tables & Clubs autour de vous
-                </h2>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                  Canal Saint-Martin - Affluence estimée: <span style={{ color: '#fbbf24' }}>Moyenne</span>
+            
+            <div className={styles.feedItem}>
+              <div className={styles.feedAvatar}>T</div>
+              <div className={styles.feedContent}>
+                <p className={styles.feedText}>
+                  <strong>Thomas</strong> a battu son record de vitesse de balle : <span style={{ color: '#1ed760', fontWeight: 'bold' }}>85 km/h</span> 🚀
                 </p>
-              </div>
-              <div className={styles.mapPlaceholder}>
-                <MapPin className={styles.mapMarker} size={40} />
-                <div style={{ position: 'absolute', bottom: '1rem', right: '1rem' }}>
-                  <button className={`${styles.btn} ${styles.btnPrimary}`} style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
-                    Check-in ici
-                  </button>
-                </div>
+                <p className={styles.feedTime}>Il y a 2 heures</p>
               </div>
             </div>
 
-            {/* Video / Coach Card */}
-            <div className={styles.card}>
-              <div className={styles.cardHeader}>
-                <h2 className={styles.cardTitle}>
-                  <Video size={20} />
-                  Analyse Vidéo IA
-                </h2>
+            <div className={styles.feedItem}>
+              <div className={styles.feedAvatar}>M</div>
+              <div className={styles.feedContent}>
+                <p className={styles.feedText}>
+                  <strong>Marie</strong> a check-in au <strong>Ping Pang Café</strong> avec 3 amis.
+                </p>
+                <p className={styles.feedTime}>Il y a 4 heures</p>
               </div>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-                Uploadez votre dernière séance pour une analyse de votre gestuelle (revers, posture).
-              </p>
-              <button className={`${styles.btn} ${styles.btnOutline}`} style={{ width: '100%', justifyContent: 'space-between' }}>
-                Uploader une vidéo
-                <ChevronRight size={16} />
-              </button>
+            </div>
+
+            <div className={styles.feedItem}>
+              <div className={styles.feedAvatar}>L</div>
+              <div className={styles.feedContent}>
+                <p className={styles.feedText}>
+                  <strong>Lucas</strong> a terminé le drill <em>"Top-spin coup droit niveau avancé"</em>.
+                </p>
+                <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+                  <span className={styles.tag}>Top-spin</span>
+                  <span className={styles.tag}>Technique</span>
+                </div>
+                <p className={styles.feedTime}>Hier</p>
+              </div>
             </div>
           </div>
         </div>
-      </main>
-    </div>
+
+        {/* Column 2: Challenges & Map */}
+        <div className={styles.col}>
+          {/* Challenge Card */}
+          <div className={`${styles.card} ${styles.challengeCard}`}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle} style={{ color: 'white' }}>
+                <Trophy size={20} color="var(--primary)" />
+                Challenge {timeView === "Mois" ? "du mois" : timeView === "Semaine" ? "de la semaine" : "du jour"}
+              </h2>
+            </div>
+            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+              Faire 1000 top-spins pour gagner un badge et 20% chez Ping Pang Paris.
+            </p>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'white' }}>
+              <span>Progression</span>
+              <strong>750 / 1000</strong>
+            </div>
+            <div className={styles.progressBar}>
+              <div className={styles.progressFill} style={{ width: '75%' }}></div>
+            </div>
+          </div>
+
+          {/* Interactive Map Snippet */}
+          <div className={`${styles.card} ${styles.mapCard}`}>
+            <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)', zIndex: 10, position: 'relative', backgroundColor: 'rgba(10, 10, 10, 0.85)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <h2 className={styles.cardTitle}>
+                    <MapPin size={20} />
+                    Map des Tables & Clubs
+                  </h2>
+                  <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                    124 tables détectées autour de vous
+                  </p>
+                </div>
+                <button className={styles.btnOutline} style={{ padding: '0.5rem', borderRadius: '50%' }}>
+                  <Search size={16} />
+                </button>
+              </div>
+            </div>
+            <div className={styles.mapPlaceholder}>
+              {/* Fake markers simulating map data */}
+              <MapPin className={styles.mapMarker} style={{ top: '30%', left: '40%' }} size={32} />
+              <MapPin className={styles.mapMarker} style={{ top: '60%', left: '70%', color: 'var(--primary)', animationDelay: '1s' }} size={24} />
+              <MapPin className={styles.mapMarker} style={{ top: '20%', left: '80%', color: '#888', animationDelay: '0.5s' }} size={24} />
+              
+              <div style={{ position: 'absolute', bottom: '1rem', right: '1rem', zIndex: 10 }}>
+                <button className={`${styles.btn} ${styles.btnPrimary}`} style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+                  Ouvrir la Map
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Video / Coach Card */}
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>
+                <Video size={20} />
+                Analyse Vidéo IA
+              </h2>
+            </div>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+              Uploadez votre dernière séance pour une analyse de votre gestuelle (revers, posture).
+            </p>
+            <button className={`${styles.btn} ${styles.btnOutline}`} style={{ width: '100%', justifyContent: 'space-between' }}>
+              Uploader une vidéo
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
   );
 }

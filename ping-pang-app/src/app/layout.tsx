@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Sidebar } from "@/components/Sidebar";
 
 export const metadata: Metadata = {
   title: "Ping Pang Paris | Training & Social",
@@ -13,7 +14,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body>{children}</body>
+      <body>
+        <div style={{ display: 'flex', minHeight: '100vh', flexDirection: 'row' }}>
+          <Sidebar />
+          <div style={{ flex: 1, paddingBottom: '80px' }}>
+            {children}
+          </div>
+        </div>
+      </body>
     </html>
   );
 }
