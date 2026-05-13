@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import styles from "./Sidebar.module.css";
 import { 
   Activity, Map as MapIcon, Play, Users, 
-  Target, Plus
+  Target, Plus, Calendar
 } from "lucide-react";
 
 export function Sidebar() {
@@ -33,6 +33,10 @@ export function Sidebar() {
         <Link href="/journal" className={`${styles.navItem} ${isActive("/journal") ? styles.active : ""}`}>
           <Target size={20} />
           <span>Journal</span>
+        </Link>
+        <Link href="/calendrier" className={`${styles.navItem} ${isActive("/calendrier") ? styles.active : ""}`}>
+          <Calendar size={20} />
+          <span>Calendrier</span>
         </Link>
         <Link href="/map" className={`${styles.navItem} ${isActive("/map") ? styles.active : ""}`}>
           <MapIcon size={20} />

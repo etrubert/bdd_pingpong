@@ -73,16 +73,40 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Chart Placeholder */}
-            <div className={styles.chartPlaceholder}>
-              <div className={styles.chartBars}>
-                <div className={styles.bar} style={{ height: '30%' }}></div>
-                <div className={styles.bar} style={{ height: '50%' }}></div>
-                <div className={styles.bar} style={{ height: '40%' }}></div>
-                <div className={styles.bar} style={{ height: '70%' }}></div>
-                <div className={styles.bar} style={{ height: '60%' }}></div>
-                <div className={styles.bar} style={{ height: '90%' }}></div>
-                <div className={styles.bar} style={{ height: '100%' }}></div>
+            {/* Big Stats Squares */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1.5rem' }}>
+              <div style={{ 
+                backgroundColor: 'rgba(15, 76, 58, 0.1)', 
+                border: '1px solid var(--primary)', 
+                borderRadius: 'var(--radius-lg)', 
+                padding: '1.5rem', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                justifyContent: 'center', 
+                alignItems: 'center',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Niveau ELO</div>
+                <div style={{ fontSize: '3rem', fontFamily: 'Outfit, sans-serif', fontWeight: 800, color: 'var(--foreground)' }}>1450</div>
+                <div style={{ fontSize: '0.85rem', color: '#1ed760', marginTop: '0.5rem', fontWeight: 600 }}>Top 15%</div>
+              </div>
+
+              <div style={{ 
+                backgroundColor: 'var(--background)', 
+                border: '1px solid var(--border)', 
+                borderRadius: 'var(--radius-lg)', 
+                padding: '1.5rem', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                justifyContent: 'center', 
+                alignItems: 'center',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Heures d'entraînement</div>
+                <div style={{ fontSize: '3rem', fontFamily: 'Outfit, sans-serif', fontWeight: 800, color: 'var(--primary)' }}>
+                  {timeView === "Jour" ? "1h" : timeView === "Semaine" ? "5h" : "12h"}
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>Cumul {timeView.toLowerCase()}</div>
               </div>
             </div>
           </div>
