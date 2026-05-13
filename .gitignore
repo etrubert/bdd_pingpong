@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# Node / Vite generated files
+node_modules/
+Strav_pingpang/node_modules/
+Strav_pingpang/dist/
+Strav_pingpang/dist-ssr/
+*.log
+*.local
