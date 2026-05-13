@@ -24,11 +24,14 @@ from pathlib import Path
 from urllib.parse import quote_plus
 
 ROOT_DIR = Path(__file__).parent
-DATA_DIR = ROOT_DIR / "data"
+# Fallback : si data/ existe utilise-le, sinon racine
+DATA_DIR = ROOT_DIR / "data" if (ROOT_DIR / "data").exists() else ROOT_DIR
 PLAYERS_FR_CSV = DATA_DIR / "players.csv"
 PLAYERS_ES_CSV = DATA_DIR / "players_spain.csv"
 PLAYERS_PT_CSV = DATA_DIR / "players_portugals.csv"
 PLAYERS_CN_CSV = DATA_DIR / "players_chine.csv"
+PLAYERS_US_CSV = DATA_DIR / "players_usa.csv"
+PLAYERS_DE_CSV = DATA_DIR / "playeurs_allemagne.csv"
 OUTPUT_CSV = DATA_DIR / "maps_clubs.csv"
 
 OUTPUT_FIELDNAMES = ["club_nom", "pays", "url"]
@@ -42,6 +45,8 @@ COUNTRY_CONTEXT = {
     "Espagne": "tenis de mesa España",
     "Portugal": "ténis de mesa Portugal",
     "Chine": "乒乓球 中国",   # "ping-pong" + "Chine" en chinois — Google Maps supporte
+    "USA": "table tennis club USA",
+    "Allemagne": "Tischtennis Verein Deutschland",
 }
 
 logger = logging.getLogger(__name__)
@@ -79,6 +84,8 @@ def collecter_clubs() -> list:
         (PLAYERS_ES_CSV, "Espagne"),
         (PLAYERS_PT_CSV, "Portugal"),
         (PLAYERS_CN_CSV, "Chine"),
+        (PLAYERS_US_CSV, "USA"),
+        (PLAYERS_DE_CSV, "Allemagne"),
     ]
     seen = set()
     rows = []
