@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Bash(mv tmp-ping/* tmp-ping/.* .)",
+      "Bash(rtk ls:*)",
+      "Bash(npm install:*)",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}
