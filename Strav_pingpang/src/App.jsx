@@ -7,6 +7,7 @@ import IOSDevice from './components/IOSDevice';
 import HomeScreen from './screens/HomeScreen';
 import TrainScreen from './screens/TrainScreen';
 import MatchesScreen from './screens/MatchesScreen';
+import FinderScreen from './screens/FinderScreen';
 import PlaceholderScreen from './screens/PlaceholderScreen';
 
 function useViewport() {
@@ -28,7 +29,7 @@ export default function App() {
       case 'home':    return <HomeScreen onNav={setTab} />;
       case 'train':   return <TrainScreen />;
       case 'matches': return <MatchesScreen />;
-      case 'finder':  return <PlaceholderScreen title="FINDER" blurb="Locate clubs, tables and rivals across Paris." />;
+      case 'finder':  return <FinderScreen />;
       case 'merch':   return <PlaceholderScreen title="MERCH" blurb="Paddles, rubbers, apparel \u2014 curated for the active player." />;
       default:        return <HomeScreen onNav={setTab} />;
     }

@@ -37,21 +37,21 @@ function ProfileSheet() {
 export { ProfileSheet };
 
 export default function TopBar() {
-  const { setDrawer, openSheet } = useUI();
+  const { openSheet } = useUI();
   return (
     <div style={{
-      height: 64, padding: '0 22px', display: 'flex', alignItems: 'center',
-      justifyContent: 'space-between',
+      height: 64, padding: '0 22px', display: 'grid', alignItems: 'center',
+      gridTemplateColumns: '44px 1fr 44px',
       borderBottom: `1px solid ${C.border}`,
       background: 'rgba(8,22,17,0.55)',
       backdropFilter: 'blur(8px)',
       position: 'sticky', top: 0, zIndex: 5,
       color: C.ink,
     }}>
-      <button onClick={() => setDrawer(true)} style={iconBtn}>{Icon.menu(24)}</button>
+      <div />
       <div style={{
         fontFamily: fontDisplay, fontWeight: 800, letterSpacing: '0.05em',
-        fontSize: 18, color: C.ink, whiteSpace: 'nowrap',
+        fontSize: 18, color: C.ink, whiteSpace: 'nowrap', textAlign: 'center',
       }}>PING PANG PARIS</div>
       <button onClick={() => openSheet({
         title: 'EUGENIA SOREL',

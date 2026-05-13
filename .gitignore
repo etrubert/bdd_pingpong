@@ -11,5 +11,7 @@ node_modules/
 Strav_pingpang/node_modules/
 Strav_pingpang/dist/
 Strav_pingpang/dist-ssr/
+Strav_pingpang/.env
+Strav_pingpang/.env.local
 *.log
 *.local
