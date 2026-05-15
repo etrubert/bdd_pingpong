@@ -46,7 +46,7 @@ C.T.T.  VILABLAREIX,Espagne,https://www.google.com/maps/search/?api=1&query=%22C
 C.T.T. ALZIRA,Espagne,https://www.google.com/maps/search/?api=1&query=%22C.T.T.+ALZIRA%22+tenis+de+mesa+Espa%C3%B1a,40.379585,-3.706437
 CASTROSPIN,Espagne,https://www.google.com/maps/search/?api=1&query=%22CASTROSPIN%22+tenis+de+mesa+Espa%C3%B1a,40.379585,-3.706437
 CD COYANZA,Espagne,https://www.google.com/maps/search/?api=1&query=%22CD+COYANZA%22+tenis+de+mesa+Espa%C3%B1a,42.329023,-5.475773
-CD FIRGONG,Espagne,https://www.google.com/maps/search/?api=1&query=%22CD+FIRGONG%22+tenis+de+mesa+Espa%C3%B1a,,
+CD FIRGONG,Espagne,https://www.google.com/maps/search/?api=1&query=%22CD+FIRGONG%22+tenis+de+mesa+Espa%C3%B1a,28.110715,-15.559676
 CD INDIANA GAMES,Espagne,https://www.google.com/maps/search/?api=1&query=%22CD+INDIANA+GAMES%22+tenis+de+mesa+Espa%C3%B1a,40.437163,-3.703144
 CD NERVION TM CITY,Espagne,https://www.google.com/maps/search/?api=1&query=%22CD+NERVION+TM+CITY%22+tenis+de+mesa+Espa%C3%B1a,37.388708,-5.973413
 CD PEÑA DE LA AMISTAD,Espagne,https://www.google.com/maps/search/?api=1&query=%22CD+PE%C3%91A+DE+LA+AMISTAD%22+tenis+de+mesa+Espa%C3%B1a,28.497070,-13.859981
@@ -76,7 +76,7 @@ CTM CORVERASTUR,Espagne,https://www.google.com/maps/search/?api=1&query=%22CTM+C
 CTM COSTA AZAHAR,Espagne,https://www.google.com/maps/search/?api=1&query=%22CTM+COSTA+AZAHAR%22+tenis+de+mesa+Espa%C3%B1a,36.412381,-5.192738
 CTM CULLAR VEGA,Espagne,https://www.google.com/maps/search/?api=1&query=%22CTM+CULLAR+VEGA%22+tenis+de+mesa+Espa%C3%B1a,37.153542,-3.670319
 CTM EL RODEO,Espagne,https://www.google.com/maps/search/?api=1&query=%22CTM+EL+RODEO%22+tenis+de+mesa+Espa%C3%B1a,40.936186,-5.585143
-CTM GAILAK,Espagne,https://www.google.com/maps/search/?api=1&query=%22CTM+GAILAK%22+tenis+de+mesa+Espa%C3%B1a,,
+CTM GAILAK,Espagne,https://www.google.com/maps/search/?api=1&query=%22CTM+GAILAK%22+tenis+de+mesa+Espa%C3%B1a,43.266111,-1.974742
 CTM MOS,Espagne,https://www.google.com/maps/search/?api=1&query=%22CTM+MOS%22+tenis+de+mesa+Espa%C3%B1a,42.166581,-8.621853
 CTM MURCIA,Espagne,https://www.google.com/maps/search/?api=1&query=%22CTM+MURCIA%22+tenis+de+mesa+Espa%C3%B1a,37.624186,-0.991750
 CTM TECNIK ´87,Espagne,https://www.google.com/maps/search/?api=1&query=%22CTM+TECNIK+%C2%B487%22+tenis+de+mesa+Espa%C3%B1a,43.266331,-2.931087
@@ -105,7 +105,7 @@ FUENLABRADA TEAM,Espagne,https://www.google.com/maps/search/?api=1&query=%22FUEN
 FUENTE DE CANTOS,Espagne,https://www.google.com/maps/search/?api=1&query=%22FUENTE+DE+CANTOS%22+tenis+de+mesa+Espa%C3%B1a,38.246138,-6.307427
 GASTEIZ,Espagne,https://www.google.com/maps/search/?api=1&query=%22GASTEIZ%22+tenis+de+mesa+Espa%C3%B1a,42.850584,-2.661450
 GUADARRAMA,Espagne,https://www.google.com/maps/search/?api=1&query=%22GUADARRAMA%22+tenis+de+mesa+Espa%C3%B1a,40.672435,-4.089038
-GURE TALDE,Espagne,https://www.google.com/maps/search/?api=1&query=%22GURE+TALDE%22+tenis+de+mesa+Espa%C3%B1a,,
+GURE TALDE,Espagne,https://www.google.com/maps/search/?api=1&query=%22GURE+TALDE%22+tenis+de+mesa+Espa%C3%B1a,43.231411,-2.844051
 ILLAS CIES TM,Espagne,https://www.google.com/maps/search/?api=1&query=%22ILLAS+CIES+TM%22+tenis+de+mesa+Espa%C3%B1a,42.218925,-8.905576
 INCA,Espagne,https://www.google.com/maps/search/?api=1&query=%22INCA%22+tenis+de+mesa+Espa%C3%B1a,39.721145,2.911149
 INDEPENDIENTE-AND,Espagne,https://www.google.com/maps/search/?api=1&query=%22INDEPENDIENTE-AND%22+tenis+de+mesa+Espa%C3%B1a,41.634485,-4.739018
@@ -122,8 +122,8 @@ MADRID CTM,Espagne,https://www.google.com/maps/search/?api=1&query=%22MADRID+CTM
 MANZANARES,Espagne,https://www.google.com/maps/search/?api=1&query=%22MANZANARES%22+tenis+de+mesa+Espa%C3%B1a,38.996224,-3.372214
 MASQUEFA TTC,Espagne,https://www.google.com/maps/search/?api=1&query=%22MASQUEFA+TTC%22+tenis+de+mesa+Espa%C3%B1a,41.502635,1.811072
 MONTE PORREIRO,Espagne,https://www.google.com/maps/search/?api=1&query=%22MONTE+PORREIRO%22+tenis+de+mesa+Espa%C3%B1a,42.446265,-8.624308
-NATACIO MATARO,Espagne,https://www.google.com/maps/search/?api=1&query=%22NATACIO+MATARO%22+tenis+de+mesa+Espa%C3%B1a,,
-NOVACARTAMA TM,Espagne,https://www.google.com/maps/search/?api=1&query=%22NOVACARTAMA+TM%22+tenis+de+mesa+Espa%C3%B1a,,
+NATACIO MATARO,Espagne,https://www.google.com/maps/search/?api=1&query=%22NATACIO+MATARO%22+tenis+de+mesa+Espa%C3%B1a,41.539835,2.444893
+NOVACARTAMA TM,Espagne,https://www.google.com/maps/search/?api=1&query=%22NOVACARTAMA+TM%22+tenis+de+mesa+Espa%C3%B1a,36.710072,-4.631539
 OBERENA,Espagne,https://www.google.com/maps/search/?api=1&query=%22OBERENA%22+tenis+de+mesa+Espa%C3%B1a,42.804392,-1.637328
 OLOT,Espagne,https://www.google.com/maps/search/?api=1&query=%22OLOT%22+tenis+de+mesa+Espa%C3%B1a,42.182218,2.489021
 OVIEDO-MADRID,Espagne,https://www.google.com/maps/search/?api=1&query=%22OVIEDO-MADRID%22+tenis+de+mesa+Espa%C3%B1a,40.446729,-3.671876
@@ -168,15 +168,15 @@ ADC Ponta Pargo,Portugal,https://www.google.com/maps/search/?api=1&query=%22ADC+
 ALA GONDOMAR,Portugal,https://www.google.com/maps/search/?api=1&query=%22ALA+GONDOMAR%22+t%C3%A9nis+de+mesa+Portugal,41.134276,-8.534048
 APAE MUNDAO,Portugal,https://www.google.com/maps/search/?api=1&query=%22APAE+MUNDAO%22+t%C3%A9nis+de+mesa+Portugal,40.694619,-7.866127
 AR CANIDELO,Portugal,https://www.google.com/maps/search/?api=1&query=%22AR+CANIDELO%22+t%C3%A9nis+de+mesa+Portugal,41.115194,-8.662933
-AR Canidelense,Portugal,https://www.google.com/maps/search/?api=1&query=%22AR+Canidelense%22+t%C3%A9nis+de+mesa+Portugal,,
-AR NOVELENSE,Portugal,https://www.google.com/maps/search/?api=1&query=%22AR+NOVELENSE%22+t%C3%A9nis+de+mesa+Portugal,,
+AR Canidelense,Portugal,https://www.google.com/maps/search/?api=1&query=%22AR+Canidelense%22+t%C3%A9nis+de+mesa+Portugal,41.124188,-8.648524
+AR NOVELENSE,Portugal,https://www.google.com/maps/search/?api=1&query=%22AR+NOVELENSE%22+t%C3%A9nis+de+mesa+Portugal,41.223997,-8.292169
 ARC SOBRÃO,Portugal,https://www.google.com/maps/search/?api=1&query=%22ARC+SOBR%C3%83O%22+t%C3%A9nis+de+mesa+Portugal,41.273037,-8.396301
 ATM POUSADA,Portugal,https://www.google.com/maps/search/?api=1&query=%22ATM+POUSADA%22+t%C3%A9nis+de+mesa+Portugal,40.871339,-8.647808
 AV DE  LAMEGO - TM,Portugal,https://www.google.com/maps/search/?api=1&query=%22AV+DE++LAMEGO+-+TM%22+t%C3%A9nis+de+mesa+Portugal,40.214767,-8.415255
 BOA HORA FC,Portugal,https://www.google.com/maps/search/?api=1&query=%22BOA+HORA+FC%22+t%C3%A9nis+de+mesa+Portugal,38.704241,-9.189615
 CA DESP.BARBEITA,Portugal,https://www.google.com/maps/search/?api=1&query=%22CA+DESP.BARBEITA%22+t%C3%A9nis+de+mesa+Portugal,38.665161,-9.163340
 CA MADALENA,Portugal,https://www.google.com/maps/search/?api=1&query=%22CA+MADALENA%22+t%C3%A9nis+de+mesa+Portugal,38.710800,-9.139437
-CAD. OS VIANENSES,Portugal,https://www.google.com/maps/search/?api=1&query=%22CAD.+OS+VIANENSES%22+t%C3%A9nis+de+mesa+Portugal,,
+CAD. OS VIANENSES,Portugal,https://www.google.com/maps/search/?api=1&query=%22CAD.+OS+VIANENSES%22+t%C3%A9nis+de+mesa+Portugal,41.693513,-8.828277
 CC DE CURRELOS,Portugal,https://www.google.com/maps/search/?api=1&query=%22CC+DE+CURRELOS%22+t%C3%A9nis+de+mesa+Portugal,40.424361,-8.016485
 CC S.JOAO DA MADEIRA,Portugal,https://www.google.com/maps/search/?api=1&query=%22CC+S.JOAO+DA+MADEIRA%22+t%C3%A9nis+de+mesa+Portugal,40.888916,-8.490984
 CCR VALEGA,Portugal,https://www.google.com/maps/search/?api=1&query=%22CCR+VALEGA%22+t%C3%A9nis+de+mesa+Portugal,40.834947,-8.579334
@@ -213,10 +213,10 @@ GD SÃO CIBRÃO,Portugal,https://www.google.com/maps/search/?api=1&query=%22GD+S
 GD TOLEDOS,Portugal,https://www.google.com/maps/search/?api=1&query=%22GD+TOLEDOS%22+t%C3%A9nis+de+mesa+Portugal,38.545508,-28.506100
 GDCAAA GUILHABREU,Portugal,https://www.google.com/maps/search/?api=1&query=%22GDCAAA+GUILHABREU%22+t%C3%A9nis+de+mesa+Portugal,41.294595,-8.638224
 GDCS DO JUNCAL,Portugal,https://www.google.com/maps/search/?api=1&query=%22GDCS+DO+JUNCAL%22+t%C3%A9nis+de+mesa+Portugal,39.602744,-8.901978
-GR ESTª BONFIM,Portugal,https://www.google.com/maps/search/?api=1&query=%22GR+EST%C2%AA+BONFIM%22+t%C3%A9nis+de+mesa+Portugal,,
+GR ESTª BONFIM,Portugal,https://www.google.com/maps/search/?api=1&query=%22GR+EST%C2%AA+BONFIM%22+t%C3%A9nis+de+mesa+Portugal,41.151070,-8.593957
 IFC TORRENSE,Portugal,https://www.google.com/maps/search/?api=1&query=%22IFC+TORRENSE%22+t%C3%A9nis+de+mesa+Portugal,38.617701,-9.099888
 LFC LOUROSA,Portugal,https://www.google.com/maps/search/?api=1&query=%22LFC+LOUROSA%22+t%C3%A9nis+de+mesa+Portugal,40.983541,-8.549919
-MONTAMORA SC,Portugal,https://www.google.com/maps/search/?api=1&query=%22MONTAMORA+SC%22+t%C3%A9nis+de+mesa+Portugal,,
+MONTAMORA SC,Portugal,https://www.google.com/maps/search/?api=1&query=%22MONTAMORA+SC%22+t%C3%A9nis+de+mesa+Portugal,40.397249,-8.228717
 NCR VALONGO,Portugal,https://www.google.com/maps/search/?api=1&query=%22NCR+VALONGO%22+t%C3%A9nis+de+mesa+Portugal,41.190979,-8.498051
 OS UGAS A.D.C. EGA,Portugal,https://www.google.com/maps/search/?api=1&query=%22OS+UGAS+A.D.C.+EGA%22+t%C3%A9nis+de+mesa+Portugal,40.097568,-8.538607
 Real Cerveirense 1321 - AD,Portugal,https://www.google.com/maps/search/?api=1&query=%22Real+Cerveirense+1321+-+AD%22+t%C3%A9nis+de+mesa+Portugal,41.280178,-7.710108
@@ -281,3 +281,191 @@ VSC,Portugal,https://www.google.com/maps/search/?api=1&query=%22VSC%22+t%C3%A9ni
 重庆成现体育,Chine,https://www.google.com/maps/search/?api=1&query=%22%E9%87%8D%E5%BA%86%E6%88%90%E7%8E%B0%E4%BD%93%E8%82%B2%22+%E4%B9%92%E4%B9%93%E7%90%83+%E4%B8%AD%E5%9B%BD,30.002088,106.257216
 陕西三八妇乐,Chine,https://www.google.com/maps/search/?api=1&query=%22%E9%99%95%E8%A5%BF%E4%B8%89%E5%85%AB%E5%A6%87%E4%B9%90%22+%E4%B9%92%E4%B9%93%E7%90%83+%E4%B8%AD%E5%9B%BD,36.063377,103.832146
 黄石基地·华新,Chine,https://www.google.com/maps/search/?api=1&query=%22%E9%BB%84%E7%9F%B3%E5%9F%BA%E5%9C%B0%C2%B7%E5%8D%8E%E6%96%B0%22+%E4%B9%92%E4%B9%93%E7%90%83+%E4%B8%AD%E5%9B%BD,22.885813,108.274717
+Borussia Düsseldorf,Allemagne,https://www.google.com/maps/search/?api=1&query=%22Borussia+D%C3%BCsseldorf%22+Tischtennis+Deutschland,51.244546,6.828625
+TTC Schwalbe Bergneustadt,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+Schwalbe+Bergneustadt%22+Tischtennis+Deutschland,51.020742,7.649073
+TTC RhönSprudel Fulda-Maberzell,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+Rh%C3%B6nSprudel+Fulda-Maberzell%22+Tischtennis+Deutschland,50.477674,9.784164
+1. FC Saarbrücken-TT,Allemagne,https://www.google.com/maps/search/?api=1&query=%221.+FC+Saarbr%C3%BCcken-TT%22+Tischtennis+Deutschland,49.210168,7.114146
+TSV Bad Königshofen,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TSV+Bad+K%C3%B6nigshofen%22+Tischtennis+Deutschland,50.304710,10.467400
+Post SV Mühlhausen 1951 e.V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22Post+SV+M%C3%BChlhausen+1951+e.V.%22+Tischtennis+Deutschland,48.503224,8.462938
+Sportverein Union Velbert 2011 e.V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22Sportverein+Union+Velbert+2011+e.V.%22+Tischtennis+Deutschland,51.319209,7.062771
+TSG Kaiserslautern,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TSG+Kaiserslautern%22+Tischtennis+Deutschland,49.427630,7.755634
+Poland,Allemagne,https://www.google.com/maps/search/?api=1&query=%22Poland%22+Tischtennis+Deutschland,52.069300,19.480300
+ASC Grünwettersbach,Allemagne,https://www.google.com/maps/search/?api=1&query=%22ASC+Gr%C3%BCnwettersbach%22+Tischtennis+Deutschland,48.953044,8.478041
+TSV Dachau 65,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TSV+Dachau+65%22+Tischtennis+Deutschland,48.259509,11.434672
+TTC Zugbrücke Grenzau,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+Zugbr%C3%BCcke+Grenzau%22+Tischtennis+Deutschland,50.452512,7.661585
+SV DJK Kolbermoor,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SV+DJK+Kolbermoor%22+Tischtennis+Deutschland,47.854189,12.072649
+1. FC Köln 01/07 e.V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%221.+FC+K%C3%B6ln+01%2F07+e.V.%22+Tischtennis+Deutschland,50.557117,7.136606
+TSV Windsbach,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TSV+Windsbach%22+Tischtennis+Deutschland,49.279784,10.695136
+Oldenburger TB,Allemagne,https://www.google.com/maps/search/?api=1&query=%22Oldenburger+TB%22+Tischtennis+Deutschland,53.951423,13.610877
+BV Borussia 09 Dortmund,Allemagne,https://www.google.com/maps/search/?api=1&query=%22BV+Borussia+09+Dortmund%22+Tischtennis+Deutschland,51.487429,7.381556
+TTC OE Clarity Telefonie-Systeme Bad Homburg e.V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+OE+Clarity+Telefonie-Systeme+Bad+Homburg+e.V.%22+Tischtennis+Deutschland,50.215373,8.621293
+TV 1879 Hilpoltstein,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TV+1879+Hilpoltstein%22+Tischtennis+Deutschland,49.191310,11.197195
+DJK Sportbund Stuttgart,Allemagne,https://www.google.com/maps/search/?api=1&query=%22DJK+Sportbund+Stuttgart%22+Tischtennis+Deutschland,48.795725,9.223099
+ttc berlin eastside,Allemagne,https://www.google.com/maps/search/?api=1&query=%22ttc+berlin+eastside%22+Tischtennis+Deutschland,52.532075,13.450411
+TTC SR Hohenstein-Ernstthal,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+SR+Hohenstein-Ernstthal%22+Tischtennis+Deutschland,50.801140,12.709857
+SC Staig,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SC+Staig%22+Tischtennis+Deutschland,50.949956,10.396494
+TTC Waldniel,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+Waldniel%22+Tischtennis+Deutschland,50.202455,11.467123
+Füchse Berlin Reinickendorf,Allemagne,https://www.google.com/maps/search/?api=1&query=%22F%C3%BCchse+Berlin+Reinickendorf%22+Tischtennis+Deutschland,52.576594,13.356397
+SB Versbach,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SB+Versbach%22+Tischtennis+Deutschland,49.822119,9.984102
+TTC 1946 Weinheim e.V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+1946+Weinheim+e.V.%22+Tischtennis+Deutschland,49.570210,8.611918
+TGS Hausen 1897,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TGS+Hausen+1897%22+Tischtennis+Deutschland,48.148108,8.587650
+TTC RW 1921 Biebrich,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+RW+1921+Biebrich%22+Tischtennis+Deutschland,50.303029,7.954496
+DJK Franz-Sales-Haus Essen,Allemagne,https://www.google.com/maps/search/?api=1&query=%22DJK+Franz-Sales-Haus+Essen%22+Tischtennis+Deutschland,51.448004,7.041830
+Austria,Allemagne,https://www.google.com/maps/search/?api=1&query=%22Austria%22+Tischtennis+Deutschland,47.516200,14.550100
+TSV Algesdorf,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TSV+Algesdorf%22+Tischtennis+Deutschland,52.319945,9.343293
+TTC Kist,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+Kist%22+Tischtennis+Deutschland,50.202455,11.467123
+TTC GW Bad Hamm,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+GW+Bad+Hamm%22+Tischtennis+Deutschland,51.681281,7.819119
+TSV 1909 Langstadt,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TSV+1909+Langstadt%22+Tischtennis+Deutschland,49.923513,8.950714
+TuS Uentrop,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TuS+Uentrop%22+Tischtennis+Deutschland,51.692689,7.930363
+TTG Bingen/Münster-Sarmsheim,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTG+Bingen%2FM%C3%BCnster-Sarmsheim%22+Tischtennis+Deutschland,49.943350,7.892880
+TTC Zella-Mehlis e.V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+Zella-Mehlis+e.V.%22+Tischtennis+Deutschland,50.670154,10.653945
+TuS Celle,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TuS+Celle%22+Tischtennis+Deutschland,52.620744,10.048714
+Eintracht Frankfurt,Allemagne,https://www.google.com/maps/search/?api=1&query=%22Eintracht+Frankfurt%22+Tischtennis+Deutschland,50.099218,8.629209
+SportKultur Stuttgart,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SportKultur+Stuttgart%22+Tischtennis+Deutschland,48.765136,9.251518
+TV Refrath,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TV+Refrath%22+Tischtennis+Deutschland,50.957265,7.110805
+TSV Schwarzenbek,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TSV+Schwarzenbek%22+Tischtennis+Deutschland,53.503122,10.478564
+1. FSV Mainz 05 e. V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%221.+FSV+Mainz+05+e.+V.%22+Tischtennis+Deutschland,49.984513,8.223995
+Hannover 96,Allemagne,https://www.google.com/maps/search/?api=1&query=%22Hannover+96%22+Tischtennis+Deutschland,52.387311,9.727256
+SC Arminia Ochtrup,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SC+Arminia+Ochtrup%22+Tischtennis+Deutschland,52.210231,7.188806
+TTG St. Augustin,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTG+St.+Augustin%22+Tischtennis+Deutschland,50.202455,11.467123
+Gießener SV,Allemagne,https://www.google.com/maps/search/?api=1&query=%22Gie%C3%9Fener+SV%22+Tischtennis+Deutschland,50.560415,8.670089
+TTF Illtal,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTF+Illtal%22+Tischtennis+Deutschland,50.202455,11.467123
+TTC Lantenbach 1957 e.V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+Lantenbach+1957+e.V.%22+Tischtennis+Deutschland,51.046904,10.958362
+TTC immoXone Bietigheim-Bissingen,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+immoXone+Bietigheim-Bissingen%22+Tischtennis+Deutschland,48.949324,9.136423
+TV 1894 Okarben,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TV+1894+Okarben%22+Tischtennis+Deutschland,50.250451,8.754869
+TV Kieselbronn e.V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TV+Kieselbronn+e.V.%22+Tischtennis+Deutschland,48.931888,8.755651
+TSV Gilching-Argelsried,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TSV+Gilching-Argelsried%22+Tischtennis+Deutschland,48.109133,11.279549
+MTV Jever,Allemagne,https://www.google.com/maps/search/?api=1&query=%22MTV+Jever%22+Tischtennis+Deutschland,53.578665,7.894043
+SV Berliner Brauereien,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SV+Berliner+Brauereien%22+Tischtennis+Deutschland,52.536578,13.467923
+VfR Fehlheim 1929,Allemagne,https://www.google.com/maps/search/?api=1&query=%22VfR+Fehlheim+1929%22+Tischtennis+Deutschland,49.704864,8.571591
+TTC 95 Odenheim e.V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+95+Odenheim+e.V.%22+Tischtennis+Deutschland,49.186553,8.741317
+Germany,Allemagne,https://www.google.com/maps/search/?api=1&query=%22Germany%22+Tischtennis+Deutschland,51.028852,13.751290
+TTK Anröchte,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTK+Anr%C3%B6chte%22+Tischtennis+Deutschland,50.202455,11.467123
+TTF Neuhausen/F.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTF+Neuhausen%2FF.%22+Tischtennis+Deutschland,50.675000,13.466700
+TTS Borsum,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTS+Borsum%22+Tischtennis+Deutschland,50.202455,11.467123
+Tennis Borussia Berlin,Allemagne,https://www.google.com/maps/search/?api=1&query=%22Tennis+Borussia+Berlin%22+Tischtennis+Deutschland,52.557746,13.373114
+TTSF Hohberg,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTSF+Hohberg%22+Tischtennis+Deutschland,50.939471,9.587612
+TG 1953 Langenselbold,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TG+1953+Langenselbold%22+Tischtennis+Deutschland,50.178081,9.043330
+Sportclub Niestetal,Allemagne,https://www.google.com/maps/search/?api=1&query=%22Sportclub+Niestetal%22+Tischtennis+Deutschland,51.318698,9.586191
+SpVgg Gröningen-Satteldorf,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SpVgg+Gr%C3%B6ningen-Satteldorf%22+Tischtennis+Deutschland,49.181436,10.065876
+Tischtennisclub Elz,Allemagne,https://www.google.com/maps/search/?api=1&query=%22Tischtennisclub+Elz%22+Tischtennis+Deutschland,50.366662,7.602996
+TTV Neheim-Hüsten,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTV+Neheim-H%C3%BCsten%22+Tischtennis+Deutschland,51.437648,7.970908
+SC Marklohe,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SC+Marklohe%22+Tischtennis+Deutschland,50.949956,10.396494
+SV Siek,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SV+Siek%22+Tischtennis+Deutschland,53.651949,10.327428
+TV 06 Limbach,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TV+06+Limbach%22+Tischtennis+Deutschland,50.701205,7.799979
+TS Einfeld Neumünster,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TS+Einfeld+Neum%C3%BCnster%22+Tischtennis+Deutschland,54.129418,9.996459
+SV Motor 1951 Falkensee,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SV+Motor+1951+Falkensee%22+Tischtennis+Deutschland,52.569179,13.051515
+TV Friedeburg,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TV+Friedeburg%22+Tischtennis+Deutschland,48.366145,10.957927
+TSV Lunestedt,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TSV+Lunestedt%22+Tischtennis+Deutschland,53.436365,8.743645
+TTC Höchst/Nidder,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+H%C3%B6chst%2FNidder%22+Tischtennis+Deutschland,50.274009,8.928199
+FC Bayern München e.V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22FC+Bayern+M%C3%BCnchen+e.V.%22+Tischtennis+Deutschland,48.101018,11.574375
+SV Union Salzgitter,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SV+Union+Salzgitter%22+Tischtennis+Deutschland,52.038860,10.397155
+TTG Kleinsteinbach/Singen,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTG+Kleinsteinbach%2FSingen%22+Tischtennis+Deutschland,48.966922,8.559365
+TSV 1907 Allendorf/Lda,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TSV+1907+Allendorf%2FLda%22+Tischtennis+Deutschland,50.671672,8.813828
+TG Würzburg Heidingsfeld 1861,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TG+W%C3%BCrzburg+Heidingsfeld+1861%22+Tischtennis+Deutschland,49.764350,9.948910
+DJK Germania Lenkerbeck,Allemagne,https://www.google.com/maps/search/?api=1&query=%22DJK+Germania+Lenkerbeck%22+Tischtennis+Deutschland,51.666511,7.161638
+MTV Eintracht Bledeln,Allemagne,https://www.google.com/maps/search/?api=1&query=%22MTV+Eintracht+Bledeln%22+Tischtennis+Deutschland,52.269773,9.925342
+SpVgg Thalkirchen e.V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SpVgg+Thalkirchen+e.V.%22+Tischtennis+Deutschland,48.100372,11.547932
+TV 1860 Nassau e. V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TV+1860+Nassau+e.+V.%22+Tischtennis+Deutschland,47.649918,7.821985
+TV Ruhmannsfelden,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TV+Ruhmannsfelden%22+Tischtennis+Deutschland,48.982232,12.980520
+RSV 1921 Klein-Winternheim e. V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22RSV+1921+Klein-Winternheim+e.+V.%22+Tischtennis+Deutschland,49.939863,8.214833
+SV DJK Eggolsheim,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SV+DJK+Eggolsheim%22+Tischtennis+Deutschland,49.767996,11.064095
+TTC Langen 1950,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+Langen+1950%22+Tischtennis+Deutschland,49.991514,8.666702
+Post SV Gütersloh,Allemagne,https://www.google.com/maps/search/?api=1&query=%22Post+SV+G%C3%BCtersloh%22+Tischtennis+Deutschland,51.907184,8.330585
+TSV Bargteheide,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TSV+Bargteheide%22+Tischtennis+Deutschland,53.727967,10.261807
+Mettmann-Sport e.V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22Mettmann-Sport+e.V.%22+Tischtennis+Deutschland,51.145731,6.938919
+TTC Altena,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+Altena%22+Tischtennis+Deutschland,50.202455,11.467123
+TuS Sulingen,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TuS+Sulingen%22+Tischtennis+Deutschland,52.678966,8.830577
+DJK SpVgg Effeltrich,Allemagne,https://www.google.com/maps/search/?api=1&query=%22DJK+SpVgg+Effeltrich%22+Tischtennis+Deutschland,49.661488,11.092790
+TV Boos 1924,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TV+Boos+1924%22+Tischtennis+Deutschland,49.793421,7.717401
+DJK Offenburg,Allemagne,https://www.google.com/maps/search/?api=1&query=%22DJK+Offenburg%22+Tischtennis+Deutschland,48.476498,7.957536
+TTC Holzhausen,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+Holzhausen%22+Tischtennis+Deutschland,50.202455,11.467123
+DJK TTV Biederitz,Allemagne,https://www.google.com/maps/search/?api=1&query=%22DJK+TTV+Biederitz%22+Tischtennis+Deutschland,52.156710,11.719833
+VfR Birkmannsweiler,Allemagne,https://www.google.com/maps/search/?api=1&query=%22VfR+Birkmannsweiler%22+Tischtennis+Deutschland,48.864872,9.430574
+TSV Gräfelfing e.V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TSV+Gr%C3%A4felfing+e.V.%22+Tischtennis+Deutschland,48.225150,11.351029
+SC Poppenbüttel,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SC+Poppenb%C3%BCttel%22+Tischtennis+Deutschland,50.949956,10.396494
+Oberalster VfW,Allemagne,https://www.google.com/maps/search/?api=1&query=%22Oberalster+VfW%22+Tischtennis+Deutschland,53.629384,10.030538
+TuS Hornau,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TuS+Hornau%22+Tischtennis+Deutschland,50.153537,8.441351
+DJK Blau-Weiß Avenwedde,Allemagne,https://www.google.com/maps/search/?api=1&query=%22DJK+Blau-Wei%C3%9F+Avenwedde%22+Tischtennis+Deutschland,51.068985,10.349524
+SV Wolsfeld,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SV+Wolsfeld%22+Tischtennis+Deutschland,49.908012,6.467357
+TTF Besseringen,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTF+Besseringen%22+Tischtennis+Deutschland,50.202455,11.467123
+TTSC 09 Delmenhorst,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTSC+09+Delmenhorst%22+Tischtennis+Deutschland,53.048095,8.628607
+ESV Weil,Allemagne,https://www.google.com/maps/search/?api=1&query=%22ESV+Weil%22+Tischtennis+Deutschland,47.879159,11.281719
+SC Union Lüdinghausen,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SC+Union+L%C3%BCdinghausen%22+Tischtennis+Deutschland,51.760307,7.443586
+TTC indeland Jülich e.V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+indeland+J%C3%BClich+e.V.%22+Tischtennis+Deutschland,50.924313,6.343143
+SV Niklashausen e.V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SV+Niklashausen+e.V.%22+Tischtennis+Deutschland,49.703376,9.618362
+FT V. 1844 Freiburg,Allemagne,https://www.google.com/maps/search/?api=1&query=%22FT+V.+1844+Freiburg%22+Tischtennis+Deutschland,47.969641,7.698233
+TTC Düppel,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+D%C3%BCppel%22+Tischtennis+Deutschland,50.202455,11.467123
+SSV Neuhaus,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SSV+Neuhaus%22+Tischtennis+Deutschland,50.674741,13.465777
+TuS Germania Schnelsen,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TuS+Germania+Schnelsen%22+Tischtennis+Deutschland,53.637400,9.918831
+TV 1894 Braunfels,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TV+1894+Braunfels%22+Tischtennis+Deutschland,50.501725,8.401282
+TTV Ronsdorf,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTV+Ronsdorf%22+Tischtennis+Deutschland,50.202455,11.467123
+Hundsmühler TV,Allemagne,https://www.google.com/maps/search/?api=1&query=%22Hundsm%C3%BChler+TV%22+Tischtennis+Deutschland,53.113565,8.191990
+USV Jena e.V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22USV+Jena+e.V.%22+Tischtennis+Deutschland,50.917670,11.580028
+TTV Rees-Groin,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTV+Rees-Groin%22+Tischtennis+Deutschland,51.763661,6.396127
+Essener Tischtennis-Verein 23,Allemagne,https://www.google.com/maps/search/?api=1&query=%22Essener+Tischtennis-Verein+23%22+Tischtennis+Deutschland,51.088219,9.975828
+Post SV Zeulenroda,Allemagne,https://www.google.com/maps/search/?api=1&query=%22Post+SV+Zeulenroda%22+Tischtennis+Deutschland,50.648744,11.979507
+SVH 1945 Kassel,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SVH+1945+Kassel%22+Tischtennis+Deutschland,51.290086,9.618296
+SV DJK Holzbüttgen,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SV+DJK+Holzb%C3%BCttgen%22+Tischtennis+Deutschland,51.218968,6.617137
+SV Böblingen,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SV+B%C3%B6blingen%22+Tischtennis+Deutschland,48.695122,9.023120
+MTV 1881 Ingolstadt,Allemagne,https://www.google.com/maps/search/?api=1&query=%22MTV+1881+Ingolstadt%22+Tischtennis+Deutschland,48.763016,11.425040
+TSV Neuried e.V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TSV+Neuried+e.V.%22+Tischtennis+Deutschland,48.087274,11.463869
+TTC Dahn,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+Dahn%22+Tischtennis+Deutschland,50.202455,11.467123
+SV Sillenbuch,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SV+Sillenbuch%22+Tischtennis+Deutschland,48.747044,9.202912
+MSV Hettstedt,Allemagne,https://www.google.com/maps/search/?api=1&query=%22MSV+Hettstedt%22+Tischtennis+Deutschland,52.235063,11.006438
+TSV Nieder-Ramstadt,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TSV+Nieder-Ramstadt%22+Tischtennis+Deutschland,49.826597,8.703237
+Köpenicker SV-Ajax,Allemagne,https://www.google.com/maps/search/?api=1&query=%22K%C3%B6penicker+SV-Ajax%22+Tischtennis+Deutschland,52.439618,13.565528
+TTC Börde Magdeburg,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+B%C3%B6rde+Magdeburg%22+Tischtennis+Deutschland,52.032759,11.743323
+TTC Höhfröschen,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+H%C3%B6hfr%C3%B6schen%22+Tischtennis+Deutschland,50.202455,11.467123
+TTC SW Velbert,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+SW+Velbert%22+Tischtennis+Deutschland,51.340671,7.043991
+TTF Frankenthal,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTF+Frankenthal%22+Tischtennis+Deutschland,50.202455,11.467123
+SV Viktoria Preußen,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SV+Viktoria+Preu%C3%9Fen%22+Tischtennis+Deutschland,50.153030,8.676139
+DJK Ellwangen,Allemagne,https://www.google.com/maps/search/?api=1&query=%22DJK+Ellwangen%22+Tischtennis+Deutschland,48.998653,10.182248
+TTC 75 Mutschelbach e.V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTC+75+Mutschelbach+e.V.%22+Tischtennis+Deutschland,48.939261,8.535595
+TTG Niederkassel,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTG+Niederkassel%22+Tischtennis+Deutschland,50.202455,11.467123
+SCW Göttingen,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SCW+G%C3%B6ttingen%22+Tischtennis+Deutschland,51.548032,9.891723
+SV Al. 1907 Königstädten,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SV+Al.+1907+K%C3%B6nigst%C3%A4dten%22+Tischtennis+Deutschland,49.956060,8.451094
+PSV Oberhausen,Allemagne,https://www.google.com/maps/search/?api=1&query=%22PSV+Oberhausen%22+Tischtennis+Deutschland,51.287359,13.128006
+France,Allemagne,https://www.google.com/maps/search/?api=1&query=%22France%22+Tischtennis+Deutschland,50.108926,8.652330
+SG 1910 Marbach,Allemagne,https://www.google.com/maps/search/?api=1&query=%22SG+1910+Marbach%22+Tischtennis+Deutschland,50.626641,9.721795
+TTV Grün-Weiß Ettlingen e.V.,Allemagne,https://www.google.com/maps/search/?api=1&query=%22TTV+Gr%C3%BCn-Wei%C3%9F+Ettlingen+e.V.%22+Tischtennis+Deutschland,50.895455,7.085704
+USA National Team (USATT),USA,https://www.google.com/maps/search/?api=1&query=%22USA+National+Team+%28USATT%29%22+table+tennis+USA,43.056802,-89.467431
+Texas Smash,USA,https://www.google.com/maps/search/?api=1&query=%22Texas+Smash%22+table+tennis+USA,30.369343,-97.724180
+Bay Area Blasters,USA,https://www.google.com/maps/search/?api=1&query=%22Bay+Area+Blasters%22+table+tennis+USA,35.101420,-80.941765
+Chicago Wind,USA,https://www.google.com/maps/search/?api=1&query=%22Chicago+Wind%22+table+tennis+USA,38.383898,-97.910049
+Los Angeles Spinners,USA,https://www.google.com/maps/search/?api=1&query=%22Los+Angeles+Spinners%22+table+tennis+USA,34.050283,-118.240520
+Portland Paddlers,USA,https://www.google.com/maps/search/?api=1&query=%22Portland+Paddlers%22+table+tennis+USA,45.498041,-122.647672
+Carolina Gold Rush,USA,https://www.google.com/maps/search/?api=1&query=%22Carolina+Gold+Rush%22+table+tennis+USA,43.573298,-116.167126
+Princeton Revolution,USA,https://www.google.com/maps/search/?api=1&query=%22Princeton+Revolution%22+table+tennis+USA,34.421649,-118.596318
+Atlanta Blazers,USA,https://www.google.com/maps/search/?api=1&query=%22Atlanta+Blazers%22+table+tennis+USA,33.749000,-84.388000
+Florida Crocs,USA,https://www.google.com/maps/search/?api=1&query=%22Florida+Crocs%22+table+tennis+USA,28.538300,-81.379200
+New York Slice,USA,https://www.google.com/maps/search/?api=1&query=%22New+York+Slice%22+table+tennis+USA,40.797448,-73.970746
+A S VILLENAVE T T,France,https://www.google.com/maps/search/?api=1&query=%22A+S+VILLENAVE+T+T%22+tennis+de+table+France,46.808870,1.700300
+A. P. BARPAISE,France,https://www.google.com/maps/search/?api=1&query=%22A.+P.+BARPAISE%22+tennis+de+table+France,46.808870,1.700300
+A.S. ALCATEL LUCENT ILLKIRCH,France,https://www.google.com/maps/search/?api=1&query=%22A.S.+ALCATEL+LUCENT+ILLKIRCH%22+tennis+de+table+France,48.519302,7.741163
+A.S. MONACO,France,https://www.google.com/maps/search/?api=1&query=%22A.S.+MONACO%22+tennis+de+table+France,46.808870,1.700300
+A.S.C. MONTAUDRAN,France,https://www.google.com/maps/search/?api=1&query=%22A.S.C.+MONTAUDRAN%22+tennis+de+table+France,46.808870,1.700300
+A.S.L. OUVILLE LA RIVIER,France,https://www.google.com/maps/search/?api=1&query=%22A.S.L.+OUVILLE+LA+RIVIER%22+tennis+de+table+France,46.796764,1.723791
+A.S.T.T.ORGERES,France,https://www.google.com/maps/search/?api=1&query=%22A.S.T.T.ORGERES%22+tennis+de+table+France,46.808870,1.700300
+AAS FRESNES TENNIS DE TABLE,France,https://www.google.com/maps/search/?api=1&query=%22AAS+FRESNES+TENNIS+DE+TABLE%22+tennis+de+table+France,47.178092,2.160656
+ACsIOM,France,https://www.google.com/maps/search/?api=1&query=%22ACsIOM%22+tennis+de+table+France,47.178092,2.160656
+AIGREFEUILLAIS C.P.,France,https://www.google.com/maps/search/?api=1&query=%22AIGREFEUILLAIS+C.P.%22+tennis+de+table+France,46.808870,1.700300
+AIL ROUSSET,France,https://www.google.com/maps/search/?api=1&query=%22AIL+ROUSSET%22+tennis+de+table+France,47.827751,0.077522
+AIX ESPACE EN PEVELE,France,https://www.google.com/maps/search/?api=1&query=%22AIX+ESPACE+EN+PEVELE%22+tennis+de+table+France,43.649239,5.100294
+AIX LES MILLES TT,France,https://www.google.com/maps/search/?api=1&query=%22AIX+LES+MILLES+TT%22+tennis+de+table+France,43.649239,5.100294
+AL CHARREARD VENISSIEUX,France,https://www.google.com/maps/search/?api=1&query=%22AL+CHARREARD+VENISSIEUX%22+tennis+de+table+France,45.695026,4.895704
+AL COURS LA VILLE,France,https://www.google.com/maps/search/?api=1&query=%22AL+COURS+LA+VILLE%22+tennis+de+table+France,46.796764,1.723791
+AL ECHIROLLES-EYBENS TT,France,https://www.google.com/maps/search/?api=1&query=%22AL+ECHIROLLES-EYBENS+TT%22+tennis+de+table+France,45.148433,5.747704
+AL VILLECRESNES TENNIS DE TABLE,France,https://www.google.com/maps/search/?api=1&query=%22AL+VILLECRESNES+TENNIS+DE+TABLE%22+tennis+de+table+France,47.178092,2.160656
+AMICALE PONGISTE WOLXHEIM,France,https://www.google.com/maps/search/?api=1&query=%22AMICALE+PONGISTE+WOLXHEIM%22+tennis+de+table+France,48.759108,2.692720
+AMITIE LINGOLSHEIM,France,https://www.google.com/maps/search/?api=1&query=%22AMITIE+LINGOLSHEIM%22+tennis+de+table+France,48.555951,7.681794
+ANCENIS ST GEREON TT,France,https://www.google.com/maps/search/?api=1&query=%22ANCENIS+ST+GEREON+TT%22+tennis+de+table+France,47.368246,-1.184430
+ANICHE TT,France,https://www.google.com/maps/search/?api=1&query=%22ANICHE+TT%22+tennis+de+table+France,50.330917,3.250989
+ANTONY SP TENNIS DE TABLE,France,https://www.google.com/maps/search/?api=1&query=%22ANTONY+SP+TENNIS+DE+TABLE%22+tennis+de+table+France,47.178092,2.160656
+AS SAFFRÉ PIERRE BLEUE TT,France,https://www.google.com/maps/search/?api=1&query=%22AS+SAFFR%C3%89+PIERRE+BLEUE+TT%22+tennis+de+table+France,47.502034,-1.579792
+AS TT BREAL,France,https://www.google.com/maps/search/?api=1&query=%22AS+TT+BREAL%22+tennis+de+table+France,48.051357,-1.867686
+ASNIERES TT,France,https://www.google.com/maps/search/?api=1&query=%22ASNIERES+TT%22+tennis+de+table+France,49.194990,0.397230
+ASPTT TOULOUSE T.T.,France,https://www.google.com/maps/search/?api=1&query=%22ASPTT+TOULOUSE+T.T.%22+tennis+de+table+France,48.017752,0.168601
+AUBERVILLIERS CMTT,France,https://www.google.com/maps/search/?api=1&query=%22AUBERVILLIERS+CMTT%22+tennis+de+table+France,48.914300,2.383700
+AUDONIENNE USMA TT,France,https://www.google.com/maps/search/?api=1&query=%22AUDONIENNE+USMA+TT%22+tennis+de+table+France,48.905100,2.333800
+AULNAYSIENS AP,France,https://www.google.com/maps/search/?api=1&query=%22AULNAYSIENS+AP%22+tennis+de+table+France,48.759108,2.692720
