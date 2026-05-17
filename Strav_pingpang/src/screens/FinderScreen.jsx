@@ -21,6 +21,16 @@ const PARIS = [48.8566, 2.3522];
 const DEFAULT_ZOOM = 12;
 const FOCUS_ZOOM = 16;
 
+// Centre + zoom par pays (centre geographique approx.)
+const COUNTRY_VIEW = {
+  France:    { center: [46.6, 2.4],      zoom: 6 },
+  Allemagne: { center: [51.16, 10.45],   zoom: 6 },
+  Espagne:   { center: [40.46, -3.74],   zoom: 6 },
+  Portugal:  { center: [39.5, -8.0],     zoom: 7 },
+  Chine:     { center: [35.86, 104.19],  zoom: 4 },
+  USA:       { center: [39.5, -98.35],   zoom: 4 },
+};
+
 // Pin custom style Google Maps : teardrop bleu avec point blanc au centre
 const googleStylePin = L.divIcon({
   className: 'gmaps-pin',
@@ -86,6 +96,7 @@ export default function FinderScreen() {
   const [clubs, setClubs] = useState([]);
   const [selectedClub, setSelectedClub] = useState(null);
   const [query, setQuery] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState('');
   const [status, setStatus] = useState('Chargement des clubs...');
   const mapCardRef = useRef(null);
   const markersRef = useRef({});
@@ -104,22 +115,36 @@ export default function FinderScreen() {
       .catch(() => setStatus('Impossible de charger les clubs'));
   }, []);
 
+  // Liste des pays distincts presents dans le CSV
+  const countries = useMemo(() => {
+    const set = new Set();
+    clubs.forEach(c => { if (c.pays) set.add(c.pays); });
+    return Array.from(set).sort();
+  }, [clubs]);
+
+  // Clubs filtres par pays (base commune pour la carte + la liste)
+  const clubsByCountry = useMemo(() => {
+    return selectedCountry
+      ? clubs.filter(c => c.pays === selectedCountry)
+      : clubs;
+  }, [clubs, selectedCountry]);
+
   // Clubs avec coordonnees valides pour les marqueurs
   const clubsGeoloc = useMemo(() => {
-    return clubs.filter(c => {
+    return clubsByCountry.filter(c => {
       const lat = parseFloat(c.latitude);
       const lon = parseFloat(c.longitude);
       return Number.isFinite(lat) && Number.isFinite(lon);
     });
-  }, [clubs]);
+  }, [clubsByCountry]);
 
   const filteredClubs = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     const source = normalizedQuery
-      ? clubs.filter(club => club.club_nom.toLowerCase().includes(normalizedQuery))
-      : clubs;
+      ? clubsByCountry.filter(club => club.club_nom.toLowerCase().includes(normalizedQuery))
+      : clubsByCountry;
     return source.slice(0, 50);
-  }, [clubs, query]);
+  }, [clubsByCountry, query]);
 
   // Auto-select premier resultat de recherche
   useEffect(() => {
@@ -140,10 +165,15 @@ export default function FinderScreen() {
       const lon = parseFloat(selectedClub.longitude);
       if (Number.isFinite(lat) && Number.isFinite(lon)) return [lat, lon];
     }
+    if (selectedCountry && COUNTRY_VIEW[selectedCountry]) {
+      return COUNTRY_VIEW[selectedCountry].center;
+    }
     return PARIS;
-  }, [selectedClub]);
+  }, [selectedClub, selectedCountry]);
 
-  const mapZoom = selectedClub ? FOCUS_ZOOM : DEFAULT_ZOOM;
+  const mapZoom = selectedClub
+    ? FOCUS_ZOOM
+    : (selectedCountry && COUNTRY_VIEW[selectedCountry] ? COUNTRY_VIEW[selectedCountry].zoom : DEFAULT_ZOOM);
 
   function focusClub(club) {
     const lat = parseFloat(club.latitude);
@@ -263,7 +293,7 @@ export default function FinderScreen() {
             color: C.inkDim,
             textAlign: 'center',
           }}>
-            {clubsGeoloc.length}/{clubs.length} clubs localises sur la carte
+            {clubsGeoloc.length}/{clubsByCountry.length} clubs localises sur la carte
           </div>
         </Card>
       </div>
@@ -275,6 +305,47 @@ export default function FinderScreen() {
         style={inputStyle}
       />
 
+      {countries.length > 0 && (
+        <Card style={{ padding: 12 }}>
+          <div style={{ ...kicker, marginBottom: 10 }}>PAYS</div>
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 8,
+          }}>
+            {['', ...countries].map((country) => {
+              const isActive = selectedCountry === country;
+              const label = country || 'Tous';
+              return (
+                <button
+                  key={label}
+                  onClick={() => {
+                    setSelectedCountry(country);
+                    setSelectedClub(null);
+                  }}
+                  style={{
+                    all: 'unset',
+                    cursor: 'pointer',
+                    padding: '8px 14px',
+                    borderRadius: 10,
+                    border: `1px solid ${isActive ? C.cream : C.border}`,
+                    background: isActive ? 'rgba(239,229,200,0.12)' : 'rgba(8,22,17,0.45)',
+                    color: isActive ? C.cream : C.ink,
+                    fontFamily: fontSans,
+                    fontWeight: 700,
+                    fontSize: 12,
+                    letterSpacing: '0.08em',
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {selectedCountry && (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {filteredClubs.map(club => {
           const hasCoords = Number.isFinite(parseFloat(club.latitude))
@@ -321,6 +392,7 @@ export default function FinderScreen() {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }
