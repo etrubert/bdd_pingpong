@@ -12,7 +12,8 @@ export default function BottomNav({ tab, onTab }) {
   return (
     <div style={{
       position: 'absolute', bottom: 0, left: 0, right: 0,
-      paddingBottom: 28, paddingTop: 10,
+      paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+      paddingTop: 10,
       background: 'linear-gradient(to top, #081610 70%, rgba(8,22,17,0.0))',
       display: 'flex', justifyContent: 'space-around',
       borderTop: `1px solid ${C.border}`,

@@ -48,36 +48,41 @@ function ToastLayer({ toast }) {
 function Sheet({ sheet, onClose }) {
   const open = !!sheet;
   return (
-    <div onClick={onClose} style={{
+    <div style={{
       position: 'absolute', inset: 0, zIndex: 90,
       pointerEvents: open ? 'auto' : 'none',
-      background: open ? 'rgba(0,0,0,0.55)' : 'transparent',
-      transition: 'background .25s ease',
-      display: 'flex', alignItems: 'flex-end',
+      background: '#143226',
+      opacity: open ? 1 : 0,
+      transform: `translateY(${open ? 0 : 100}%)`,
+      transition: 'transform .32s cubic-bezier(.2,.8,.2,1), opacity .25s ease',
+      display: 'flex', flexDirection: 'column',
+      color: '#F2F7F2',
+      overflow: 'auto',
+      paddingTop: 'env(safe-area-inset-top, 0px)',
+      paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
     }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        width: '100%', maxHeight: '78%', overflow: 'auto',
-        background: '#143226', borderTopLeftRadius: 26, borderTopRightRadius: 26,
-        borderTop: '1px solid rgba(184,220,197,0.22)',
-        transform: `translateY(${open ? 0 : 100}%)`,
-        transition: 'transform .3s cubic-bezier(.2,.8,.2,1)',
-        padding: '14px 22px 110px',
-        color: '#F2F7F2',
-      }}>
-        <div style={{ width: 44, height: 4, borderRadius: 99, background: 'rgba(242,247,242,0.25)', margin: '4px auto 18px' }} />
-        {sheet && (
-          <>
-            <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 28, letterSpacing: '0.02em', marginBottom: 10 }}>{sheet.title}</div>
+      {sheet && (
+        <>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '14px 22px 8px',
+          }}>
+            <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 28, letterSpacing: '0.02em' }}>
+              {sheet.title}
+            </div>
+            <button onClick={onClose} aria-label="Close" style={{
+              all: 'unset', cursor: 'pointer',
+              width: 36, height: 36, borderRadius: 999,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(242,247,242,0.08)',
+              color: C.ink, fontSize: 22, lineHeight: 1,
+            }}>×</button>
+          </div>
+          <div style={{ padding: '12px 22px 0', flex: 1 }}>
             {sheet.body}
-            <button onClick={onClose} style={{
-              marginTop: 24, width: '100%', padding: '14px 20px', borderRadius: 12,
-              background: 'transparent', border: '1px solid rgba(184,220,197,0.32)',
-              color: C.cream, fontFamily: fontSans,
-              fontWeight: 700, fontSize: 12, letterSpacing: '0.18em', cursor: 'pointer',
-            }}>CLOSE</button>
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

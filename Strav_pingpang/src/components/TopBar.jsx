@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { C, fontDisplay, fontSans, kicker, iconBtn } from '../theme';
 import { Icon } from '../icons';
 import { useUI } from './uiContext';
@@ -36,18 +37,58 @@ function ProfileSheet() {
 
 export { ProfileSheet };
 
-export default function TopBar() {
+export default function TopBar({ topInset = 0 }) {
   const { openSheet } = useUI();
+  const ref = useRef(null);
+  const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const scroller = el.parentElement;
+    if (!scroller) return;
+    let lastY = scroller.scrollTop;
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const y = scroller.scrollTop;
+        const dy = y - lastY;
+        if (Math.abs(dy) > 4) {
+          if (dy > 0 && y > 64) setHidden(true);
+          else if (dy < 0) setHidden(false);
+          lastY = y;
+        }
+        ticking = false;
+      });
+    };
+    scroller.addEventListener('scroll', onScroll, { passive: true });
+    return () => scroller.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
-    <div style={{
-      height: 64, padding: '0 22px', display: 'grid', alignItems: 'center',
-      gridTemplateColumns: '44px 1fr 44px',
-      borderBottom: `1px solid ${C.border}`,
-      background: 'rgba(8,22,17,0.55)',
-      backdropFilter: 'blur(8px)',
+    <div ref={ref} style={{
+      paddingTop: `max(${topInset}px, env(safe-area-inset-top, 0px))`,
+      height: `calc(64px + max(${topInset}px, env(safe-area-inset-top, 0px)))`,
+      boxSizing: 'border-box',
+      paddingLeft: 22, paddingRight: 22,
+      display: 'flex', alignItems: 'center',
+      background: 'rgba(8,22,17,0.92)',
+      backdropFilter: 'blur(14px)',
+      WebkitBackdropFilter: 'blur(14px)',
       position: 'sticky', top: 0, zIndex: 5,
       color: C.ink,
+      transform: hidden ? 'translateY(-100%)' : 'translateY(0)',
+      transition: 'transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
+      willChange: 'transform',
     }}>
+      <div style={{
+        flex: 1,
+        display: 'grid', alignItems: 'center',
+        gridTemplateColumns: '44px 1fr 44px',
+        height: 64,
+      }}>
       <div />
       <div style={{
         fontFamily: fontDisplay, fontWeight: 800, letterSpacing: '0.05em',
@@ -57,6 +98,7 @@ export default function TopBar() {
         title: 'EUGENIA SOREL',
         body: <ProfileSheet />,
       })} style={iconBtn}>{Icon.user(26)}</button>
+      </div>
     </div>
   );
 }
