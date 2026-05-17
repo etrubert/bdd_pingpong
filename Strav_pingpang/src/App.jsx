@@ -8,6 +8,7 @@ import HomeScreen from './screens/HomeScreen';
 import TrainScreen from './screens/TrainScreen';
 import MatchesScreen from './screens/MatchesScreen';
 import FinderScreen from './screens/FinderScreen';
+import MerchScreen from './screens/MerchScreen';
 import PlaceholderScreen from './screens/PlaceholderScreen';
 
 function useViewport() {
@@ -30,7 +31,7 @@ export default function App() {
       case 'train':   return <TrainScreen />;
       case 'matches': return <MatchesScreen />;
       case 'finder':  return <FinderScreen />;
-      case 'merch':   return <PlaceholderScreen title="MERCH" blurb="Paddles, rubbers, apparel \u2014 curated for the active player." />;
+      case 'merch':   return <MerchScreen />;
       default:        return <HomeScreen onNav={setTab} />;
     }
   }, [tab]);
