@@ -9,6 +9,7 @@ import TrainScreen from './screens/TrainScreen';
 import MatchesScreen from './screens/MatchesScreen';
 import FinderScreen from './screens/FinderScreen';
 import MerchScreen from './screens/MerchScreen';
+import ChatScreen from './screens/ChatScreen';
 import PlaceholderScreen from './screens/PlaceholderScreen';
 
 function useViewport() {
@@ -41,13 +42,14 @@ export default function App() {
       case 'train':   return <TrainScreen />;
       case 'matches': return <MatchesScreen />;
       case 'finder':  return <FinderScreen />;
+      case 'chat':    return <ChatScreen />;
       case 'merch':   return <MerchScreen />;
       default:        return <HomeScreen onNav={setTab} />;
     }
   }, [tab]);
 
-  // IOSDevice mockup has a status bar zone (~62px). On real mobile, env(safe-area-inset-top) handles it.
-  const mockTopInset = isMobile ? 0 : 62;
+  // Pas de status bar dans le mockup. Sur mobile reel, env(safe-area-inset-top) est applique cote TopBar.
+  const mockTopInset = 0;
 
   const scrollRef = useRef(null);
 
