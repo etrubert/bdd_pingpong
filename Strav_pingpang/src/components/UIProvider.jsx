@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { C, fontDisplay, fontSans } from '../theme';
 import { UICtx } from './uiContext';
 
@@ -47,8 +47,12 @@ function ToastLayer({ toast }) {
 
 function Sheet({ sheet, onClose }) {
   const open = !!sheet;
+  const scrollRef = useRef(null);
+  useEffect(() => {
+    if (scrollRef.current && sheet) scrollRef.current.scrollTo({ top: 0, behavior: 'auto' });
+  }, [sheet]);
   return (
-    <div style={{
+    <div ref={scrollRef} style={{
       position: 'absolute', inset: 0, zIndex: 90,
       pointerEvents: open ? 'auto' : 'none',
       background: '#143226',
