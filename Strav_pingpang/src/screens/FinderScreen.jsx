@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
 import { C, fontDisplay, fontSans, kicker, inputStyle } from '../theme';
 import Card from '../components/Card';
@@ -18,6 +21,8 @@ L.Icon.Default.mergeOptions({
 });
 
 const PARIS = [48.8566, 2.3522];
+const WORLD_CENTER = [30, 10];
+const WORLD_ZOOM = 2;
 const DEFAULT_ZOOM = 12;
 const FOCUS_ZOOM = 16;
 
@@ -29,6 +34,16 @@ const COUNTRY_VIEW = {
   Portugal:  { center: [39.5, -8.0],     zoom: 7 },
   Chine:     { center: [35.86, 104.19],  zoom: 4 },
   USA:       { center: [39.5, -98.35],   zoom: 4 },
+};
+
+// Bounding boxes par pays (utilises pour filtrer les tables : champ country du CSV mostly empty)
+const COUNTRY_BBOX = {
+  France:    { lon: [-5.5, 9.8],  lat: [41, 51.5] },
+  Allemagne: { lon: [5.5, 15.5],  lat: [47, 55.5] },
+  Espagne:   { lon: [-9.5, 4.5],  lat: [35.5, 44] },
+  Portugal:  { lon: [-10, -6],    lat: [36.5, 42.5] },
+  Chine:     { lon: [73, 135],    lat: [18, 54] },
+  USA:       { lon: [-125, -66],  lat: [24, 50] },
 };
 
 // Pin custom style Google Maps : teardrop bleu avec point blanc au centre
@@ -92,8 +107,76 @@ function MapController({ center, zoom }) {
   return null;
 }
 
+// Icone "table" : petit cercle avec un point au centre (style mini-pin)
+const tableIcon = L.divIcon({
+  className: 'pp-table-pin',
+  html: `<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="8" cy="8" r="7" fill="#EFE5C8" stroke="#0C211A" stroke-width="1.4"/>
+    <circle cx="8" cy="8" r="2.4" fill="#0C211A"/>
+  </svg>`,
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
+  popupAnchor: [0, -8],
+});
+
+// Layer Leaflet.markercluster avec style sur-mesure dans le theme de l'app
+function TablesClusterLayer({ tables }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!tables.length) return undefined;
+    const group = L.markerClusterGroup({
+      chunkedLoading: true,
+      chunkInterval: 80,
+      chunkDelay: 16,
+      maxClusterRadius: 60,
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      iconCreateFunction: (cluster) => {
+        const count = cluster.getChildCount();
+        let size = 36;
+        let bg = '#9BC9AE';
+        if (count >= 1000)      { size = 60; bg = '#E89B8B'; }
+        else if (count >= 250)  { size = 52; bg = '#E8C99B'; }
+        else if (count >= 50)   { size = 44; bg = '#EFE5C8'; }
+        const label = count >= 1000 ? `${Math.round(count / 100) / 10}k` : String(count);
+        return L.divIcon({
+          html: `<div style="
+            width:${size}px;height:${size}px;border-radius:50%;
+            background:${bg};color:#0C211A;
+            display:flex;align-items:center;justify-content:center;
+            font-family:Inter,system-ui,sans-serif;font-weight:800;
+            font-size:${size > 50 ? 14 : 13}px;letter-spacing:0.02em;
+            border:2px solid rgba(12,33,26,0.85);
+            box-shadow:0 4px 12px rgba(0,0,0,0.35);
+          ">${label}</div>`,
+          className: 'pp-cluster',
+          iconSize: [size, size],
+        });
+      },
+    });
+    const markers = tables.map(t => {
+      const m = L.marker([t.lat, t.lon], { icon: tableIcon });
+      const namePart = t.name ? `<strong>${t.name}</strong><br>` : '';
+      const typePart = t.type ? `${t.type}${t.indoor === 'yes' ? ' &middot; indoor' : ''}<br>` : '';
+      const gm = t.gmaps || `https://www.google.com/maps/search/?api=1&query=${t.lat},${t.lon}`;
+      m.bindPopup(`<div style="font-family:sans-serif;font-size:13px">
+        ${namePart}<strong>${t.nb} table${t.nb > 1 ? 's' : ''}</strong><br>
+        ${typePart}<a href="${gm}" target="_blank" rel="noopener noreferrer">Ouvrir dans Google Maps</a>
+      </div>`);
+      return m;
+    });
+    group.addLayers(markers);
+    map.addLayer(group);
+    return () => { map.removeLayer(group); };
+  }, [tables, map]);
+  return null;
+}
+
 export default function FinderScreen() {
+  const [mode, setMode] = useState('clubs'); // 'clubs' | 'tables'
   const [clubs, setClubs] = useState([]);
+  const [tables, setTables] = useState([]); // [[lat, lon, n, type, indoor], ...]
+  const [tablesStatus, setTablesStatus] = useState('');
   const [selectedClub, setSelectedClub] = useState(null);
   const [query, setQuery] = useState('');
   const [selectedCountry, setSelectedCountry] = useState('');
@@ -110,10 +193,59 @@ export default function FinderScreen() {
       .then(text => {
         const parsed = parseClubsCsv(text);
         setClubs(parsed);
-        setStatus(parsed.length === 0 ? 'Aucun club France trouve' : '');
+        setStatus(parsed.length === 0 ? 'Aucun club trouve' : '');
       })
       .catch(() => setStatus('Impossible de charger les clubs'));
   }, []);
+
+  // Charge le CSV des tables une seule fois (au premier passage en mode 'tables')
+  const [tablesLoaded, setTablesLoaded] = useState(false);
+  useEffect(() => {
+    if (mode !== 'tables' || tablesLoaded) return;
+    setTablesStatus('Chargement des tables...');
+    fetch('/data/pingpong_tables_world.csv')
+      .then(r => {
+        if (!r.ok) throw new Error('CSV introuvable');
+        return r.text();
+      })
+      .then(text => {
+        const lines = text.split(/\r?\n/).filter(Boolean);
+        const headers = parseCsvLine(lines.shift() || '').map(h => h.replace(/^﻿/, ''));
+        const parsed = [];
+        for (const line of lines) {
+          const cells = parseCsvLine(line);
+          const row = {};
+          for (let i = 0; i < headers.length; i += 1) row[headers[i]] = cells[i] || '';
+          const lat = parseFloat(row.latitude);
+          const lon = parseFloat(row.longitude);
+          if (Number.isFinite(lat) && Number.isFinite(lon)) {
+            parsed.push({
+              lat, lon,
+              name: row.name || '',
+              type: row.type_lieu || '',
+              nb: parseInt(row.nombre_tables, 10) || 1,
+              indoor: row.indoor || '',
+              gmaps: row.lien_google_maps || '',
+            });
+          }
+        }
+        setTables(parsed);
+        setTablesLoaded(true);
+        setTablesStatus('');
+      })
+      .catch(() => setTablesStatus('Impossible de charger les tables'));
+  }, [mode, tablesLoaded]);
+
+  // Tables filtrees par pays (bbox)
+  const tablesFiltered = useMemo(() => {
+    if (!selectedCountry) return tables;
+    const bbox = COUNTRY_BBOX[selectedCountry];
+    if (!bbox) return tables;
+    return tables.filter(t =>
+      t.lon >= bbox.lon[0] && t.lon <= bbox.lon[1] &&
+      t.lat >= bbox.lat[0] && t.lat <= bbox.lat[1]
+    );
+  }, [tables, selectedCountry]);
 
   // Liste des pays distincts presents dans le CSV
   const countries = useMemo(() => {
@@ -207,7 +339,7 @@ export default function FinderScreen() {
           color: C.ink,
           letterSpacing: '0.02em',
           marginTop: 6,
-        }}>WORLD CLUBS</div>
+        }}>{mode === 'tables' ? 'WORLD TABLES' : 'WORLD CLUBS'}</div>
       </div>
 
       <div ref={mapCardRef}>
@@ -236,6 +368,9 @@ export default function FinderScreen() {
                 center={PARIS}
                 zoom={DEFAULT_ZOOM}
                 scrollWheelZoom
+                worldCopyJump
+                minZoom={2}
+                maxBounds={[[-85, -200], [85, 200]]}
                 style={{ height: '100%', width: '100%' }}
               >
                 <TileLayer
@@ -243,7 +378,7 @@ export default function FinderScreen() {
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
                 <MapController center={mapCenter} zoom={mapZoom} />
-                {clubsGeoloc.map((club) => {
+                {mode === 'clubs' && clubsGeoloc.map((club) => {
                   const lat = parseFloat(club.latitude);
                   const lon = parseFloat(club.longitude);
                   return (
@@ -272,6 +407,7 @@ export default function FinderScreen() {
                     </Marker>
                   );
                 })}
+                {mode === 'tables' && <TablesClusterLayer tables={tablesFiltered} />}
               </MapContainer>
             </div>
           )}
@@ -293,17 +429,46 @@ export default function FinderScreen() {
             color: C.inkDim,
             textAlign: 'center',
           }}>
-            {clubsGeoloc.length}/{clubsByCountry.length} clubs localises sur la carte
+            {mode === 'clubs'
+              ? `${clubsGeoloc.length}/${clubsByCountry.length} clubs localises sur la carte`
+              : (tablesStatus || `${tablesFiltered.length}${tables.length !== tablesFiltered.length ? `/${tables.length}` : ''} tables sur la carte`)}
           </div>
         </Card>
       </div>
 
-      <input
-        value={query}
-        onChange={event => setQuery(event.target.value)}
-        placeholder="Chercher un club"
-        style={inputStyle}
-      />
+      <div style={{ display: 'flex', gap: 8 }}>
+        {[
+          { id: 'clubs', label: 'CLUBS' },
+          { id: 'tables', label: 'TABLES' },
+        ].map(opt => {
+          const active = mode === opt.id;
+          return (
+            <button
+              key={opt.id}
+              onClick={() => { setMode(opt.id); setSelectedClub(null); }}
+              style={{
+                all: 'unset', cursor: 'pointer', flex: 1, textAlign: 'center',
+                padding: '12px',
+                borderRadius: 12,
+                border: `1px solid ${active ? C.cream : C.border}`,
+                background: active ? 'rgba(239,229,200,0.14)' : 'rgba(8,22,17,0.45)',
+                color: active ? C.cream : C.ink,
+                fontFamily: fontSans, fontWeight: 700, fontSize: 12,
+                letterSpacing: '0.16em',
+              }}
+            >{opt.label}</button>
+          );
+        })}
+      </div>
+
+      {mode === 'clubs' && (
+        <input
+          value={query}
+          onChange={event => setQuery(event.target.value)}
+          placeholder="Chercher un club"
+          style={inputStyle}
+        />
+      )}
 
       {countries.length > 0 && (
         <Card style={{ padding: 12 }}>
@@ -345,7 +510,7 @@ export default function FinderScreen() {
         </Card>
       )}
 
-      {selectedCountry && (
+      {mode === 'clubs' && selectedCountry && (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {filteredClubs.map(club => {
           const hasCoords = Number.isFinite(parseFloat(club.latitude))
