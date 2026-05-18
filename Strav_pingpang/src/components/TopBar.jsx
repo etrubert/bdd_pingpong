@@ -8,6 +8,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { C, fontDisplay, fontSans, fontItalic, kicker, iconBtn } from '../theme';
 import { Icon } from '../icons';
 import { useUI } from './uiContext';
+import { SELF_PROFILE_ID, loadChatBundle, saveChallenge, saveMessage, updateChallenge } from '../lib/chatData';
 
 // Marker icon for individual tables (small crème dot)
 const tableIcon = L.divIcon({
@@ -922,7 +923,28 @@ function NewChallengeView({ opponent }) {
   ];
   const HOURS = ['10h','11h','14h','16h','19h','Autre'];
 
-  const submit = () => {
+  const submit = async () => {
+    if (opponent.profileId || opponent.id) {
+      try {
+        await saveChallenge({
+          selfId: opponent.selfId || SELF_PROFILE_ID,
+          opponentId: opponent.profileId || opponent.id,
+          matchDate: recap,
+          venue,
+          format,
+          enjeu: enjeu === 'classe' ? 'Classe' : 'Amical',
+          message,
+          gainW: ELO_GAIN,
+          lossL: ELO_LOSS,
+          fromElo: 1450,
+          toElo: opponent.elo,
+        });
+      } catch (error) {
+        console.error(error);
+        showToast({ text: 'Défi affiché, mais pas sauvegardé dans Supabase.', duration: 2600 });
+        return;
+      }
+    }
     showToast(`Defi envoye a ${opponent.full || opponent.name}`);
     setTimeout(closeSheet, 300);
   };
@@ -1204,22 +1226,41 @@ const MOCK_THREADS = {
 };
 
 function ChatView({ contact, onBack, backLabel = 'Messages' }) {
-  const { openSheet, closeSheet } = useUI();
-  const [messages, setMessages] = useState(MOCK_THREADS[contact.full] || MOCK_THREADS.default);
+  const { openSheet, closeSheet, showToast } = useUI();
+  const initialMessages = useMemo(
+    () => (contact.messages?.length ? contact.messages : (MOCK_THREADS[contact.full] || MOCK_THREADS.default)),
+    [contact.conversationId, contact.full, contact.messages],
+  );
+  const [messages, setMessages] = useState(initialMessages);
   const [draft, setDraft] = useState('');
   const listRef = useRef(null);
+
+  useEffect(() => {
+    setMessages(initialMessages);
+  }, [initialMessages]);
 
   useEffect(() => {
     if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [messages]);
 
-  const send = () => {
+  const send = async () => {
     const text = draft.trim();
     if (!text) return;
     const now = new Date();
     const when = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
     setMessages(m => [...m, { from: 'me', text, when }]);
     setDraft('');
+    if (!contact.conversationId) return;
+    try {
+      await saveMessage({
+        conversationId: contact.conversationId,
+        senderId: contact.selfId || SELF_PROFILE_ID,
+        text,
+      });
+    } catch (error) {
+      console.error(error);
+      showToast({ text: 'Message gardé à l’écran, mais pas sauvegardé dans Supabase.', duration: 2600 });
+    }
   };
 
   const handleBack = onBack || closeSheet;
@@ -1247,7 +1288,7 @@ function ChatView({ contact, onBack, backLabel = 'Messages' }) {
       }}>
         <FriendAvatar color={contact.color} online={contact.online} size={44} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: fontSans, fontWeight: 700, fontSize: 15, color: C.ink }}>{contact.full}</div>
+          <div style={{ fontFamily: fontSans, fontWeight: 700, fontSize: 15, color: C.ink }}>{contact.full || contact.name}</div>
           <div style={{ fontFamily: fontSans, fontSize: 12, color: C.inkDim, marginTop: 2 }}>
             {contact.online ? <><span style={{ color: '#3DD16B' }}>●</span> en ligne</> : 'hors ligne'}
           </div>
@@ -1428,11 +1469,11 @@ function TeamGroupRow({ g, onClick }) {
   );
 }
 
-function ClubsTabContent() {
+function ClubsTabContent({ clubs = MY_CLUBS, announcements = [COACH_ANNOUNCE], training = NEXT_TRAINING, teamGroups = TEAM_GROUPS }) {
   const { openSheet, showToast } = useUI();
-  const a = COACH_ANNOUNCE;
+  const a = announcements[0] || COACH_ANNOUNCE;
   const [light, mid, dark] = a.color;
-  const t = NEXT_TRAINING;
+  const t = training || NEXT_TRAINING;
 
   const openCoachChat = () => {
     const coach = { full: a.author, name: a.author, color: a.color, online: false };
@@ -1445,7 +1486,7 @@ function ClubsTabContent() {
       <div>
         <div style={{ ...kicker, marginBottom: 10 }}>MES CLUBS</div>
         <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
-          {MY_CLUBS.map(c => (
+          {clubs.map(c => (
             <ClubChip
               key={c.name}
               club={c}
@@ -1534,8 +1575,9 @@ function ClubsTabContent() {
           }}>Voir tout</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {TEAM_GROUPS.map((g) => {
+          {teamGroups.map((g) => {
             const fakeContact = {
+              ...g,
               full: g.name, online: false, color: g.colors[0],
             };
             return (
@@ -1557,8 +1599,9 @@ function IncomingChallengeCard({ c, onAccept, onDecline, onModify }) {
   const [light, mid, dark] = c.color;
 
   const openProfileChat = () => {
-    const opp = { full: c.from + ' Leclerc', name: c.from, elo: c.elo, online: c.online, color: c.color };
-    openSheet({ title: c.from + ' Leclerc', body: <ChatView contact={opp} /> });
+    const full = c.full || `${c.from} Leclerc`;
+    const opp = { ...c, full, name: c.from, elo: c.elo, online: c.online, color: c.color };
+    openSheet({ title: full, body: <ChatView contact={opp} /> });
   };
   const accept  = onAccept  || (() => {});
   const decline = onDecline || (() => {});
@@ -2087,8 +2130,9 @@ function AcceptedChallengeCard({ c, ageMin = 0, onAgenda, onMessage, onMore }) {
   const [light, mid, dark] = c.color;
   const ageLabel = ageMin === 0 ? "À L'INSTANT" : `${ageMin} min`;
   const openProfileChat = () => {
-    const opp = { full: c.from + ' Leclerc', name: c.from, elo: c.elo, online: c.online, color: c.color };
-    openSheet({ title: c.from + ' Leclerc', body: <ChatView contact={opp} /> });
+    const full = c.full || `${c.from} Leclerc`;
+    const opp = { ...c, full, name: c.from, elo: c.elo, online: c.online, color: c.color };
+    openSheet({ title: full, body: <ChatView contact={opp} /> });
   };
   return (
     <div style={{
@@ -2162,6 +2206,15 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
   const accept = (c) => {
     setIncoming(prev => prev.filter(x => x !== c));
     setAccepted(prev => [{ ...c }, ...prev]);
+    if (c.challengeId) {
+      updateChallenge(c.challengeId, {
+        status: 'accepted',
+        responded_at: new Date().toISOString(),
+      }).catch((error) => {
+        console.error(error);
+        showToast({ text: 'Défi accepté ici, mais Supabase ne l’a pas sauvegardé.', duration: 2600 });
+      });
+    }
     showToast({
       text: `Défi accepté · ${c.from} a été notifié`,
       duration: 2200,
@@ -2174,8 +2227,18 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
       body: <RefuseModalView
         challenge={c}
         onCancel={closeSheet}
-        onConfirm={() => {
+        onConfirm={(reason) => {
           setIncoming(prev => prev.filter(x => x !== c));
+          if (c.challengeId) {
+            updateChallenge(c.challengeId, {
+              status: 'refused',
+              refusal_reason: reason || 'Refuse',
+              responded_at: new Date().toISOString(),
+            }).catch((error) => {
+              console.error(error);
+              showToast({ text: 'Défi refusé ici, mais Supabase ne l’a pas sauvegardé.', duration: 2600 });
+            });
+          }
           closeSheet();
           showToast({
             text: `Défi refusé. ${c.from} a été notifié poliment.`,
@@ -2227,8 +2290,9 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
   }
 
   const openAcceptedChat = (c) => {
-    const opp = { full: c.from + ' Leclerc', name: c.from, elo: c.elo, online: c.online, color: c.color };
-    openSheet({ title: c.from + ' Leclerc', body: <ChatView contact={opp} /> });
+    const full = c.full || `${c.from} Leclerc`;
+    const opp = { ...c, full, name: c.from, elo: c.elo, online: c.online, color: c.color };
+    openSheet({ title: full, body: <ChatView contact={opp} /> });
   };
 
   return (
@@ -2330,6 +2394,16 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
                     elo: 1612, format: 'BO5', enjeu: 'Classé', gainW: 14, lossL: 11,
                     date: c.counter.them, venue: 'Marais · T3',
                   }, ...prev]);
+                  if (c.challengeId) {
+                    updateChallenge(c.challengeId, {
+                      status: 'accepted',
+                      match_date: c.counter?.them || c.date,
+                      responded_at: new Date().toISOString(),
+                    }).catch((error) => {
+                      console.error(error);
+                      showToast({ text: 'Contre-proposition acceptée ici, mais Supabase ne l’a pas sauvegardée.', duration: 2800 });
+                    });
+                  }
                   showToast(`Créneau ${c.counter.them} accepté`);
                 }}
                 onProposeNew={() => {
@@ -2352,6 +2426,35 @@ export function MessagesView({ embedded = false }) {
   const [incoming, setIncoming] = useState(CHALLENGES_INCOMING);
   const [outgoing, setOutgoing] = useState(CHALLENGES_OUTGOING);
   const [accepted, setAccepted] = useState([]);
+  const [friends, setFriends] = useState(FRIENDS_ALL);
+  const [clubs, setClubs] = useState(MY_CLUBS);
+  const [announcements, setAnnouncements] = useState([COACH_ANNOUNCE]);
+  const [training, setTraining] = useState(NEXT_TRAINING);
+  const [teamGroups, setTeamGroups] = useState(TEAM_GROUPS);
+  const [dataStatus, setDataStatus] = useState('local');
+
+  useEffect(() => {
+    let cancelled = false;
+    loadChatBundle()
+      .then((bundle) => {
+        if (cancelled || !bundle) return;
+        setConversations(bundle.conversations.length ? bundle.conversations : CONVERSATIONS);
+        setIncoming(bundle.incoming);
+        setOutgoing(bundle.outgoing);
+        setAccepted(bundle.accepted);
+        setFriends(bundle.friends.length ? bundle.friends : FRIENDS_ALL);
+        setClubs(bundle.clubs.length ? bundle.clubs : MY_CLUBS);
+        setAnnouncements(bundle.announcements.length ? bundle.announcements : [COACH_ANNOUNCE]);
+        setTraining(bundle.training || NEXT_TRAINING);
+        setTeamGroups(bundle.teamGroups.length ? bundle.teamGroups : TEAM_GROUPS);
+        setDataStatus('supabase');
+      })
+      .catch((error) => {
+        console.error(error);
+        if (!cancelled) setDataStatus('error');
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const unreadCount = conversations.filter(c => c.unread).length;
   // Defis "a traiter" = incoming (entrants) + contre-propositions (a revalider)
@@ -2376,7 +2479,7 @@ export function MessagesView({ embedded = false }) {
 
   const stories = [
     { name: 'Toi',   color: COLOR_OCHRE, online: false, isMe: true },
-    ...FRIENDS_ALL.slice(0, 5).map(f => ({ ...f, name: f.name.replace(/\s.+$/, '') })),
+    ...friends.slice(0, 5).map(f => ({ ...f, name: f.name.replace(/\s.+$/, '') })),
   ];
 
   const isClubs = tab === 'clubs';
@@ -2390,6 +2493,15 @@ export function MessagesView({ embedded = false }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {!embedded && <BackToProfileBtn />}
+      {dataStatus === 'error' && (
+        <div style={{
+          padding: '10px 12px', borderRadius: 12,
+          background: 'rgba(232,155,139,0.08)', border: '1px solid rgba(232,155,139,0.30)',
+          color: '#E89B8B', fontFamily: fontSans, fontSize: 12.5,
+        }}>
+          Supabase indisponible, affichage des donnees locales.
+        </div>
+      )}
       <SearchInput placeholder={searchPlaceholder} />
 
       {/* Stories row — uniquement sur l'onglet Tous */}
@@ -2400,7 +2512,7 @@ export function MessagesView({ embedded = false }) {
               if (s.isMe) {
                 openSheet({ title: 'EUGENIA SOREL', body: <ProfileSheet /> });
               } else {
-                const contact = FRIENDS_ALL.find(f => f.name.startsWith(s.name)) || { full: s.name, color: s.color, online: s.online };
+                const contact = friends.find(f => f.name.startsWith(s.name)) || { full: s.name, color: s.color, online: s.online };
                 openSheet({ title: contact.full || s.name, body: <ChatView contact={contact} /> });
               }
             };
@@ -2460,7 +2572,7 @@ export function MessagesView({ embedded = false }) {
 
       {/* Content : conversations OU vue Defis OU vue Clubs */}
       {isClubs ? (
-        <ClubsTabContent />
+        <ClubsTabContent clubs={clubs} announcements={announcements} training={training} teamGroups={teamGroups} />
       ) : isDefis ? (
         <DefisTabContent
           incoming={incoming} setIncoming={setIncoming}

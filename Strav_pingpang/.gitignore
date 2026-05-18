@@ -1,3 +1,9 @@
+# Env (NE JAMAIS commiter — contient les cles Supabase et autres secrets)
+.env
+.env.local
+.env.*.local
+
+
 # Logs
 logs
 *.log
