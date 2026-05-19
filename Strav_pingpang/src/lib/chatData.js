@@ -3,14 +3,26 @@ import { insertRow, isSupabaseConfigured, selectRows, updateRows } from './supab
 export const SELF_PROFILE_ID = '11111111-1111-1111-1111-111111111111';
 
 const FALLBACK_COLOR = ['#cccccc', '#666666', '#222222'];
+const PALETTE = [
+  ['#a8c2db', '#3b5a7a', '#0d1a2a'],  // blue
+  ['#d6a8a8', '#7a3b3b', '#2a0d0d'],  // red
+  ['#bedba8', '#5a7a3b', '#1a2a0d'],  // green
+  ['#d6c0a8', '#7a5e3b', '#2a1f0d'],  // brown
+  ['#a8b8d6', '#3b4d7a', '#0d142a'],  // indigo
+  ['#d6b890', '#6b4a2e', '#1c100a'],  // ochre
+];
+
+// Couleur deterministe depuis l'id (utilise quand le profil n'a pas de couleur stockee)
+function colorFromId(id) {
+  if (!id) return FALLBACK_COLOR;
+  const hash = id.split('').reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 0);
+  return PALETTE[hash % PALETTE.length];
+}
 
 function profileColor(profile) {
   if (!profile) return FALLBACK_COLOR;
-  return [
-    profile.color_light || FALLBACK_COLOR[0],
-    profile.color_mid || FALLBACK_COLOR[1],
-    profile.color_dark || FALLBACK_COLOR[2],
-  ];
+  // colonnes color_* n'existent pas dans le schema — on derive de l'id
+  return colorFromId(profile.id);
 }
 
 function shortName(fullName = '') {
@@ -19,7 +31,9 @@ function shortName(fullName = '') {
 }
 
 function firstName(profileOrName) {
-  const name = typeof profileOrName === 'string' ? profileOrName : profileOrName?.full_name;
+  const name = typeof profileOrName === 'string'
+    ? profileOrName
+    : profileOrName?.display_name;
   return (name || '').split(' ')[0] || name || 'Joueur';
 }
 
@@ -44,6 +58,15 @@ function formatRelative(value) {
   if (days === 1) return 'Hier';
   if (days < 7) return `${days} j`;
   return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+}
+
+// Pour `match_date` lisible (ex: "Sam 21 · 14h")
+function formatMatchDate(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+  return `${days[date.getDay()]} ${date.getDate()} · ${date.getHours()}h${date.getMinutes() ? String(date.getMinutes()).padStart(2, '0') : ''}`;
 }
 
 function buildMembersByConversation(rows) {
@@ -73,57 +96,65 @@ function buildMessagesByConversation(rows, selfId) {
 }
 
 function mapProfile(profile, leaderboardRankById = new Map()) {
+  if (!profile) return null;
+  const fullName = profile.display_name || profile.email?.split('@')[0] || 'Joueur';
   return {
     id: profile.id,
     profileId: profile.id,
-    name: profile.short_name || shortName(profile.full_name),
-    full: profile.full_name,
-    elo: profile.elo,
-    rank: profile.rank || (leaderboardRankById.has(profile.id) ? `#${leaderboardRankById.get(profile.id)}` : null),
-    style: profile.style,
-    online: Boolean(profile.online),
+    name: shortName(fullName),
+    full: fullName,
+    elo: profile.elo_rating ?? null,
+    rank: leaderboardRankById.has(profile.id) ? `#${leaderboardRankById.get(profile.id)}` : null,
+    style: profile.play_style,
+    online: false, // pas trace dans le schema
     color: profileColor(profile),
   };
 }
 
 function challengeSummary(challenge) {
-  return [challenge.match_date, challenge.venue, challenge.format, challenge.enjeu]
+  return [formatMatchDate(challenge.proposed_date), challenge.proposed_location, challenge.message]
     .filter(Boolean)
     .join(' · ');
 }
 
+// Map statut Supabase ('pending', 'declined', 'accepted', 'completed', 'expired')
+// -> statut app ('sent', 'refused', 'accepted', 'completed', etc.)
+function mapStatus(status) {
+  switch (status) {
+    case 'declined':  return 'refused';
+    case 'pending':   return 'sent';
+    case 'accepted':  return 'accepted';
+    case 'completed': return 'completed';
+    case 'expired':   return 'expired';
+    default:          return status || 'sent';
+  }
+}
+
 function mapChallenge(challenge, profile, direction, leaderboardRankById) {
   const mappedProfile = mapProfile(profile, leaderboardRankById);
-  const common = {
+  const status = mapStatus(challenge.status);
+  return {
     id: challenge.id,
     challengeId: challenge.id,
     profileId: profile?.id,
-    full: mappedProfile.full,
+    full: mappedProfile?.full,
     from: firstName(profile),
-    color: mappedProfile.color,
-    online: mappedProfile.online,
-    elo: mappedProfile.elo,
-    rank: mappedProfile.rank,
+    color: mappedProfile?.color || FALLBACK_COLOR,
+    online: mappedProfile?.online || false,
+    elo: mappedProfile?.elo,
+    rank: mappedProfile?.rank,
     when: formatRelative(challenge.created_at),
-    status: challenge.status,
-    date: challenge.match_date,
-    venue: challenge.venue,
-    format: challenge.format,
-    enjeu: challenge.enjeu,
-    gainW: challenge.gain_w,
-    lossL: challenge.loss_l,
+    status,
+    date: formatMatchDate(challenge.proposed_date),
+    venue: challenge.proposed_location,
+    format: 'BO5',         // pas dans le schema, defaut affichage
+    enjeu: 'Classé',       // pas dans le schema, defaut affichage
+    gainW: 14,             // pas dans le schema, valeur indicative
+    lossL: 12,             // pas dans le schema, valeur indicative
     summary: challengeSummary(challenge),
-    refusalReason: challenge.refusal_reason,
-    seenAgo: challenge.seen_at ? formatRelative(challenge.seen_at) : null,
-    counter: challenge.counter_you || challenge.counter_them || challenge.counter_message
-      ? {
-          you: challenge.counter_you,
-          them: challenge.counter_them,
-          message: challenge.counter_message,
-        }
-      : null,
+    refusalReason: status === 'refused' ? (challenge.message || 'Pas dispo') : null,
+    isNew: direction === 'incoming' && status === 'sent',
   };
-  return direction === 'incoming' ? { ...common, isNew: challenge.status === 'sent' } : common;
 }
 
 function mapClub(club) {
@@ -131,7 +162,7 @@ function mapClub(club) {
     id: club.id,
     name: club.name,
     sub: club.sub || `${club.member_count || 0} membres`,
-    color: [club.color_light, club.color_mid, club.color_dark].map((c, i) => c || FALLBACK_COLOR[i]),
+    color: colorFromId(club.id),
     active: Boolean(club.is_active),
   };
 }
@@ -140,7 +171,7 @@ function mapAnnouncement(row, profilesById) {
   const author = profilesById.get(row.author_id);
   return {
     id: row.id,
-    author: author?.full_name || 'Coach',
+    author: author?.display_name || 'Coach',
     profileId: author?.id,
     color: profileColor(author),
     message: row.text,
@@ -187,13 +218,16 @@ export async function loadChatBundle() {
   ]);
 
   const profilesById = new Map(profiles.map((profile) => [profile.id, profile]));
-  const self = profiles.find((profile) => profile.is_self) || profilesById.get(SELF_PROFILE_ID) || profiles[0];
+  const self = profilesById.get(SELF_PROFILE_ID) || profiles[0];
   const selfId = self?.id || SELF_PROFILE_ID;
+
+  // Leaderboard derive de elo_rating
   const leaderboard = [...profiles]
-    .filter((profile) => Number.isFinite(profile.elo))
-    .sort((a, b) => b.elo - a.elo)
+    .filter((profile) => Number.isFinite(profile.elo_rating))
+    .sort((a, b) => b.elo_rating - a.elo_rating)
     .map((profile, index) => ({ ...mapProfile(profile), globalRank: index + 1 }));
   const leaderboardRankById = new Map(leaderboard.map((profile) => [profile.id, profile.globalRank]));
+
   const membersByConversation = buildMembersByConversation(memberships);
   const messagesByConversation = buildMessagesByConversation(messages, selfId);
 
@@ -219,7 +253,7 @@ export async function loadChatBundle() {
       rank: mappedProfile?.rank,
       color: mappedProfile?.color || profileColor(otherProfile),
       colorB: secondProfile ? profileColor(secondProfile) : null,
-      online: Boolean(otherProfile?.online),
+      online: Boolean(mappedProfile?.online),
       preview: conversation.preview || convMessages.at(-1)?.text || '',
       when: formatRelative(conversation.preview_at || conversation.created_at),
       unread: false,
@@ -230,6 +264,7 @@ export async function loadChatBundle() {
       messages: convMessages,
     };
   });
+
   const teamGroups = chatConversations
     .filter((conversation) => conversation.isClub)
     .map((conversation, index) => ({
@@ -250,21 +285,23 @@ export async function loadChatBundle() {
       messages: conversation.messages,
     }));
 
+  // Amis : tous les profils sauf moi, qui ne sont pas Coach/Antoine (33333333/44444444)
   const friends = profiles
     .filter((profile) => profile.id !== selfId && profile.id?.startsWith('22222222-'))
     .map((profile) => mapProfile(profile, leaderboardRankById));
 
+  // Defis - schema utilise challenger_id / challenged_id, status: pending/accepted/declined
   const incoming = challenges
-    .filter((challenge) => challenge.to_id === selfId && challenge.status !== 'accepted')
-    .map((challenge) => mapChallenge(challenge, profilesById.get(challenge.from_id), 'incoming', leaderboardRankById));
+    .filter((c) => c.challenged_id === selfId && c.status === 'pending')
+    .map((c) => mapChallenge(c, profilesById.get(c.challenger_id), 'incoming', leaderboardRankById));
   const outgoing = challenges
-    .filter((challenge) => challenge.from_id === selfId && challenge.status !== 'accepted')
-    .map((challenge) => mapChallenge(challenge, profilesById.get(challenge.to_id), 'outgoing', leaderboardRankById));
+    .filter((c) => c.challenger_id === selfId && c.status !== 'accepted' && c.status !== 'completed')
+    .map((c) => mapChallenge(c, profilesById.get(c.challenged_id), 'outgoing', leaderboardRankById));
   const accepted = challenges
-    .filter((challenge) => challenge.status === 'accepted' && [challenge.from_id, challenge.to_id].includes(selfId))
-    .map((challenge) => {
-      const otherId = challenge.from_id === selfId ? challenge.to_id : challenge.from_id;
-      return mapChallenge(challenge, profilesById.get(otherId), 'accepted', leaderboardRankById);
+    .filter((c) => c.status === 'accepted' && [c.challenger_id, c.challenged_id].includes(selfId))
+    .map((c) => {
+      const otherId = c.challenger_id === selfId ? c.challenged_id : c.challenger_id;
+      return mapChallenge(c, profilesById.get(otherId), 'accepted', leaderboardRankById);
     });
 
   return {
@@ -296,25 +333,25 @@ export async function saveMessage({ conversationId, senderId = SELF_PROFILE_ID, 
   return message;
 }
 
-export async function saveChallenge({ selfId = SELF_PROFILE_ID, opponentId, matchDate, venue, format, enjeu, message, gainW, lossL, fromElo, toElo }) {
+export async function saveChallenge({ selfId = SELF_PROFILE_ID, opponentId, matchDate, venue, format, enjeu, message }) {
   const [challenge] = await insertRow('challenges', {
-    from_id: selfId,
-    to_id: opponentId,
-    status: 'sent',
-    match_date: matchDate,
-    venue,
-    format,
-    enjeu,
-    message,
-    gain_w: gainW,
-    loss_l: lossL,
-    from_elo: fromElo,
-    to_elo: toElo,
+    challenger_id: selfId,
+    challenged_id: opponentId,
+    status: 'pending',
+    proposed_date: matchDate ? new Date(matchDate).toISOString() : null,
+    proposed_location: venue,
+    message: [format, enjeu, message].filter(Boolean).join(' · '),
   });
   return challenge;
 }
 
 export async function updateChallenge(challengeId, patch) {
-  const [challenge] = await updateRows('challenges', { id: `eq.${challengeId}` }, patch);
+  // Si patch contient app status -> mapper vers schema status
+  const schemaPatch = { ...patch };
+  if (patch.status) {
+    const map = { sent: 'pending', refused: 'declined', accepted: 'accepted', completed: 'completed' };
+    schemaPatch.status = map[patch.status] || patch.status;
+  }
+  const [challenge] = await updateRows('challenges', { id: `eq.${challengeId}` }, schemaPatch);
   return challenge;
 }

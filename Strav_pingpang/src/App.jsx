@@ -10,7 +10,9 @@ import MatchesScreen from './screens/MatchesScreen';
 import FinderScreen from './screens/FinderScreen';
 import MerchScreen from './screens/MerchScreen';
 import ChatScreen from './screens/ChatScreen';
+import OnboardingScreen from './screens/OnboardingScreen';
 import PlaceholderScreen from './screens/PlaceholderScreen';
+import { useOnboarding } from './lib/onboarding';
 
 function useViewport() {
   const [vp, setVp] = useState({
@@ -28,6 +30,7 @@ function useViewport() {
 export default function App() {
   const [tab, setTab] = useState('home');
   const { vw, vh, isMobile } = useViewport();
+  const { completed: onboardingDone } = useOnboarding();
 
   // iPhone aspect ratio (402:874 ≈ 0.46) — fit to viewport with some breathing room
   const PHONE_RATIO = 402 / 874;
@@ -64,13 +67,21 @@ export default function App() {
         position: 'relative', height: '100%', width: '100%',
         background: C.bgGrad, color: C.ink, overflow: 'hidden',
       }}>
-        <div ref={scrollRef} style={{
-          position: 'absolute', inset: 0, overflowY: 'auto',
-        }}>
-          <TopBar topInset={mockTopInset} />
-          {screen}
-        </div>
-        <BottomNav tab={tab} onTab={setTab} />
+        {!onboardingDone ? (
+          <div style={{ position: 'absolute', inset: 0, overflowY: 'auto' }}>
+            <OnboardingScreen />
+          </div>
+        ) : (
+          <>
+            <div ref={scrollRef} style={{
+              position: 'absolute', inset: 0, overflowY: 'auto',
+            }}>
+              <TopBar topInset={mockTopInset} />
+              {screen}
+            </div>
+            <BottomNav tab={tab} onTab={setTab} />
+          </>
+        )}
       </div>
     </UIProvider>
   );
