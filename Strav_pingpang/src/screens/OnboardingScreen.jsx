@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { C, fontDisplay, fontSans, fontItalic, kicker } from '../theme';
 import { useOnboarding } from '../lib/onboarding';
+import { signUp, signIn, updateProfile, useAuth } from '../lib/auth';
 
 // ----- Atomes UI -----
 function Pill({ active, onClick, children, full }) {
@@ -94,12 +95,39 @@ function FieldLabel({ children }) {
   return <div style={{ ...kicker, marginTop: 22, marginBottom: 10 }}>{children}</div>;
 }
 
-// ----- Step 0 : Connexion -----
-function StepConnexion({ onNext }) {
+// ----- Step 0 : Création de compte uniquement -----
+function StepConnexion({ onSignedUp }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const submit = async () => {
+    setError('');
+    if (!email || !password) return;
+    setLoading(true);
+    try {
+      const result = await signUp({ email, password });
+      // Sur certains projets Supabase, signUp ne retourne pas de session si
+      // confirmation email requise. On essaie alors signIn juste après.
+      if (!result?.session) {
+        try {
+          await signIn({ email, password });
+        } catch (e) {
+          // si confirmation requise : informer l'utilisateur
+          throw new Error(e.message || 'Compte créé mais connexion impossible (confirmation email requise ?)');
+        }
+      }
+      onSignedUp({ email });
+    } catch (e) {
+      setError(e.message || 'Erreur');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingTop: 30 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingTop: 30 }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
         <div style={{
           width: 70, height: 70, borderRadius: '50%',
@@ -114,10 +142,17 @@ function StepConnexion({ onNext }) {
         <div style={{ ...kicker, color: C.warm }}>TROUVE TON MATCH</div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 14 }}>
         <TextField value={email} onChange={setEmail} placeholder="Email" type="email" />
-        <TextField value={password} onChange={setPassword} placeholder="Mot de passe" type="password" />
-        <PrimaryBtn onClick={() => onNext({ email })} disabled={!email || !password}>CONTINUER</PrimaryBtn>
+        <TextField value={password} onChange={setPassword} placeholder="Mot de passe (8 caractères min.)" type="password" />
+        {error && (
+          <div style={{ fontFamily: fontSans, fontSize: 12, color: '#E89B8B', padding: '6px 4px' }}>
+            {error}
+          </div>
+        )}
+        <PrimaryBtn onClick={submit} disabled={!email || !password || loading}>
+          {loading ? '...' : 'CRÉER MON COMPTE'}
+        </PrimaryBtn>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: C.inkDim, fontSize: 11.5 }}>
@@ -127,12 +162,8 @@ function StepConnexion({ onNext }) {
       </div>
 
       <div style={{ display: 'flex', gap: 10 }}>
-        <GhostBtn onClick={() => onNext({ email: 'demo@google' })}>
-          <GoogleIcon /> Google
-        </GhostBtn>
-        <GhostBtn onClick={() => onNext({ email: 'demo@apple' })}>
-          <AppleIcon /> Apple
-        </GhostBtn>
+        <GhostBtn onClick={() => setError('Google OAuth — bientôt')}><GoogleIcon /> Google</GhostBtn>
+        <GhostBtn onClick={() => setError('Apple OAuth — bientôt')}><AppleIcon /> Apple</GhostBtn>
       </div>
     </div>
   );
@@ -428,26 +459,63 @@ function StepClub({ onFinish, initial }) {
   );
 }
 
+// Map valeurs UI vers les enums Supabase
+const HAND_MAP = { 'Droitier': 'droitier', 'Gaucher': 'gaucher' };
+const TYPE_MAP = { 'fun': 'fun', 'progress': 'progress', 'club': 'competition' };
+const LEVEL_MAP = { 'Débutant': 'debutant', 'Loisir': 'loisir', 'Intermédiaire': 'intermediaire', 'Confirmé': 'confirme', 'Compétition': 'confirme' };
+const STYLE_MAP = { 'Attaquant': 'attaquant', 'Défenseur': 'defenseur', 'Polyvalent': 'polyvalent', 'Je sais pas': 'inconnu' };
+const RACKET_MAP = { 'Pré-montée': 'pre_montee', 'Sur-mesure': 'sur_mesure', 'Je sais pas': 'inconnu' };
+
+async function saveProfileToSupabase(data) {
+  const patch = {};
+  if (data.fullName) patch.display_name = data.fullName;
+  if (data.region) patch.region = data.region;
+  if (HAND_MAP[data.handedness]) patch.dominant_hand = HAND_MAP[data.handedness];
+  if (TYPE_MAP[data.playerType]) patch.player_type = TYPE_MAP[data.playerType];
+  if (LEVEL_MAP[data.level]) patch.self_level = LEVEL_MAP[data.level];
+  if (STYLE_MAP[data.style]) patch.play_style = STYLE_MAP[data.style];
+  if (RACKET_MAP[data.racket]) patch.racket_type = RACKET_MAP[data.racket];
+  if (data.licenseNumber) patch.fftt_license = data.licenseNumber;
+  if (data.club) patch.club_name = data.club;
+  if (data.team) patch.team_name = data.team;
+  if (data.wood) patch.wood_blade = data.wood;
+  if (data.forehandRubber) patch.forehand_rubber = data.forehandRubber;
+  if (data.backhandRubber) patch.backhand_rubber = data.backhandRubber;
+  try { await updateProfile(patch); } catch {}
+}
+
 // ----- Composant principal -----
 export default function OnboardingScreen({ onComplete }) {
   const { save } = useOnboarding();
-  const [step, setStep] = useState(0);  // 0=connexion, 1=identité, 2=type, 3=last
-  const [data, setData] = useState({});
+  const { isAuthed, profile } = useAuth();
+  // Si deja authentifie mais profil incomplet → on saute directement au questionnaire
+  const initialStep = isAuthed ? 1 : 0;
+  const [step, setStep] = useState(initialStep);
+  const [data, setData] = useState(() => ({
+    email: profile?.email || '',
+    fullName: profile?.display_name || '',
+  }));
 
   const advance = (patch) => {
     setData(d => ({ ...d, ...patch }));
     setStep(s => s + 1);
   };
 
+  // Apres signup : on continue l'onboarding pour collecter les infos profil
+  const onSignedUp = ({ email }) => {
+    setData(d => ({ ...d, email }));
+    setStep(1);
+  };
+
   const finish = async (patch) => {
     const final = { ...data, ...patch, completed: true, completedAt: Date.now() };
-    await save(final);
+    await saveProfileToSupabase(final);   // upsert profile dans Supabase
+    await save(final);                     // persistance locale
     if (onComplete) onComplete(final);
   };
 
-  // Render current step
   let content;
-  if (step === 0)      content = <StepConnexion onNext={advance} />;
+  if (step === 0)      content = <StepConnexion onSignedUp={onSignedUp} />;
   else if (step === 1) content = <StepIdentity onNext={advance} onBack={() => setStep(0)} initial={data} />;
   else if (step === 2) content = <StepPlayerType onNext={advance} initial={data} />;
   else if (step === 3) {

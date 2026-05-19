@@ -231,7 +231,13 @@ export async function loadChatBundle() {
   const membersByConversation = buildMembersByConversation(memberships);
   const messagesByConversation = buildMessagesByConversation(messages, selfId);
 
-  const chatConversations = conversations.map((conversation) => {
+  // Ne garder que les conversations dont je suis membre
+  const myConvIdsForChat = new Set(
+    memberships.filter((m) => m.user_id === selfId).map((m) => m.conversation_id),
+  );
+  const myConversations = conversations.filter((c) => myConvIdsForChat.has(c.id));
+
+  const chatConversations = myConversations.map((conversation) => {
     const memberIds = membersByConversation.get(conversation.id) || [];
     const otherMemberIds = memberIds.filter((id) => id !== selfId);
     const otherProfile = profilesById.get(otherMemberIds[0]);
@@ -285,10 +291,24 @@ export async function loadChatBundle() {
       messages: conversation.messages,
     }));
 
-  // Amis : tous les profils sauf moi, qui ne sont pas Coach/Antoine (33333333/44444444)
-  const friends = profiles
-    .filter((profile) => profile.id !== selfId && profile.id?.startsWith('22222222-'))
-    .map((profile) => mapProfile(profile, leaderboardRankById));
+  // Amis = profils des autres membres avec qui j'ai au moins une conversation DM.
+  // Nouveau user sans aucune conversation -> liste vide (il ajoute qui il veut).
+  const myConvIds = new Set(
+    memberships.filter((m) => m.user_id === selfId).map((m) => m.conversation_id),
+  );
+  const dmConvIds = new Set(
+    conversations.filter((c) => c.type === 'dm' && myConvIds.has(c.id)).map((c) => c.id),
+  );
+  const friendIds = new Set();
+  memberships.forEach((m) => {
+    if (dmConvIds.has(m.conversation_id) && m.user_id !== selfId) {
+      friendIds.add(m.user_id);
+    }
+  });
+  const friends = [...friendIds]
+    .map((id) => profilesById.get(id))
+    .filter(Boolean)
+    .map((p) => mapProfile(p, leaderboardRankById));
 
   // Defis - schema utilise challenger_id / challenged_id, status: pending/accepted/declined
   const incoming = challenges

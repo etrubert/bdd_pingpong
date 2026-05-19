@@ -12,7 +12,7 @@ import MerchScreen from './screens/MerchScreen';
 import ChatScreen from './screens/ChatScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import PlaceholderScreen from './screens/PlaceholderScreen';
-import { useOnboarding } from './lib/onboarding';
+import { useAuth } from './lib/auth';
 
 function useViewport() {
   const [vp, setVp] = useState({
@@ -30,7 +30,11 @@ function useViewport() {
 export default function App() {
   const [tab, setTab] = useState('home');
   const { vw, vh, isMobile } = useViewport();
-  const { completed: onboardingDone } = useOnboarding();
+  const { isAuthed, profile } = useAuth();
+  // Onboarding fini = profil Supabase contient region ET player_type
+  // (champs obligatoires remplis pendant le questionnaire).
+  const onboardingDone = !!(profile?.region && profile?.player_type);
+  const showApp = isAuthed && onboardingDone;
 
   // iPhone aspect ratio (402:874 ≈ 0.46) — fit to viewport with some breathing room
   const PHONE_RATIO = 402 / 874;
@@ -67,7 +71,7 @@ export default function App() {
         position: 'relative', height: '100%', width: '100%',
         background: C.bgGrad, color: C.ink, overflow: 'hidden',
       }}>
-        {!onboardingDone ? (
+        {!showApp ? (
           <div style={{ position: 'absolute', inset: 0, overflowY: 'auto' }}>
             <OnboardingScreen />
           </div>
