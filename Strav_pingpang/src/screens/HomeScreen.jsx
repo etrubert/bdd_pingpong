@@ -4,6 +4,8 @@ import { useUI } from '../components/uiContext';
 import { ProfileSheet } from '../components/TopBar';
 import Card from '../components/Card';
 import { PaddleSVG } from '../components/SVGIllustrations';
+import { useAcceptedChallenges, useIncomingChallenges } from '../lib/challenges';
+import { useMatches } from '../lib/matches';
 
 function StatRow({ label, value, valueFont = fontSans }) {
   return (
@@ -45,6 +47,12 @@ function SessionSheet() {
 
 export default function HomeScreen({ onNav }) {
   const { showToast, openSheet } = useUI();
+  const [acceptedChallenges] = useAcceptedChallenges();
+  const [incomingChallenges] = useIncomingChallenges();
+  const [matches] = useMatches();
+  const nextChallenge = acceptedChallenges[0];        // priorité 1 : défi accepté
+  const pendingChallenge = incomingChallenges[0];     // priorité 2 : défi en attente
+  const lastMatch = matches[0];                       // match le plus récent
   return (
     <div style={{ padding: '20px 18px 130px', display: 'flex', flexDirection: 'column', gap: 18 }}>
       {/* Active player */}
@@ -114,10 +122,25 @@ export default function HomeScreen({ onNav }) {
         <button onClick={() => onNav('matches')} style={{ all: 'unset', cursor: 'pointer' }}>
         <Card style={{ padding: 18 }}>
           <div style={kicker}>LAST MATCH</div>
-          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, color: C.ink, fontFamily: fontSans, fontWeight: 700, fontSize: 18 }}>
-            <span style={{ color: C.mint }}>{Icon.history(16)}</span> 3-0 WIN
-          </div>
-          <div style={{ marginTop: 6, color: C.inkDim, fontFamily: fontSans, fontSize: 13 }}>vs. Marc-Andre</div>
+          {lastMatch ? (
+            <>
+              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, color: C.ink, fontFamily: fontSans, fontWeight: 700, fontSize: 18 }}>
+                <span style={{ color: lastMatch.win ? C.mint : C.loss }}>{Icon.history(16)}</span>
+                {lastMatch.score} {lastMatch.win ? 'WIN' : 'LOSS'}
+              </div>
+              <div style={{ marginTop: 6, color: C.inkDim, fontFamily: fontSans, fontSize: 13 }}>
+                vs. {lastMatch.name
+                  .replace('.', '')
+                  .split(' ')
+                  .map(w => w[0] + w.slice(1).toLowerCase())
+                  .join(' ')}
+              </div>
+            </>
+          ) : (
+            <div style={{ marginTop: 12, color: C.inkDim, fontFamily: fontSans, fontSize: 13 }}>
+              Aucun match récent
+            </div>
+          )}
         </Card>
         </button>
         <button onClick={() => showToast('Daily goal: 75% \u2014 keep going!')} style={{ all: 'unset', cursor: 'pointer' }}>
@@ -131,20 +154,106 @@ export default function HomeScreen({ onNav }) {
         </button>
       </div>
 
-      {/* Next session */}
-      <button onClick={() => openSheet({ title: 'NEXT CLUB SESSION', body: <SessionSheet /> })}
-        style={{ all: 'unset', cursor: 'pointer', display: 'block' }}>
-      <Card style={{ padding: 18 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ textAlign: 'left' }}>
-            <div style={kicker}>NEXT CLUB SESSION</div>
-            <div style={{ marginTop: 8, color: C.ink, fontFamily: fontSans, fontWeight: 700, fontSize: 16, letterSpacing: '0.04em' }}>LE MARAIS PING</div>
-            <div style={{ color: C.inkDim, fontFamily: fontSans, fontSize: 13, marginTop: 2 }}>Tomorrow, 18:30</div>
-          </div>
-          <div style={{ color: C.inkDim }}>{Icon.calendar(26)}</div>
-        </div>
-      </Card>
-      </button>
+      {/* Next session — défi accepté > défi en attente > club session */}
+      {nextChallenge ? (
+        <button onClick={() => onNav('chat')}
+          style={{ all: 'unset', cursor: 'pointer', display: 'block' }}>
+          <Card style={{
+            padding: 18,
+            background: 'linear-gradient(180deg, rgba(232,201,155,0.10) 0%, rgba(20,50,38,0) 70%), linear-gradient(180deg, #193E2F 0%, #143226 100%)',
+            border: '1px solid rgba(232,201,155,0.35)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div style={kicker}>NEXT MATCH</div>
+              <span style={{
+                fontFamily: fontSans, fontWeight: 800, fontSize: 10,
+                color: C.warm, background: 'rgba(232,201,155,0.18)',
+                border: '1px solid rgba(232,201,155,0.40)',
+                padding: '3px 9px', borderRadius: 999, letterSpacing: '0.10em',
+              }}>DÉFI ACCEPTÉ</span>
+            </div>
+            <div style={{
+              marginTop: 4, color: C.ink, fontFamily: fontSans, fontWeight: 700, fontSize: 16,
+            }}>vs {nextChallenge.full || `${nextChallenge.from}${nextChallenge.from === 'Marc' ? ' Leclerc' : ''}`}</div>
+            <div style={{
+              marginTop: 6, color: C.inkDim, fontFamily: fontSans, fontSize: 13,
+              display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+            }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: C.warm }}>
+                {Icon.calendar(13)} <span style={{ color: C.ink }}>{nextChallenge.date}</span>
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: C.warm }}>
+                {Icon.pin(13)} <span style={{ color: C.ink }}>{nextChallenge.venue}</span>
+              </span>
+            </div>
+            {(nextChallenge.format || nextChallenge.enjeu) && (
+              <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+                {nextChallenge.format && <span style={{
+                  fontFamily: fontSans, fontSize: 11, fontWeight: 700, color: C.ink,
+                  background: 'rgba(8,22,17,0.5)', border: `1px solid ${C.border}`,
+                  padding: '4px 9px', borderRadius: 7,
+                }}>{nextChallenge.format}</span>}
+                {nextChallenge.enjeu && <span style={{
+                  fontFamily: fontSans, fontSize: 11, fontWeight: 700, color: C.warm,
+                  background: 'rgba(232,201,155,0.10)', border: '1px solid rgba(232,201,155,0.30)',
+                  padding: '4px 9px', borderRadius: 7,
+                }}>{nextChallenge.enjeu}</span>}
+              </div>
+            )}
+          </Card>
+        </button>
+      ) : pendingChallenge ? (
+        <button onClick={() => onNav('chat')}
+          style={{ all: 'unset', cursor: 'pointer', display: 'block' }}>
+          <Card style={{
+            padding: 18,
+            background: 'linear-gradient(180deg, rgba(66,133,244,0.10) 0%, rgba(20,50,38,0) 70%), linear-gradient(180deg, #193E2F 0%, #143226 100%)',
+            border: '1px solid rgba(66,133,244,0.40)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div style={kicker}>DÉFI EN ATTENTE</div>
+              <span style={{
+                fontFamily: fontSans, fontWeight: 800, fontSize: 10,
+                color: '#7DA9F4', background: 'rgba(66,133,244,0.18)',
+                border: '1px solid rgba(66,133,244,0.40)',
+                padding: '3px 9px', borderRadius: 999, letterSpacing: '0.10em',
+              }}>À TRAITER</span>
+            </div>
+            <div style={{
+              marginTop: 4, color: C.ink, fontFamily: fontSans, fontWeight: 700, fontSize: 16,
+            }}>{pendingChallenge.from} te défie</div>
+            <div style={{
+              marginTop: 6, color: C.inkDim, fontFamily: fontSans, fontSize: 13,
+              display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+            }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#7DA9F4' }}>
+                {Icon.calendar(13)} <span style={{ color: C.ink }}>{pendingChallenge.date}</span>
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#7DA9F4' }}>
+                {Icon.pin(13)} <span style={{ color: C.ink }}>{pendingChallenge.venue}</span>
+              </span>
+            </div>
+            <div style={{
+              marginTop: 10, color: '#7DA9F4', fontFamily: fontSans, fontSize: 12, fontWeight: 700,
+              letterSpacing: '0.04em',
+            }}>Tape ici pour répondre →</div>
+          </Card>
+        </button>
+      ) : (
+        <button onClick={() => openSheet({ title: 'NEXT CLUB SESSION', body: <SessionSheet /> })}
+          style={{ all: 'unset', cursor: 'pointer', display: 'block' }}>
+          <Card style={{ padding: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ textAlign: 'left' }}>
+                <div style={kicker}>NEXT CLUB SESSION</div>
+                <div style={{ marginTop: 8, color: C.ink, fontFamily: fontSans, fontWeight: 700, fontSize: 16, letterSpacing: '0.04em' }}>LE MARAIS PING</div>
+                <div style={{ color: C.inkDim, fontFamily: fontSans, fontSize: 13, marginTop: 2 }}>Tomorrow, 18:30</div>
+              </div>
+              <div style={{ color: C.inkDim }}>{Icon.calendar(26)}</div>
+            </div>
+          </Card>
+        </button>
+      )}
 
       {/* Training volume */}
       <button onClick={() => showToast('Training volume: 12.4h this week (+1.2h)')}

@@ -8,6 +8,8 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { C, fontDisplay, fontSans, fontItalic, kicker, iconBtn } from '../theme';
 import { Icon } from '../icons';
 import { useUI } from './uiContext';
+import { useSharing } from '../lib/sharing';
+import { useAcceptedChallenges, useIncomingChallenges } from '../lib/challenges';
 import { SELF_PROFILE_ID, loadChatBundle, saveChallenge, saveMessage, updateChallenge } from '../lib/chatData';
 
 // Marker icon for individual tables (small crème dot)
@@ -2423,9 +2425,9 @@ export function MessagesView({ embedded = false }) {
   const { openSheet } = useUI();
   const [tab, setTab] = useState('tous');
   const [conversations, setConversations] = useState(CONVERSATIONS);
-  const [incoming, setIncoming] = useState(CHALLENGES_INCOMING);
+  const [incoming, setIncoming] = useIncomingChallenges();
   const [outgoing, setOutgoing] = useState(CHALLENGES_OUTGOING);
-  const [accepted, setAccepted] = useState([]);
+  const [accepted, setAccepted] = useAcceptedChallenges();
   const [friends, setFriends] = useState(FRIENDS_ALL);
   const [clubs, setClubs] = useState(MY_CLUBS);
   const [announcements, setAnnouncements] = useState([COACH_ANNOUNCE]);
@@ -2477,10 +2479,12 @@ export function MessagesView({ embedded = false }) {
     openSheet({ title: c.full, body: <ChatView contact={c} /> });
   };
 
+  const { sharing: meOnline, toggleSharing: toggleMeOnline } = useSharing();
   const stories = [
-    { name: 'Toi',   color: COLOR_OCHRE, online: false, isMe: true },
+    { name: 'Toi',   color: COLOR_OCHRE, online: meOnline, isMe: true },
     ...friends.slice(0, 5).map(f => ({ ...f, name: f.name.replace(/\s.+$/, '') })),
   ];
+  const onlineFriendsCount = friends.filter(f => f.online).length;
 
   const isClubs = tab === 'clubs';
   const isDefis = tab === 'defis';
@@ -2503,6 +2507,49 @@ export function MessagesView({ embedded = false }) {
         </div>
       )}
       <SearchInput placeholder={searchPlaceholder} />
+
+      {/* Statut en ligne — uniquement sur l'onglet Tous */}
+      {isTous && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 14px', borderRadius: 12,
+          background: meOnline ? 'rgba(61,209,107,0.08)' : 'rgba(184,220,197,0.04)',
+          border: `1px solid ${meOnline ? 'rgba(61,209,107,0.30)' : C.border}`,
+        }}>
+          <div style={{
+            width: 10, height: 10, borderRadius: '50%',
+            background: meOnline ? '#3DD16B' : C.inkFaint,
+            boxShadow: meOnline ? '0 0 0 4px rgba(61,209,107,0.18)' : 'none',
+            flexShrink: 0,
+          }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: fontSans, fontSize: 13, fontWeight: 700, color: C.ink }}>
+              {meOnline ? 'Tu apparais en ligne' : 'Tu apparais hors ligne'}
+            </div>
+            <div style={{ fontFamily: fontSans, fontSize: 11.5, color: C.inkDim, marginTop: 1 }}>
+              {meOnline
+                ? `${onlineFriendsCount} ami${onlineFriendsCount > 1 ? 's' : ''} en ligne · tes amis voient ta pastille verte`
+                : 'Tes amis ne voient pas que tu es connecté'}
+            </div>
+          </div>
+          <button onClick={toggleMeOnline} aria-label="Basculer statut en ligne"
+            style={{
+              all: 'unset', cursor: 'pointer',
+              width: 42, height: 24, borderRadius: 999,
+              background: meOnline ? '#3DD16B' : 'rgba(184,220,197,0.20)',
+              border: `1px solid ${meOnline ? 'rgba(61,209,107,0.5)' : C.border}`,
+              position: 'relative', transition: 'background .2s ease',
+              flexShrink: 0,
+            }}>
+            <div style={{
+              position: 'absolute', top: 2, left: meOnline ? 20 : 2,
+              width: 18, height: 18, borderRadius: '50%',
+              background: '#fff', transition: 'left .2s ease',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+            }} />
+          </button>
+        </div>
+      )}
 
       {/* Stories row — uniquement sur l'onglet Tous */}
       {isTous && (
@@ -2529,11 +2576,13 @@ export function MessagesView({ embedded = false }) {
                   <FriendAvatar color={s.color} online={s.online} size={56} />
                   {s.isMe && (
                     <div style={{
-                      position: 'absolute', bottom: -2, right: -2,
+                      position: 'absolute', top: -2, right: -2,
                       width: 18, height: 18, borderRadius: 4,
                       background: C.warm,
                       border: '2px solid #143226',
-                    }} />
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: '#0C211A', fontSize: 14, fontWeight: 800, lineHeight: 1,
+                    }}>+</div>
                   )}
                 </div>
                 <div style={{ fontFamily: fontSans, fontSize: 12, color: C.ink, fontWeight: 600 }}>{s.name}</div>

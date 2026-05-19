@@ -8,6 +8,38 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
 import { C, fontDisplay, fontSans, kicker, inputStyle } from '../theme';
 import Card from '../components/Card';
+import { useSharing } from '../lib/sharing';
+import { FRIEND_POSITIONS } from '../lib/friendsPositions';
+
+// Liste des amis (dupliquée ici depuis TopBar pour éviter import circulaire)
+const FRIENDS_FOR_MAP = [
+  { full: 'Marc Leclerc',    elo: 1520, online: true,  color: ['#a8c2db','#3b5a7a','#0d1a2a'] },
+  { full: 'Theo Rousseau',   elo: 1612, online: true,  color: ['#bedba8','#5a7a3b','#1a2a0d'] },
+  { full: 'Karim Benali',    elo: 1475, online: true,  color: ['#a8b8d6','#3b4d7a','#0d142a'] },
+  { full: 'Ines Fernandez',  elo: 1410, online: true,  color: ['#d6a8a8','#7a3b3b','#2a0d0d'] },
+  { full: 'Lucas Bernard',   elo: 1495, online: true,  color: ['#a8b8d6','#3b4d7a','#0d142a'] },
+  { full: 'Sophie Martin',   elo: 1380, online: false, color: ['#d6a8a8','#7a3b3b','#2a0d0d'] },
+  { full: 'Lea Petit',       elo: 1290, online: false, color: ['#d6c0a8','#7a5e3b','#2a1f0d'] },
+];
+
+function friendDivIcon(color, online) {
+  const [light, mid, dark] = color;
+  return L.divIcon({
+    className: 'friend-pin',
+    html: `<div style="position: relative; width: 38px; height: 38px;">
+      <div style="position: absolute; inset: 0; border-radius: 50%;
+        background: radial-gradient(60% 60% at 35% 30%, ${light} 0%, ${mid} 60%, ${dark} 100%);
+        border: 2.5px solid #EFE5C8;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.5);"></div>
+      ${online ? `<div style="position: absolute; bottom: -1px; right: -1px;
+        width: 12px; height: 12px; border-radius: 50%;
+        background: #3DD16B; border: 2px solid #0C211A;"></div>` : ''}
+    </div>`,
+    iconSize: [38, 38],
+    iconAnchor: [19, 19],
+    popupAnchor: [0, -20],
+  });
+}
 
 // Fix Leaflet marker icons (Vite ne bundle pas les assets statiques de leaflet par defaut)
 import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
@@ -45,6 +77,19 @@ const COUNTRY_BBOX = {
   Chine:     { lon: [73, 135],    lat: [18, 54] },
   USA:       { lon: [-125, -66],  lat: [24, 50] },
 };
+
+// Marker "Moi" - cercle bleu avec halo blanc style Google Maps
+const userPositionPin = L.divIcon({
+  className: 'user-position-pin',
+  html: `
+    <div style="position: relative; width: 22px; height: 22px;">
+      <div style="position: absolute; inset: -8px; border-radius: 50%; background: rgba(66,133,244,0.20); animation: pp-pulse 2s ease-out infinite;"></div>
+      <div style="position: absolute; inset: 0; border-radius: 50%; background: #4285F4; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.4);"></div>
+    </div>
+  `,
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
+});
 
 // Pin custom style Google Maps : teardrop bleu avec point blanc au centre
 const googleStylePin = L.divIcon({
@@ -184,6 +229,51 @@ export default function FinderScreen() {
   const mapCardRef = useRef(null);
   const markersRef = useRef({});
 
+  // === Geolocalisation ===
+  const [userPos, setUserPos] = useState(() => {
+    try {
+      const saved = localStorage.getItem('pp_user_pos');
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  });
+  const [geoStatus, setGeoStatus] = useState('idle'); // idle | asking | granted | denied | unsupported
+  const [geoError, setGeoError] = useState('');
+
+  // Partage position + statut en ligne avec les amis (consentement unifié)
+  const { sharing, setSharing } = useSharing();
+  // Affichage des amis sur la carte : seulement si je partage moi-même
+  const [showFriends, setShowFriends] = useState(true);
+
+  // Si on a deja une position dans le localStorage au mount, on marque granted
+  useEffect(() => {
+    if (userPos && geoStatus === 'idle') setGeoStatus('granted');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const requestLocation = () => {
+    if (!('geolocation' in navigator)) {
+      setGeoStatus('unsupported');
+      setGeoError("Ton navigateur ne supporte pas la geolocalisation");
+      return;
+    }
+    setGeoStatus('asking');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const p = [pos.coords.latitude, pos.coords.longitude];
+        setUserPos(p);
+        setGeoStatus('granted');
+        // En acceptant de partager la position, on active aussi le partage du statut en ligne
+        setSharing(true);
+        try { localStorage.setItem('pp_user_pos', JSON.stringify(p)); } catch {}
+      },
+      (err) => {
+        setGeoStatus('denied');
+        setGeoError(err.code === 1 ? 'Permission refusee' : 'Position introuvable');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 },
+    );
+  };
+
   useEffect(() => {
     fetch('/data/maps_clubs.csv')
       .then(response => {
@@ -300,12 +390,14 @@ export default function FinderScreen() {
     if (selectedCountry && COUNTRY_VIEW[selectedCountry]) {
       return COUNTRY_VIEW[selectedCountry].center;
     }
+    if (userPos) return userPos;
     return PARIS;
-  }, [selectedClub, selectedCountry]);
+  }, [selectedClub, selectedCountry, userPos]);
 
   const mapZoom = selectedClub
     ? FOCUS_ZOOM
-    : (selectedCountry && COUNTRY_VIEW[selectedCountry] ? COUNTRY_VIEW[selectedCountry].zoom : DEFAULT_ZOOM);
+    : (selectedCountry && COUNTRY_VIEW[selectedCountry] ? COUNTRY_VIEW[selectedCountry].zoom
+       : (userPos ? 13 : DEFAULT_ZOOM));
 
   function focusClub(club) {
     const lat = parseFloat(club.latitude);
@@ -341,6 +433,100 @@ export default function FinderScreen() {
           marginTop: 6,
         }}>{mode === 'tables' ? 'WORLD TABLES' : 'WORLD CLUBS'}</div>
       </div>
+
+      {/* Toggle Voir mes amis (visible uniquement si on partage soi-meme) */}
+      {sharing && geoStatus === 'granted' && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 14px', borderRadius: 12,
+          background: 'rgba(61,209,107,0.06)', border: '1px solid rgba(61,209,107,0.30)',
+        }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+            background: 'rgba(61,209,107,0.18)',
+            border: '1px solid rgba(61,209,107,0.45)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#3DD16B',
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+              <circle cx="9" cy="7" r="3.5"/><path d="M2 21c1.5-3.5 4.2-5 7-5s5.5 1.5 7 5"/><circle cx="17" cy="9" r="2.5"/><path d="M14 16c1-1.5 2.5-2.5 4-2.5s3 1 4 2.5"/>
+            </svg>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: fontSans, fontWeight: 700, fontSize: 13, color: C.ink }}>
+              Mes amis sur la carte
+            </div>
+            <div style={{ fontFamily: fontSans, fontSize: 11.5, color: C.inkDim, marginTop: 1 }}>
+              {showFriends
+                ? `${FRIENDS_FOR_MAP.filter(f => f.online && FRIEND_POSITIONS[f.full]).length} amis visibles autour de toi`
+                : 'Active pour voir les amis qui partagent leur position'}
+            </div>
+          </div>
+          <button onClick={() => setShowFriends(v => !v)} aria-label="Afficher mes amis" style={{
+            all: 'unset', cursor: 'pointer',
+            width: 42, height: 24, borderRadius: 999,
+            background: showFriends ? '#3DD16B' : 'rgba(184,220,197,0.20)',
+            border: `1px solid ${showFriends ? 'rgba(61,209,107,0.5)' : C.border}`,
+            position: 'relative', transition: 'background .2s ease',
+            flexShrink: 0,
+          }}>
+            <div style={{
+              position: 'absolute', top: 2, left: showFriends ? 20 : 2,
+              width: 18, height: 18, borderRadius: '50%',
+              background: '#fff', transition: 'left .2s ease',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+            }} />
+          </button>
+        </div>
+      )}
+
+      {/* Banniere geoloc */}
+      {geoStatus !== 'granted' && (
+        <div style={{
+          padding: '14px 16px', borderRadius: 14,
+          background: 'rgba(66,133,244,0.08)', border: '1px solid rgba(66,133,244,0.35)',
+          display: 'flex', alignItems: 'center', gap: 12,
+        }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+            background: 'rgba(66,133,244,0.18)', border: '1px solid rgba(66,133,244,0.45)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#7DA9F4',
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"/>
+              <circle cx="12" cy="9" r="2.5"/>
+            </svg>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: fontSans, fontWeight: 700, fontSize: 13.5, color: C.ink }}>
+              {geoStatus === 'denied' ? 'Permission refusée' :
+               geoStatus === 'unsupported' ? 'Géolocalisation non supportée' :
+               geoStatus === 'asking' ? 'Localisation en cours...' :
+               'Voir les clubs/tables proches de toi'}
+            </div>
+            <div style={{ fontFamily: fontSans, fontSize: 12, color: C.inkDim, marginTop: 2 }}>
+              {geoError || 'Partage ta position pour recentrer la carte sur ta zone'}
+            </div>
+          </div>
+          <button
+            onClick={requestLocation}
+            disabled={geoStatus === 'asking'}
+            style={{
+              all: 'unset', cursor: geoStatus === 'asking' ? 'wait' : 'pointer',
+              padding: '10px 14px', borderRadius: 10,
+              background: '#4285F4', color: '#fff',
+              fontFamily: fontSans, fontWeight: 700, fontSize: 12,
+              letterSpacing: '0.04em', flexShrink: 0,
+              opacity: geoStatus === 'asking' ? 0.6 : 1,
+            }}
+          >
+            {geoStatus === 'asking' ? '...' :
+             geoStatus === 'denied' ? 'Réessayer' :
+             'Partager'}
+          </button>
+        </div>
+      )}
 
       <div ref={mapCardRef}>
         <Card style={{ padding: 12, overflow: 'hidden' }}>
@@ -378,6 +564,33 @@ export default function FinderScreen() {
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
                 <MapController center={mapCenter} zoom={mapZoom} />
+                {userPos && (
+                  <Marker position={userPos} icon={userPositionPin}>
+                    <Popup>
+                      <div style={{ fontFamily: 'sans-serif', fontSize: 13 }}>
+                        <strong>Ta position</strong>
+                      </div>
+                    </Popup>
+                  </Marker>
+                )}
+                {sharing && showFriends && FRIENDS_FOR_MAP.filter(f => f.online && FRIEND_POSITIONS[f.full]).map(f => {
+                  const p = FRIEND_POSITIONS[f.full];
+                  return (
+                    <Marker
+                      key={f.full}
+                      position={[p.lat, p.lon]}
+                      icon={friendDivIcon(f.color, f.online)}
+                    >
+                      <Popup>
+                        <div style={{ fontFamily: 'sans-serif', fontSize: 13, minWidth: 160 }}>
+                          <strong>{f.full}</strong><br />
+                          {f.elo} ELO · {p.area}<br />
+                          <span style={{ color: '#3DD16B' }}>● en ligne</span>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  );
+                })}
                 {mode === 'clubs' && clubsGeoloc.map((club) => {
                   const lat = parseFloat(club.latitude);
                   const lon = parseFloat(club.longitude);
