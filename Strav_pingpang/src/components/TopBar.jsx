@@ -2744,65 +2744,6 @@ function ProfileSheet() {
         ))}
       </div>
 
-      {/* AMIS */}
-      <div>
-        <SectionHeader label="AMIS" badge={FRIENDS_TOTAL} onClick={openFriends} />
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between' }}>
-          {FRIENDS.map(f => (
-            <div key={f.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
-              <FriendAvatar color={f.color} online={f.online} />
-              <div style={{
-                fontFamily: fontSans, fontSize: 12, fontWeight: 700, color: C.ink,
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
-              }}>{f.name}</div>
-              <div style={{ fontFamily: fontSans, fontSize: 11, color: C.inkDim, fontWeight: 600 }}>{f.elo}</div>
-            </div>
-          ))}
-          <button onClick={openFriends} style={{
-            all: 'unset', cursor: 'pointer',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-            flex: 1, minWidth: 0,
-          }}>
-            <div style={{
-              width: 56, height: 56, borderRadius: '50%',
-              border: `1.5px dashed ${C.warm}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: C.warm, fontSize: 22, fontWeight: 700,
-            }}>+</div>
-            <div style={{
-              fontFamily: fontSans, fontSize: 12, fontWeight: 700, color: C.warm,
-            }}>Ajouter</div>
-            <div style={{ fontSize: 11, color: 'transparent' }}>—</div>
-          </button>
-        </div>
-      </div>
-
-      {/* HISTORIQUE */}
-      <div>
-        <SectionHeader label="HISTORIQUE" badge={STATS.total} onClick={openHistory} />
-        <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-          <StatTile value={STATS.wins}    label="VICTOIRES" color="#3DD16B" bg="rgba(61,209,107,0.08)" />
-          <StatTile value={STATS.losses}  label="DEFAITES"  color="#E89B8B" bg="rgba(232,155,139,0.08)" />
-          <StatTile value={`${STATS.winrate}%`} label="WINRATE" color={C.warm} bg="rgba(232,201,155,0.08)" />
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {MATCHES.map((m, i) => <MatchRow key={i} m={m} />)}
-        </div>
-      </div>
-
-      {/* CTA */}
-      <div style={{ marginTop: 6 }}>
-        <button onClick={openChallenge} style={{
-          width: '100%', padding: '15px', borderRadius: 12, cursor: 'pointer',
-          background: C.warm, color: '#0C211A',
-          fontFamily: fontSans, fontWeight: 700, fontSize: 16,
-          border: 'none',
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-        }}>
-          <SwordsIcon size={18} />
-          Défier
-        </button>
-      </div>
     </div>
   );
 }
