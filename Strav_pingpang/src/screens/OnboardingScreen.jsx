@@ -95,32 +95,45 @@ function FieldLabel({ children }) {
   return <div style={{ ...kicker, marginTop: 22, marginBottom: 10 }}>{children}</div>;
 }
 
-// ----- Step 0 : Création de compte uniquement -----
-function StepConnexion({ onSignedUp }) {
+// ----- Step 0 : Création de compte OU connexion -----
+function StepConnexion({ onSignedUp, onSignedIn }) {
+  const [mode, setMode] = useState('signup'); // 'signup' | 'signin'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const isSignup = mode === 'signup';
 
   const submit = async () => {
     setError('');
     if (!email || !password) return;
     setLoading(true);
     try {
-      const result = await signUp({ email, password });
-      // Sur certains projets Supabase, signUp ne retourne pas de session si
-      // confirmation email requise. On essaie alors signIn juste après.
-      if (!result?.session) {
-        try {
-          await signIn({ email, password });
-        } catch (e) {
-          // si confirmation requise : informer l'utilisateur
-          throw new Error(e.message || 'Compte créé mais connexion impossible (confirmation email requise ?)');
+      if (isSignup) {
+        const result = await signUp({ email, password });
+        if (!result?.session) {
+          try { await signIn({ email, password }); }
+          catch (e) {
+            throw new Error(e.message || 'Compte créé mais connexion impossible (confirmation email requise ?)');
+          }
         }
+        onSignedUp({ email });
+      } else {
+        // Connexion : on vérifie email + mot de passe contre Supabase auth.
+        await signIn({ email, password });
+        onSignedIn({ email });
       }
-      onSignedUp({ email });
     } catch (e) {
-      setError(e.message || 'Erreur');
+      const msg = e.message || 'Erreur';
+      // Message plus clair pour l'utilisateur sur les cas d'erreur fréquents.
+      if (/invalid login credentials/i.test(msg) || /invalid_grant/i.test(msg)) {
+        setError('Email ou mot de passe incorrect.');
+      } else if (/email not confirmed/i.test(msg)) {
+        setError('Email non confirmé. Vérifie ta boîte mail.');
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -142,16 +155,43 @@ function StepConnexion({ onSignedUp }) {
         <div style={{ ...kicker, color: C.warm }}>TROUVE TON MATCH</div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 14 }}>
+      {/* Toggle Inscription / Connexion */}
+      <div style={{
+        display: 'flex', gap: 6, padding: 4, borderRadius: 999,
+        background: 'rgba(8,22,17,0.55)', border: `1px solid ${C.border}`,
+      }}>
+        {[
+          { id: 'signup', label: 'Créer un compte' },
+          { id: 'signin', label: 'Se connecter' },
+        ].map(opt => {
+          const active = mode === opt.id;
+          return (
+            <button key={opt.id} onClick={() => { setMode(opt.id); setError(''); }} style={{
+              all: 'unset', cursor: 'pointer', flex: 1, textAlign: 'center',
+              padding: '10px 0', borderRadius: 999,
+              background: active ? C.warm : 'transparent',
+              color: active ? '#0C211A' : C.ink,
+              fontFamily: fontSans, fontWeight: 700, fontSize: 12.5, letterSpacing: '0.08em',
+            }}>{opt.label}</button>
+          );
+        })}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <TextField value={email} onChange={setEmail} placeholder="Email" type="email" />
-        <TextField value={password} onChange={setPassword} placeholder="Mot de passe (8 caractères min.)" type="password" />
+        <TextField
+          value={password}
+          onChange={setPassword}
+          placeholder={isSignup ? 'Mot de passe (8 caractères min.)' : 'Mot de passe'}
+          type="password"
+        />
         {error && (
           <div style={{ fontFamily: fontSans, fontSize: 12, color: '#E89B8B', padding: '6px 4px' }}>
             {error}
           </div>
         )}
         <PrimaryBtn onClick={submit} disabled={!email || !password || loading}>
-          {loading ? '...' : 'CRÉER MON COMPTE'}
+          {loading ? '...' : (isSignup ? 'CRÉER MON COMPTE' : 'SE CONNECTER')}
         </PrimaryBtn>
       </div>
 
@@ -507,6 +547,13 @@ export default function OnboardingScreen({ onComplete }) {
     setStep(1);
   };
 
+  // Apres signin : si le profil est deja complet, App.jsx affichera l'app.
+  // Sinon on poursuit le questionnaire pour completer.
+  const onSignedIn = ({ email }) => {
+    setData(d => ({ ...d, email }));
+    setStep(1);
+  };
+
   const finish = async (patch) => {
     const final = { ...data, ...patch, completed: true, completedAt: Date.now() };
     await saveProfileToSupabase(final);   // upsert profile dans Supabase
@@ -515,7 +562,7 @@ export default function OnboardingScreen({ onComplete }) {
   };
 
   let content;
-  if (step === 0)      content = <StepConnexion onSignedUp={onSignedUp} />;
+  if (step === 0)      content = <StepConnexion onSignedUp={onSignedUp} onSignedIn={onSignedIn} />;
   else if (step === 1) content = <StepIdentity onNext={advance} onBack={() => setStep(0)} initial={data} />;
   else if (step === 2) content = <StepPlayerType onNext={advance} initial={data} />;
   else if (step === 3) {
