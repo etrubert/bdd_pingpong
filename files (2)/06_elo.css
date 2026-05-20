@@ -1,0 +1,480 @@
+/* =====================================================================
+   PING PANG PARIS — Styles pour les nouveaux composants ELO
+   À placer dans : Strav_pingpang/src/styles/elo.css
+   (et à importer dans ton main.jsx ou App.jsx)
+   ===================================================================== */
+
+:root {
+  --ppp-bg: #1a3329;
+  --ppp-bg-dark: #0d1f17;
+  --ppp-gold: #d4a55a;
+  --ppp-text: #f4f1e8;
+  --ppp-text-soft: #c8d4cb;
+  --ppp-text-muted: #9ab5a3;
+  --ppp-text-dim: #6b8475;
+  --ppp-green: #4ade80;
+  --ppp-red: #f87171;
+  --ppp-stencil: 'Stencil Std', 'Courier New', monospace;
+}
+
+
+/* ======= Layout ======= */
+.ppp-screen {
+  background: var(--ppp-bg);
+  color: var(--ppp-text);
+  padding: 28px 22px;
+  border-radius: 28px;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.ppp-h1 {
+  font-family: var(--ppp-stencil);
+  font-size: 26px;
+  letter-spacing: 1.5px;
+  margin: 0;
+  color: var(--ppp-text);
+  font-weight: 500;
+}
+
+.ppp-title {
+  font-family: var(--ppp-stencil);
+  font-size: 22px;
+  letter-spacing: 1.5px;
+  margin: 0 0 6px;
+  color: var(--ppp-text);
+  font-weight: 500;
+}
+
+.ppp-subtitle {
+  margin: 0 0 18px;
+  font-size: 13px;
+  color: var(--ppp-text-muted);
+}
+
+
+/* ======= Stepper ======= */
+.ppp-stepper {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 22px;
+}
+
+.ppp-stepper .bar {
+  flex: 1;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+}
+
+.ppp-stepper .bar.active {
+  background: var(--ppp-gold);
+}
+
+.ppp-step-label {
+  margin: 0 0 8px;
+  font-size: 10px;
+  color: var(--ppp-text-muted);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+
+/* ======= Labels & inputs ======= */
+.ppp-field-label {
+  display: block;
+  font-size: 10px;
+  color: var(--ppp-text-muted);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin: 14px 0 10px;
+  font-weight: 600;
+}
+
+
+/* ======= Tags ======= */
+.ppp-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.ppp-tag {
+  background: rgba(255, 255, 255, 0.05);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  padding: 7px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  color: var(--ppp-text-soft);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.ppp-tag:hover {
+  border-color: rgba(212, 165, 90, 0.3);
+}
+
+.ppp-tag.active {
+  background: var(--ppp-gold);
+  color: var(--ppp-bg);
+  border-color: var(--ppp-gold);
+  font-weight: 700;
+}
+
+
+/* ======= Liste niveau (boutons larges) ======= */
+.ppp-level-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.ppp-level-row {
+  background: rgba(255, 255, 255, 0.05);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 11px;
+  color: var(--ppp-text-soft);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.ppp-level-row.active {
+  background: var(--ppp-gold);
+  color: var(--ppp-bg);
+  border-color: var(--ppp-gold);
+  font-weight: 700;
+}
+
+
+/* ======= Slider ======= */
+.ppp-slider-box {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+}
+
+.ppp-slider {
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: linear-gradient(90deg, rgba(154, 181, 163, 0.4), var(--ppp-gold));
+  border-radius: 3px;
+  outline: none;
+}
+
+.ppp-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--ppp-gold);
+  cursor: pointer;
+  box-shadow: 0 0 0 4px rgba(212, 165, 90, 0.2);
+}
+
+.ppp-slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--ppp-text-muted);
+  margin-top: 8px;
+}
+
+
+/* ======= ELO Preview ======= */
+.ppp-elo-preview {
+  background: linear-gradient(135deg, rgba(212, 165, 90, 0.15), rgba(212, 165, 90, 0.04));
+  border: 1px solid rgba(212, 165, 90, 0.35);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 18px;
+}
+
+.ppp-elo-preview-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ppp-elo-preview-icon {
+  font-size: 24px;
+}
+
+.ppp-elo-preview-label {
+  margin: 0;
+  font-size: 10px;
+  color: var(--ppp-text-muted);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.ppp-elo-preview-value {
+  margin: 4px 0 0;
+  font-family: var(--ppp-stencil);
+  font-size: 26px;
+  color: var(--ppp-text);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.ppp-elo-preview-value .range {
+  font-size: 11px;
+  color: var(--ppp-text-muted);
+  font-family: inherit;
+  font-weight: 400;
+  margin-left: 8px;
+}
+
+.ppp-elo-preview-note {
+  margin: 10px 0 0;
+  font-size: 10px;
+  color: var(--ppp-text-muted);
+  line-height: 1.5;
+}
+
+
+/* ======= Boutons ======= */
+.ppp-btn-primary {
+  width: 100%;
+  background: var(--ppp-gold);
+  color: var(--ppp-bg);
+  border: none;
+  padding: 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ppp-btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+
+/* ======= Leaderboard ======= */
+.ppp-filter-tags {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 14px 0;
+  scrollbar-width: none;
+}
+
+.ppp-filter-tags::-webkit-scrollbar { display: none; }
+
+.ppp-filter-tag {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  color: var(--ppp-text-soft);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ppp-filter-tag.active {
+  background: var(--ppp-gold);
+  color: var(--ppp-bg);
+  font-weight: 700;
+}
+
+
+/* ======= Podium ======= */
+.ppp-podium {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  justify-content: center;
+  padding: 18px 0;
+}
+
+.ppp-podium-spot {
+  flex: 1;
+  text-align: center;
+}
+
+.ppp-podium-spot .avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #a0c4d8, #2d5a7a);
+  margin: 0 auto 6px;
+  border: 2px solid #c0c0c0;
+}
+
+.ppp-podium-spot.place-1 .avatar {
+  width: 60px;
+  height: 60px;
+  border: 3px solid var(--ppp-gold);
+  background: radial-gradient(circle at 30% 30%, #c8915a, #6b3d1f);
+  box-shadow: 0 4px 16px rgba(212, 165, 90, 0.4);
+}
+
+.ppp-podium-spot.place-3 .avatar {
+  border-color: #cd7f32;
+}
+
+.ppp-podium-spot .crown {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.ppp-podium-spot .name {
+  margin: 0;
+  font-size: 10px;
+  color: var(--ppp-text);
+  font-weight: 600;
+}
+
+.ppp-podium-spot .elo {
+  margin: 1px 0 0;
+  font-size: 9px;
+  color: var(--ppp-text-muted);
+}
+
+.ppp-podium-spot .elo.gold {
+  color: var(--ppp-gold);
+  font-weight: 700;
+}
+
+.ppp-podium-spot .podium-bar {
+  background: rgba(192, 192, 192, 0.15);
+  border: 0.5px solid rgba(192, 192, 192, 0.3);
+  border-radius: 6px 6px 0 0;
+  height: 38px;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ppp-stencil);
+  font-size: 20px;
+  color: #c0c0c0;
+}
+
+.ppp-podium-spot.place-1 .podium-bar {
+  background: linear-gradient(180deg, rgba(212, 165, 90, 0.25), rgba(212, 165, 90, 0.1));
+  border: 0.5px solid rgba(212, 165, 90, 0.5);
+  border-radius: 8px 8px 0 0;
+  height: 54px;
+  font-size: 26px;
+  color: var(--ppp-gold);
+  font-weight: 700;
+}
+
+.ppp-podium-spot.place-3 .podium-bar {
+  background: rgba(205, 127, 50, 0.15);
+  border: 0.5px solid rgba(205, 127, 50, 0.3);
+  height: 30px;
+  font-size: 18px;
+  color: #cd7f32;
+}
+
+
+/* ======= Rank rows ======= */
+.ppp-ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ppp-rank-row {
+  background: rgba(255, 255, 255, 0.03);
+  border: 0.5px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ppp-rank-row.highlighted {
+  background: linear-gradient(135deg, rgba(212, 165, 90, 0.18), rgba(212, 165, 90, 0.06));
+  border: 1px solid var(--ppp-gold);
+  box-shadow: 0 4px 16px rgba(212, 165, 90, 0.1);
+}
+
+.ppp-rank-row .rank {
+  font-family: var(--ppp-stencil);
+  font-size: 14px;
+  color: var(--ppp-text-muted);
+  min-width: 24px;
+  font-weight: 600;
+}
+
+.ppp-rank-row.highlighted .rank {
+  color: var(--ppp-gold);
+  font-size: 16px;
+  font-weight: 700;
+  min-width: 32px;
+}
+
+.ppp-rank-row .avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #d4b8a8, #6a4a3e);
+  flex-shrink: 0;
+}
+
+.ppp-rank-row .info {
+  flex: 1;
+}
+
+.ppp-rank-row .name {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ppp-text);
+}
+
+.ppp-rank-row .name .me-badge {
+  background: rgba(212, 165, 90, 0.25);
+  color: var(--ppp-gold);
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  margin-left: 6px;
+}
+
+.ppp-rank-row .meta {
+  margin: 1px 0 0;
+  font-size: 10px;
+  color: var(--ppp-text-muted);
+}
+
+.ppp-rank-row .elo-info {
+  text-align: right;
+}
+
+.ppp-rank-row .elo {
+  margin: 0;
+  font-family: var(--ppp-stencil);
+  font-size: 13px;
+  color: var(--ppp-text);
+  font-weight: 500;
+}
+
+.ppp-divider-text {
+  text-align: center;
+  margin: 14px 0 8px;
+  font-size: 10px;
+  color: var(--ppp-text-dim);
+  letter-spacing: 1.5px;
+}

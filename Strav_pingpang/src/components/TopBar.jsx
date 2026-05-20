@@ -9,7 +9,7 @@ import { C, fontDisplay, fontSans, fontItalic, kicker, iconBtn } from '../theme'
 import { Icon } from '../icons';
 import { useUI } from './uiContext';
 import { useSharing } from '../lib/sharing';
-import { useAuth } from '../lib/auth';
+import { signOut, useAuth } from '../lib/auth';
 import { useAcceptedChallenges, useIncomingChallenges } from '../lib/challenges';
 import { SELF_PROFILE_ID, loadChatBundle, saveChallenge, saveMessage, searchProfiles, startDmWith, updateChallenge } from '../lib/chatData';
 
@@ -2976,11 +2976,15 @@ function ConversationRow({ c }) {
 }
 
 function ProfileSheet() {
-  const { openSheet } = useUI();
+  const { openSheet, closeSheet } = useUI();
   const openFriends   = () => openSheet({ title: 'Amis',      body: <FriendsListView /> });
   const openHistory   = () => openSheet({ title: 'Historique',body: <MatchesListView /> });
   const openChallenge = () => openSheet({ title: 'Defier',    body: <ChallengeView /> });
   const openMessages  = () => openSheet({ title: 'Messages',  body: <MessagesView /> });
+  const doSignOut = async () => {
+    await signOut();
+    closeSheet();
+  };
   const fields = [
     ['MAIN',   'Droitiere'],
     ['DISPOS', 'Soirs sem. \u00b7 Weekends'],
@@ -3038,6 +3042,18 @@ function ProfileSheet() {
             <span style={{ fontFamily: fontSans, fontSize: 14, color: C.ink, fontWeight: 600 }}>{v}</span>
           </div>
         ))}
+      </div>
+
+      {/* Déconnexion */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
+        <button onClick={doSignOut} style={{
+          all: 'unset', cursor: 'pointer',
+          padding: '12px 28px', borderRadius: 12,
+          background: 'rgba(232,155,139,0.10)',
+          border: '1px solid rgba(232,155,139,0.45)',
+          color: '#E89B8B',
+          fontFamily: fontSans, fontWeight: 700, fontSize: 13, letterSpacing: '0.14em',
+        }}>SE DÉCONNECTER</button>
       </div>
 
     </div>
