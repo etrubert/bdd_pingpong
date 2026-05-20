@@ -13,7 +13,6 @@ import ChatScreen from './screens/ChatScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import PlaceholderScreen from './screens/PlaceholderScreen';
 import Leaderboard from './screens/Leaderboard';
-import { useOnboarding } from './lib/onboarding';
 import { useAuth } from './lib/auth';
 
 function useViewport() {
@@ -33,11 +32,14 @@ export default function App() {
   const [tab, setTab] = useState('home');
   const { vw, vh, isMobile } = useViewport();
   const { isAuthed, profile, userId } = useAuth();
-  const { completed: onboardingLocal } = useOnboarding();
 
-  // Profil Supabase complet OU onboarding local terminé (fallback démo)
-  const onboardingDone = !!(profile?.region && profile?.player_type) || onboardingLocal;
-  const showApp = isAuthed && onboardingDone;
+  // À chaque (re)chargement de l'app, on veut TOUJOURS atterrir sur l'écran
+  // de connexion. Ce flag in-memory (non persisté) bascule sur true uniquement
+  // quand l'utilisateur clique explicitement CONTINUER ou termine l'onboarding.
+  const [hasEnteredApp, setHasEnteredApp] = useState(false);
+
+  const onboardingDone = !!(profile?.region && profile?.player_type);
+  const showApp = hasEnteredApp && isAuthed && onboardingDone;
 
   const PHONE_RATIO = 402 / 874;
   const maxByHeight = vh - 48;
@@ -73,7 +75,7 @@ export default function App() {
       }}>
         {!showApp ? (
           <div style={{ position: 'absolute', inset: 0, overflowY: 'auto' }}>
-            <OnboardingScreen />
+            <OnboardingScreen onComplete={() => setHasEnteredApp(true)} />
           </div>
         ) : (
           <>

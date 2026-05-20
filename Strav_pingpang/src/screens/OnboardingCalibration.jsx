@@ -1,167 +1,278 @@
 // =====================================================================
-// PING PANG PARIS — Écran d'onboarding : calibration ELO
-// À placer dans : Strav_pingpang/src/screens/OnboardingCalibration.jsx
+// PING PANG PARIS — Étape 3 : calibration ELO (DA capture utilisateur)
 // =====================================================================
 
 import { useState, useMemo } from 'react';
-import { calculateInitialElo, getEloRange, saveInitialElo } from '../lib/eloCalibration';
-import { supabase } from '../lib/supabase'; // ton client supabase existant
+import { C, fontDisplay, fontSans, kicker } from '../theme';
+import { calculateInitialElo, getEloRange } from '../lib/eloCalibration';
 
 const EXPERIENCES = [
-  { value: '<1y', label: '< 1 an' },
-  { value: '1-3y', label: '1-3 ans' },
-  { value: '3-5y', label: '3-5 ans' },
+  { value: '<1y',   label: '< 1 an' },
+  { value: '1-3y',  label: '1-3 ans' },
+  { value: '3-5y',  label: '3-5 ans' },
   { value: '5-10y', label: '5-10 ans' },
-  { value: '10+y', label: '10+ ans' },
+  { value: '10+y',  label: '10+ ans' },
 ];
 
 const FREQUENCIES = [
-  { value: 'rare', label: 'Rarement' },
-  { value: 'monthly', label: '1×/mois' },
-  { value: 'weekly', label: '1×/sem' },
-  { value: '2-3week', label: '2-3×/sem' },
-  { value: 'daily', label: 'Quotidien' },
+  { value: 'rare',     label: 'Rarement' },
+  { value: 'monthly',  label: '1×/mois' },
+  { value: 'weekly',   label: '1×/sem' },
+  { value: '2-3week',  label: '2-3×/sem' },
+  { value: 'daily',    label: 'Quotidien' },
 ];
 
 const LEVELS = [
-  { value: 'leisure', label: 'Loisir / entre amis uniquement' },
-  { value: 'tournament', label: 'Tournois loisir / club ouvert' },
+  { value: 'leisure',      label: 'Loisir / entre amis uniquement' },
+  { value: 'tournament',   label: 'Tournois loisir / club ouvert' },
   { value: 'departmental', label: 'Championnat départemental (D1-D4)' },
-  { value: 'regional', label: 'Régional (R1-R4)' },
-  { value: 'national', label: 'National / Pro' },
+  { value: 'regional',     label: 'Régional (R1-R4)' },
+  { value: 'national',     label: 'National / Pro' },
 ];
 
-export default function OnboardingCalibration({ userId, onComplete }) {
-  const [experience, setExperience] = useState(null);
-  const [frequency, setFrequency] = useState(null);
-  const [level, setLevel] = useState(null);
-  const [selfRating, setSelfRating] = useState(50);
-  const [submitting, setSubmitting] = useState(false);
+// ----- Sous-composants UI -----
 
-  // Calcul de l'ELO estimé en live
+function Stepper({ total = 4, current = 4 }) {
+  return (
+    <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
+      {Array.from({ length: total }).map((_, i) => (
+        <div key={i} style={{
+          flex: 1, height: 3, borderRadius: 2,
+          background: i < current ? C.warm : 'rgba(184,220,197,0.10)',
+        }} />
+      ))}
+    </div>
+  );
+}
+
+function FieldLabel({ children }) {
+  return <div style={{ ...kicker, marginTop: 18, marginBottom: 10 }}>{children}</div>;
+}
+
+function Pill({ active, onClick, children }) {
+  return (
+    <button onClick={onClick} style={{
+      all: 'unset', cursor: 'pointer',
+      padding: '8px 16px', borderRadius: 999,
+      border: `1px solid ${active ? C.warm : C.border}`,
+      background: active ? C.warm : 'rgba(8,22,17,0.45)',
+      color: active ? '#0C211A' : C.ink,
+      fontFamily: fontSans, fontWeight: 700, fontSize: 13,
+    }}>{children}</button>
+  );
+}
+
+function LevelRow({ active, onClick, children }) {
+  return (
+    <button onClick={onClick} style={{
+      all: 'unset', cursor: 'pointer',
+      width: '100%', boxSizing: 'border-box',
+      padding: '14px 16px', borderRadius: 12,
+      border: `1px solid ${active ? C.warm : C.border}`,
+      background: active ? C.warm : 'rgba(8,22,17,0.55)',
+      color: active ? '#0C211A' : C.ink,
+      fontFamily: fontSans, fontSize: 14,
+      fontWeight: active ? 700 : 500,
+    }}>{children}</button>
+  );
+}
+
+function SelfRatingSlider({ value, onChange }) {
+  // Étiquette dynamique selon la position
+  const label =
+    value < 25 ? 'Débutant+' :
+    value < 50 ? 'Loisir+' :
+    value < 70 ? 'Intermédiaire+' :
+    value < 85 ? 'Confirmé+' :
+                 'Expert+';
+  return (
+    <div style={{ padding: '4px 0' }}>
+      <div style={{ position: 'relative', height: 38, display: 'flex', alignItems: 'center' }}>
+        <input
+          type="range" min="0" max="100" value={value}
+          onChange={e => onChange(Number(e.target.value))}
+          style={{
+            width: '100%', appearance: 'none', height: 4,
+            background: `linear-gradient(to right, ${C.warm} 0%, ${C.warm} ${value}%, rgba(184,220,197,0.18) ${value}%, rgba(184,220,197,0.18) 100%)`,
+            borderRadius: 999, outline: 'none',
+          }}
+        />
+        <style>{`
+          input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: ${C.warm};
+            border: 2px solid #0C211A;
+            cursor: pointer;
+            box-shadow: 0 0 12px rgba(232,201,155,0.45);
+          }
+          input[type="range"]::-moz-range-thumb {
+            width: 18px; height: 18px; border-radius: 50%;
+            background: ${C.warm};
+            border: 2px solid #0C211A;
+            cursor: pointer;
+          }
+        `}</style>
+      </div>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between',
+        marginTop: 4, fontFamily: fontSans, fontSize: 12, color: C.inkDim,
+      }}>
+        <span>Débutant</span>
+        <span style={{ color: C.warm, fontWeight: 700 }}>{label}</span>
+        <span>Expert</span>
+      </div>
+    </div>
+  );
+}
+
+function EloPreviewCard({ estimation }) {
+  const range = getEloRange(estimation.confidence);
+  return (
+    <div style={{
+      marginTop: 22,
+      padding: '16px 18px', borderRadius: 16,
+      background: 'rgba(61,209,107,0.06)',
+      border: '1px solid rgba(61,209,107,0.30)',
+      display: 'flex', gap: 14, alignItems: 'flex-start',
+    }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+        background: 'rgba(61,209,107,0.14)',
+        border: '1px solid rgba(61,209,107,0.40)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 18,
+      }}>🎯</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ ...kicker, color: '#3DD16B' }}>ELO DE DÉPART ESTIMÉ</div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
+          <span style={{
+            fontFamily: fontDisplay, fontWeight: 800, fontSize: 32,
+            color: C.ink, lineHeight: 1,
+          }}>{estimation.elo}</span>
+          <span style={{ fontFamily: fontSans, fontSize: 13, color: C.inkDim }}>
+            ±{range}
+          </span>
+        </div>
+        <div style={{
+          marginTop: 8, fontFamily: fontSans, fontSize: 12.5,
+          color: C.inkDim, lineHeight: 1.5,
+        }}>
+          Tes 5 premiers matchs auront un coefficient renforcé pour affiner rapidement.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ----- Composant principal -----
+
+export default function OnboardingCalibration({ userId, onComplete, initialAnswers }) {
+  const [experience, setExperience] = useState(initialAnswers?.experience || null);
+  const [frequency,  setFrequency]  = useState(initialAnswers?.frequency  || null);
+  const [level,      setLevel]      = useState(initialAnswers?.level      || null);
+  const [selfRating, setSelfRating] = useState(initialAnswers?.selfRating ?? 50);
+  const [submitting, setSubmitting] = useState(false);
+  const [error,      setError]      = useState('');
+
   const estimation = useMemo(() => {
     if (!experience || !frequency || !level) return null;
-    return calculateInitialElo({
-      experience,
-      frequency,
-      level,
-      selfRating,
-    });
+    return calculateInitialElo({ experience, frequency, level, selfRating });
   }, [experience, frequency, level, selfRating]);
 
-  const canSubmit = experience && frequency && level;
+  const canSubmit = !!experience && !!frequency && !!level;
 
   const handleSubmit = async () => {
     if (!canSubmit || submitting) return;
     setSubmitting(true);
+    setError('');
     try {
-      await saveInitialElo(supabase, userId, estimation.elo);
-      onComplete?.(estimation.elo);
+      // La sauvegarde Supabase (profil + ELO) est gérée par le parent
+      // qui dispose du token d'auth via lib/auth.js
+      await onComplete?.(estimation.elo, {
+        experience, frequency, level, selfRating,
+        initialElo: estimation.elo,
+      });
     } catch (err) {
-      console.error('Erreur ELO save:', err);
-      alert('Erreur lors de la sauvegarde');
+      console.error('Erreur sauvegarde calibration:', err);
+      setError(err.message || 'Erreur lors de la sauvegarde.');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="ppp-screen">
-      {/* Stepper */}
-      <div className="ppp-stepper">
-        <div className="bar active" />
-        <div className="bar active" />
-        <div className="bar active" />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <Stepper total={4} current={4} />
+      <div style={kicker}>ÉTAPE 4 / 4 · QUESTION CALIBRAGE</div>
+      <div style={{
+        fontFamily: fontDisplay, fontWeight: 800, fontSize: 32, lineHeight: 1.05,
+        color: C.ink, marginTop: 8, letterSpacing: '0.04em',
+      }}>TON EXPÉRIENCE</div>
+      <div style={{ fontFamily: fontSans, fontSize: 13, color: C.inkDim, marginTop: 6 }}>
+        On calibre ton ELO de départ
       </div>
-      <p className="ppp-step-label">Étape 3 · Question calibrage</p>
 
-      <h2 className="ppp-title">TON EXPÉRIENCE</h2>
-      <p className="ppp-subtitle">On calibre ton ELO de départ</p>
-
-      {/* Q1 : Expérience */}
-      <label className="ppp-field-label">Depuis quand tu joues ?</label>
-      <div className="ppp-tags">
-        {EXPERIENCES.map((opt) => (
-          <button
-            key={opt.value}
-            className={`ppp-tag ${experience === opt.value ? 'active' : ''}`}
-            onClick={() => setExperience(opt.value)}
-          >
+      {/* Q1 — Expérience */}
+      <FieldLabel>DEPUIS QUAND TU JOUES ?</FieldLabel>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {EXPERIENCES.map(opt => (
+          <Pill key={opt.value}
+                active={experience === opt.value}
+                onClick={() => setExperience(opt.value)}>
             {opt.label}
-          </button>
+          </Pill>
         ))}
       </div>
 
-      {/* Q2 : Fréquence */}
-      <label className="ppp-field-label">Tu joues à quelle fréquence ?</label>
-      <div className="ppp-tags">
-        {FREQUENCIES.map((opt) => (
-          <button
-            key={opt.value}
-            className={`ppp-tag ${frequency === opt.value ? 'active' : ''}`}
-            onClick={() => setFrequency(opt.value)}
-          >
+      {/* Q2 — Fréquence */}
+      <FieldLabel>TU JOUES À QUELLE FRÉQUENCE ?</FieldLabel>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {FREQUENCIES.map(opt => (
+          <Pill key={opt.value}
+                active={frequency === opt.value}
+                onClick={() => setFrequency(opt.value)}>
             {opt.label}
-          </button>
+          </Pill>
         ))}
       </div>
 
-      {/* Q3 : Niveau */}
-      <label className="ppp-field-label">Niveau le plus élevé atteint</label>
-      <div className="ppp-level-list">
-        {LEVELS.map((opt) => (
-          <button
-            key={opt.value}
-            className={`ppp-level-row ${level === opt.value ? 'active' : ''}`}
-            onClick={() => setLevel(opt.value)}
-          >
+      {/* Q3 — Niveau le plus élevé atteint */}
+      <FieldLabel>NIVEAU LE PLUS ÉLEVÉ ATTEINT</FieldLabel>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {LEVELS.map(opt => (
+          <LevelRow key={opt.value}
+                    active={level === opt.value}
+                    onClick={() => setLevel(opt.value)}>
             {opt.label}
-          </button>
+          </LevelRow>
         ))}
       </div>
 
-      {/* Q4 : Slider auto-éval */}
-      <label className="ppp-field-label">Honnêtement, tu te situes où ?</label>
-      <div className="ppp-slider-box">
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={selfRating}
-          onChange={(e) => setSelfRating(Number(e.target.value))}
-          className="ppp-slider"
-        />
-        <div className="ppp-slider-labels">
-          <span>Débutant</span>
-          <span>Intermédiaire</span>
-          <span>Expert</span>
-        </div>
-      </div>
+      {/* Q4 — Auto-évaluation */}
+      <FieldLabel>HONNÊTEMENT, TU TE SITUES OÙ ?</FieldLabel>
+      <SelfRatingSlider value={selfRating} onChange={setSelfRating} />
 
-      {/* Estimation ELO en live */}
-      {estimation && (
-        <div className="ppp-elo-preview">
-          <div className="ppp-elo-preview-icon">🎯</div>
-          <div className="ppp-elo-preview-content">
-            <p className="ppp-elo-preview-label">ELO de départ estimé</p>
-            <p className="ppp-elo-preview-value">
-              {estimation.elo}
-              <span className="range">±{getEloRange(estimation.confidence)}</span>
-            </p>
-          </div>
-          <p className="ppp-elo-preview-note">
-            Tes 5 premiers matchs auront un coefficient renforcé pour affiner rapidement.
-          </p>
-        </div>
+      {/* Estimation ELO live */}
+      {estimation && <EloPreviewCard estimation={estimation} />}
+
+      {error && (
+        <div style={{
+          marginTop: 12, padding: '10px 14px', borderRadius: 12,
+          background: 'rgba(232,155,139,0.08)', border: '1px solid rgba(232,155,139,0.30)',
+          color: C.loss, fontFamily: fontSans, fontSize: 12.5,
+        }}>{error}</div>
       )}
 
-      <button
-        className="ppp-btn-primary"
-        disabled={!canSubmit || submitting}
-        onClick={handleSubmit}
-      >
-        {submitting ? 'Sauvegarde...' : "Let's play"}
-      </button>
+      <button onClick={handleSubmit} disabled={!canSubmit || submitting} style={{
+        all: 'unset', cursor: (!canSubmit || submitting) ? 'not-allowed' : 'pointer',
+        marginTop: 22, padding: '15px', textAlign: 'center',
+        borderRadius: 12,
+        background: (!canSubmit || submitting) ? 'rgba(232,201,155,0.30)' : C.warm,
+        color: '#0C211A',
+        fontFamily: fontSans, fontWeight: 800, fontSize: 14, letterSpacing: '0.16em',
+        opacity: (!canSubmit || submitting) ? 0.5 : 1,
+      }}>{submitting ? 'SAUVEGARDE...' : "LET'S PLAY"}</button>
     </div>
   );
 }

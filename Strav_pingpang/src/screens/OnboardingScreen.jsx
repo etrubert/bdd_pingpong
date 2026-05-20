@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { C, fontDisplay, fontSans, fontItalic, kicker } from '../theme';
 import { useOnboarding } from '../lib/onboarding';
 import OnboardingCalibration from './OnboardingCalibration';
-import { signUp, signIn, updateProfile, useAuth } from '../lib/auth';
+import { signUp, signIn, signOut, updateProfile, useAuth } from '../lib/auth';
 
 // ----- Atomes UI -----
 function Pill({ active, onClick, children, full }) {
@@ -97,7 +97,7 @@ function FieldLabel({ children }) {
 }
 
 // ----- Step 0 : Création de compte OU connexion -----
-function StepConnexion({ onSignedUp, onSignedIn }) {
+function StepConnexion({ onSignedUp, onSignedIn, currentSession, onContinueAsCurrent, onSignOutCurrent }) {
   const [mode, setMode] = useState('signup'); // 'signup' | 'signin'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -142,6 +142,33 @@ function StepConnexion({ onSignedUp, onSignedIn }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingTop: 30 }}>
+      {currentSession && (
+        <div style={{
+          padding: '12px 14px', borderRadius: 12,
+          background: 'rgba(232,201,155,0.08)',
+          border: '1px solid rgba(232,201,155,0.35)',
+          display: 'flex', flexDirection: 'column', gap: 8,
+        }}>
+          <div style={{ fontFamily: fontSans, fontSize: 12.5, color: C.inkDim, lineHeight: 1.5 }}>
+            Tu es déjà connecté en tant que <strong style={{ color: C.ink }}>{currentSession}</strong>.
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={onContinueAsCurrent} style={{
+              all: 'unset', cursor: 'pointer', flex: 1, textAlign: 'center',
+              padding: '10px', borderRadius: 10,
+              background: C.warm, color: '#0C211A',
+              fontFamily: fontSans, fontWeight: 800, fontSize: 12, letterSpacing: '0.12em',
+            }}>CONTINUER</button>
+            <button onClick={onSignOutCurrent} style={{
+              all: 'unset', cursor: 'pointer', flex: 1, textAlign: 'center',
+              padding: '10px', borderRadius: 10,
+              background: 'transparent', border: `1px solid ${C.border}`,
+              color: C.inkDim,
+              fontFamily: fontSans, fontWeight: 700, fontSize: 12, letterSpacing: '0.12em',
+            }}>CHANGER DE COMPTE</button>
+          </div>
+        </div>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
         <div style={{
           width: 70, height: 70, borderRadius: '50%',
@@ -226,13 +253,27 @@ const AppleIcon = () => (
 );
 
 // ----- Step 1 : Identité -----
-function StepIdentity({ onNext, onBack, initial }) {
+function StepIdentity({ onNext, onBack, initial, currentEmail, onSignOut }) {
   const [fullName, setFullName] = useState(initial.fullName || '');
   const [region, setRegion] = useState(initial.region || 'Paris — 11e');
   const [handedness, setHandedness] = useState(initial.handedness || 'Droitier');
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <StepHeader step={1} total={3} title="COMMENÇONS" subtitle="Les bases pour t'afficher" />
+      {currentEmail && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 14px', borderRadius: 10,
+          background: 'rgba(8,22,17,0.55)', border: `1px solid ${C.border}`,
+          fontFamily: fontSans, fontSize: 12, color: C.inkDim,
+        }}>
+          <span>Connecté en tant que <strong style={{ color: C.ink }}>{currentEmail}</strong></span>
+          <button onClick={onSignOut} style={{
+            all: 'unset', cursor: 'pointer',
+            color: C.warm, fontWeight: 700, fontSize: 11, letterSpacing: '0.06em',
+          }}>SE DÉCONNECTER</button>
+        </div>
+      )}
+      <StepHeader step={1} total={4} title="COMMENÇONS" subtitle="Les bases pour t'afficher" />
 
       <div>
         <FieldLabel>NOM AFFICHÉ</FieldLabel>
@@ -272,7 +313,7 @@ function StepPlayerType({ onNext, initial }) {
   ];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <StepHeader step={2} total={3} title="COMMENT TU JOUES ?" subtitle="Pour t'adapter le bon parcours" />
+      <StepHeader step={2} total={4} title="COMMENT TU JOUES ?" subtitle="Pour t'adapter le bon parcours" />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {options.map(opt => {
@@ -310,14 +351,15 @@ function StepPlayerType({ onNext, initial }) {
 }
 
 // ----- Step 3A : Fun -----
-function StepFun({ onFinish, initial }) {
+function StepFun({ onNext, initial }) {
   const [availability, setAvailability] = useState(initial.availability || ['Soirs sem.']);
   const [lookingFor, setLookingFor] = useState(initial.lookingFor || ['Des partenaires']);
+  const [ambiance, setAmbiance] = useState(initial.ambiance || 'Conviviale');
   const toggle = (arr, set, v) => set(arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <StepHeader step={3} total={3} kickerLabel="ÉTAPE 3 / 3 · DERNIÈRE" title="DERNIÈRE ÉTAPE" subtitle="Quand tu veux jouer ?" />
+      <StepHeader step={3} total={4} title="QUAND TU JOUES ?" subtitle="Pour te suggérer les bons matchs" />
 
       <div>
         <FieldLabel>DISPONIBILITÉS</FieldLabel>
@@ -337,23 +379,24 @@ function StepFun({ onFinish, initial }) {
         </div>
       </div>
 
-      <div style={{
-        marginTop: 8, padding: '10px 14px', borderRadius: 10,
-        background: 'rgba(61,209,107,0.06)', border: '1px solid rgba(61,209,107,0.25)',
-        fontFamily: fontSans, fontSize: 12.5, color: C.inkDim, lineHeight: 1.4,
-      }}>
-        ⓘ On te suggérera des joueurs proches de ton niveau au fil des parties.
+      <div>
+        <FieldLabel>AMBIANCE PRÉFÉRÉE</FieldLabel>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {['Détente', 'Conviviale', 'Sportive'].map(v => (
+            <Pill key={v} active={ambiance === v} onClick={() => setAmbiance(v)}>{v}</Pill>
+          ))}
+        </div>
       </div>
 
       <div style={{ marginTop: 12 }}>
-        <PrimaryBtn onClick={() => onFinish({ availability, lookingFor })}>LET'S PLAY</PrimaryBtn>
+        <PrimaryBtn onClick={() => onNext({ availability, lookingFor, ambiance })}>Suivant</PrimaryBtn>
       </div>
     </div>
   );
 }
 
 // ----- Step 3B : Progress -----
-function StepProgress({ onFinish, initial }) {
+function StepProgress({ onNext, initial }) {
   const [level, setLevel] = useState(initial.level || 'Intermédiaire');
   const [style, setStyle] = useState(initial.style || 'Attaquant');
   const [racket, setRacket] = useState(initial.racket || 'Pré-montée');
@@ -362,7 +405,7 @@ function StepProgress({ onFinish, initial }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <StepHeader step={3} total={3} kickerLabel="ÉTAPE 3 / 3 · DERNIÈRE" title="TON PROFIL" subtitle="Ton niveau et ton matos (si tu sais)" />
+      <StepHeader step={3} total={4} title="TON PROFIL" subtitle="Ton niveau et ton matos (si tu sais)" />
 
       <div>
         <FieldLabel>NIVEAU AUTO-ÉVALUÉ</FieldLabel>
@@ -404,7 +447,7 @@ function StepProgress({ onFinish, initial }) {
       </div>
 
       <div style={{ marginTop: 12 }}>
-        <PrimaryBtn onClick={() => onFinish({ level, style, racket, availability })}>LET'S PLAY</PrimaryBtn>
+        <PrimaryBtn onClick={() => onNext({ level, style, racket, availability })}>Suivant</PrimaryBtn>
       </div>
     </div>
   );
@@ -412,19 +455,52 @@ function StepProgress({ onFinish, initial }) {
 
 // ----- Step 3C : Club / Compétition -----
 function StepClub({ onFinish, initial }) {
-  const [licenseNumber, setLicenseNumber] = useState(initial.licenseNumber || '7521430');
-  const [club, setClub] = useState(initial.club || 'Le Marais Ping');
-  const [team, setTeam] = useState(initial.team || 'Équipe 2 — D3 départementale');
+  const [licenseNumber, setLicenseNumber] = useState(initial.licenseNumber || '');
+  const [club, setClub] = useState(initial.club || '');
+  const [team, setTeam] = useState(initial.team || '');
   const [style, setStyle] = useState(initial.style || 'Attaquant');
-  const [wood, setWood] = useState(initial.wood || 'Viscaria FL');
-  const [forehandRubber, setFR] = useState(initial.forehandRubber || 'Hurricane 3');
-  const [backhandRubber, setBR] = useState(initial.backhandRubber || 'Tenergy 05');
+  const [wood, setWood] = useState(initial.wood || '');
+  const [forehandRubber, setFR] = useState(initial.forehandRubber || '');
+  const [backhandRubber, setBR] = useState(initial.backhandRubber || '');
   const [availability, setAvailability] = useState(initial.availability || ['Soirs sem.', 'Weekends']);
+  const [submitting, setSubmitting] = useState(false);
   const toggle = (arr, set, v) => set(arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]);
+
+  // FFTT considérée "valide" = licence renseignée (pas de vrai check côté API)
+  const hasLicense = licenseNumber.trim().length >= 6;
+  // ELO dérivé : 1450 si licence (placeholder pour points FFTT). Sera remplacé
+  // par la vraie API FFTT plus tard. Sans licence on ne fournit pas d'ELO et
+  // l'écran de calibration prendra le relais (step 4 ajouté côté parent).
+  const derivedElo = hasLicense ? 1450 : null;
+
+  const handleSubmit = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await onFinish({
+        licenseNumber: licenseNumber.trim() || undefined,
+        club: club.trim() || undefined,
+        team: team.trim() || undefined,
+        style, wood: wood.trim() || undefined,
+        forehandRubber: forehandRubber.trim() || undefined,
+        backhandRubber: backhandRubber.trim() || undefined,
+        availability,
+        level: 'Compétition',
+        initialElo: derivedElo, // null si pas de licence → parent fera step 4
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <StepHeader step={3} total={3} kickerLabel="ÉTAPE 3 / 3 · DERNIÈRE" title="CLUB & NIVEAU" subtitle="On récupère ton vrai classement" />
+      <StepHeader
+        step={3} total={3}
+        kickerLabel={hasLicense ? 'ÉTAPE 3 / 3 · DERNIÈRE' : 'ÉTAPE 3 / 4'}
+        title="CLUB & NIVEAU"
+        subtitle="On récupère ton vrai classement"
+      />
 
       <div style={{
         padding: '14px 16px', borderRadius: 14,
@@ -434,15 +510,22 @@ function StepClub({ onFinish, initial }) {
         <input
           value={licenseNumber}
           onChange={e => setLicenseNumber(e.target.value)}
+          placeholder="Ex. 7521430"
           style={{
             all: 'unset', boxSizing: 'border-box', width: '100%',
             marginTop: 8, padding: '10px 0',
             fontFamily: fontDisplay, fontWeight: 800, fontSize: 20, color: C.ink, letterSpacing: '0.06em',
           }}
         />
-        <div style={{
-          marginTop: 6, fontFamily: fontSans, fontSize: 12, color: '#3DD16B', fontWeight: 600,
-        }}>● Classement détecté : <strong>15 · B5 · 1450 pts</strong></div>
+        {hasLicense ? (
+          <div style={{
+            marginTop: 6, fontFamily: fontSans, fontSize: 12, color: '#3DD16B', fontWeight: 600,
+          }}>● Ton ELO de départ = <strong>{derivedElo} pts FFTT</strong>. Pas besoin de calibration.</div>
+        ) : (
+          <div style={{
+            marginTop: 6, fontFamily: fontSans, fontSize: 12, color: C.inkDim,
+          }}>Sans licence, on te fera passer la calibration ELO juste après.</div>
+        )}
       </div>
 
       <div>
@@ -490,11 +573,9 @@ function StepClub({ onFinish, initial }) {
       </div>
 
       <div style={{ marginTop: 12 }}>
-        <PrimaryBtn onClick={() => onFinish({
-          licenseNumber, club, team, style, wood,
-          forehandRubber, backhandRubber, availability,
-          level: 'Compétition',
-        })}>LET'S PLAY</PrimaryBtn>
+        <PrimaryBtn onClick={handleSubmit} disabled={submitting}>
+          {submitting ? '...' : (hasLicense ? "LET'S PLAY" : 'Suivant')}
+        </PrimaryBtn>
       </div>
     </div>
   );
@@ -506,6 +587,46 @@ const TYPE_MAP = { 'fun': 'fun', 'progress': 'progress', 'club': 'competition' }
 const LEVEL_MAP = { 'Débutant': 'debutant', 'Loisir': 'loisir', 'Intermédiaire': 'intermediaire', 'Confirmé': 'confirme', 'Compétition': 'confirme' };
 const STYLE_MAP = { 'Attaquant': 'attaquant', 'Défenseur': 'defenseur', 'Polyvalent': 'polyvalent', 'Je sais pas': 'inconnu' };
 const RACKET_MAP = { 'Pré-montée': 'pre_montee', 'Sur-mesure': 'sur_mesure', 'Je sais pas': 'inconnu' };
+
+// Reverse maps (DB enum -> UI label) pour pré-remplir les forms quand un profil existe
+const HAND_REVERSE = { droitier: 'Droitier', gaucher: 'Gaucher' };
+const TYPE_REVERSE = { fun: 'fun', progress: 'progress', competition: 'club' };
+const LEVEL_REVERSE = { debutant: 'Débutant', loisir: 'Loisir', intermediaire: 'Intermédiaire', confirme: 'Confirmé' };
+const STYLE_REVERSE = { attaquant: 'Attaquant', defenseur: 'Défenseur', polyvalent: 'Polyvalent', inconnu: 'Je sais pas' };
+const RACKET_REVERSE = { pre_montee: 'Pré-montée', sur_mesure: 'Sur-mesure', inconnu: 'Je sais pas' };
+
+function profileToFormData(profile) {
+  if (!profile) return {};
+  const out = {
+    email: profile.email,
+    fullName: profile.display_name,
+    region: profile.region,
+    handedness: HAND_REVERSE[profile.dominant_hand],
+    playerType: TYPE_REVERSE[profile.player_type],
+    level: LEVEL_REVERSE[profile.self_level],
+    style: STYLE_REVERSE[profile.play_style],
+    racket: RACKET_REVERSE[profile.racket_type],
+    licenseNumber: profile.fftt_license,
+    club: profile.club_name,
+    team: profile.team_name,
+    wood: profile.wood_blade,
+    forehandRubber: profile.forehand_rubber,
+    backhandRubber: profile.backhand_rubber,
+    initialElo: profile.current_elo,
+  };
+  // Supprime les undefined / null pour ne pas écraser les valeurs UI vides
+  Object.keys(out).forEach(k => { if (out[k] == null) delete out[k]; });
+  return out;
+}
+
+// Map les valeurs de la calibration vers l'enum self_level Supabase
+const CALIB_LEVEL_TO_SELF = {
+  leisure:      'loisir',
+  tournament:   'loisir',
+  departmental: 'intermediaire',
+  regional:     'confirme',
+  national:     'confirme',
+};
 
 async function saveProfileToSupabase(data) {
   const patch = {};
@@ -522,73 +643,123 @@ async function saveProfileToSupabase(data) {
   if (data.wood) patch.wood_blade = data.wood;
   if (data.forehandRubber) patch.forehand_rubber = data.forehandRubber;
   if (data.backhandRubber) patch.backhand_rubber = data.backhandRubber;
-  try { await updateProfile(patch); } catch {}
+
+  // Calibration ELO -> colonnes ELO + self_level dérivé du niveau choisi
+  if (typeof data.initialElo === 'number') {
+    patch.current_elo = data.initialElo;
+    patch.initial_elo = data.initialElo;
+    patch.peak_elo    = data.initialElo;
+    patch.elo_rating  = data.initialElo; // compat ancien code (chat, etc.)
+  }
+  if (data.level && CALIB_LEVEL_TO_SELF[data.level] && !patch.self_level) {
+    patch.self_level = CALIB_LEVEL_TO_SELF[data.level];
+  }
+
+  await updateProfile(patch);
 }
 
 // ----- Composant principal -----
 export default function OnboardingScreen({ onComplete }) {
   const { save } = useOnboarding();
   const { isAuthed, profile, userId } = useAuth();
-  const initialStep = isAuthed ? 1 : 0;
-  const [step, setStep] = useState(initialStep);
-  const [data, setData] = useState(() => ({
-    email: profile?.email || '',
-    fullName: profile?.display_name || '',
-  }));
+  // Toujours partir de l'écran connexion au lancement.
+  // Si l'utilisateur est déjà authentifié, un raccourci "Continuer en tant que X"
+  // lui permet de passer directement à l'étape 1 sans retaper son mot de passe.
+  const [step, setStep] = useState(0);
+  const [data, setData] = useState(() => profileToFormData(profile));
+
+  // Pré-remplit les forms quand le profil arrive / change
+  // (compte existant : on récupère display_name, region, niveau, club, licence...)
+  useEffect(() => {
+    const fromProfile = profileToFormData(profile);
+    setData(d => ({ ...fromProfile, ...d })); // privilégie la valeur saisie en cours
+  }, [profile]);
 
   const advance = (patch) => {
     setData(d => ({ ...d, ...patch }));
     setStep(s => s + 1);
   };
 
-  // Apres signup : on continue l'onboarding pour collecter les infos profil
-  const onSignedUp = ({ email }) => {
-    setData(d => ({ ...d, email }));
-    setStep(1);
-  };
+  const onSignedUp = ({ email }) => { setData(d => ({ ...d, email })); setStep(1); };
+  const onSignedIn = ({ email }) => { setData(d => ({ ...d, email })); setStep(1); };
 
-  // Apres signin : si le profil est deja complet, App.jsx affichera l'app.
-  // Sinon on poursuit le questionnaire pour completer.
-  const onSignedIn = ({ email }) => {
-    setData(d => ({ ...d, email }));
-    setStep(1);
-  };
-
-  const finish = async (patch) => {
-    const final = { ...data, ...patch, completed: true, completedAt: Date.now() };
-    await saveProfileToSupabase(final);   // upsert profile dans Supabase
-    await save(final);                     // persistance locale
-    if (onComplete) onComplete(final);
+  // Permet à l'user de revenir à l'écran de connexion depuis le questionnaire
+  // (utile s'il veut changer de compte)
+  const handleSignOut = async () => {
+    await signOut();
+    setData({});
+    setStep(0);
   };
 
   const handlePlayerType = (patch) => {
-    const merged = { ...data, ...patch };
-    setData(merged);
-    if (patch.playerType === 'fun') {
-      setStep(3);
-    } else {
-      setStep(4);
-    }
+    setData(d => ({ ...d, ...patch }));
+    setStep(3); // chacun arrive sur son step 3 dédié
   };
 
-  const handleCalibrationComplete = async (initialElo) => {
-    const final = { ...data, initialElo, completed: true, completedAt: Date.now() };
+  // Fin du questionnaire : commit Supabase + persistance locale.
+  const finalize = async (extra) => {
+    const final = {
+      ...data, ...extra,
+      completed: true, completedAt: Date.now(),
+    };
     await saveProfileToSupabase(final);
     await save(final);
     if (onComplete) onComplete(final);
   };
 
+  // Step 3 → calibration OU finish (pour club avec licence)
+  const handleFunNext      = (patch) => { setData(d => ({ ...d, ...patch })); setStep(4); };
+  const handleProgressNext = (patch) => { setData(d => ({ ...d, ...patch })); setStep(4); };
+  const handleClubFinish   = async (patch) => {
+    // Si licence FFTT renseignée : initialElo dérivé → on termine
+    // Sinon : on bascule sur l'écran de calibration
+    if (patch.initialElo != null) {
+      await finalize(patch);
+    } else {
+      setData(d => ({ ...d, ...patch }));
+      setStep(4);
+    }
+  };
+  const handleCalibrationComplete = async (initialElo, calibAnswers) => {
+    await finalize({ ...calibAnswers, initialElo });
+  };
+
   let content;
-  if (step === 0)      content = <StepConnexion onSignedUp={onSignedUp} onSignedIn={onSignedIn} />;
-  else if (step === 1) content = <StepIdentity onNext={advance} onBack={() => setStep(0)} initial={data} />;
+  // Bouton CONTINUER sur l'écran de connexion :
+  // - Si l'onboarding est déjà terminé → on bypass tout et on entre dans l'app
+  // - Sinon → on continue à l'étape 1 du questionnaire
+  const onContinueAsCurrent = () => {
+    if (profile?.region && profile?.player_type) {
+      if (onComplete) onComplete(profile);
+    } else {
+      setStep(1);
+    }
+  };
+  if (step === 0)      content = <StepConnexion
+    onSignedUp={onSignedUp}
+    onSignedIn={onSignedIn}
+    currentSession={isAuthed ? (profile?.email || data.email) : null}
+    onContinueAsCurrent={onContinueAsCurrent}
+    onSignOutCurrent={handleSignOut}
+  />;
+  else if (step === 1) content = <StepIdentity
+    onNext={advance}
+    onBack={() => setStep(0)}
+    initial={data}
+    currentEmail={profile?.email || data.email}
+    onSignOut={handleSignOut}
+  />;
   else if (step === 2) content = <StepPlayerType onNext={handlePlayerType} initial={data} />;
   else if (step === 3) {
-    // Uniquement pour les joueurs 'fun' (les autres passent par step 4)
-    content = <StepFun onFinish={finish} initial={data} />;
-  } else if (step === 4) {
+    if (data.playerType === 'fun')      content = <StepFun onNext={handleFunNext} initial={data} />;
+    else if (data.playerType === 'progress') content = <StepProgress onNext={handleProgressNext} initial={data} />;
+    else                                       content = <StepClub onFinish={handleClubFinish} initial={data} />;
+  }
+  else if (step === 4) {
     content = (
       <OnboardingCalibration
         userId={userId}
+        initialAnswers={data}
         onComplete={handleCalibrationComplete}
       />
     );
