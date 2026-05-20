@@ -12,7 +12,9 @@ import MerchScreen from './screens/MerchScreen';
 import ChatScreen from './screens/ChatScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import PlaceholderScreen from './screens/PlaceholderScreen';
+import Leaderboard from './screens/Leaderboard';
 import { useOnboarding } from './lib/onboarding';
+import { supabase } from './lib/supabase';
 
 function useViewport() {
   const [vp, setVp] = useState({
@@ -31,6 +33,13 @@ export default function App() {
   const [tab, setTab] = useState('home');
   const { vw, vh, isMobile } = useViewport();
   const { completed: onboardingDone } = useOnboarding();
+  const [currentUserId, setCurrentUserId] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setCurrentUserId(user?.id ?? null);
+    });
+  }, []);
 
   // iPhone aspect ratio (402:874 ≈ 0.46) — fit to viewport with some breathing room
   const PHONE_RATIO = 402 / 874;
@@ -41,15 +50,16 @@ export default function App() {
 
   const screen = useMemo(() => {
     switch (tab) {
-      case 'home':    return <HomeScreen onNav={setTab} />;
-      case 'train':   return <TrainScreen />;
-      case 'matches': return <MatchesScreen />;
-      case 'finder':  return <FinderScreen />;
-      case 'chat':    return <ChatScreen />;
-      case 'merch':   return <MerchScreen />;
-      default:        return <HomeScreen onNav={setTab} />;
+      case 'home':        return <HomeScreen onNav={setTab} />;
+      case 'train':       return <TrainScreen />;
+      case 'matches':     return <MatchesScreen />;
+      case 'leaderboard': return <Leaderboard currentUserId={currentUserId} />;
+      case 'finder':      return <FinderScreen />;
+      case 'chat':        return <ChatScreen />;
+      case 'merch':       return <MerchScreen />;
+      default:            return <HomeScreen onNav={setTab} />;
     }
-  }, [tab]);
+  }, [tab, currentUserId]);
 
   // Pas de status bar dans le mockup. Sur mobile reel, env(safe-area-inset-top) est applique cote TopBar.
   const mockTopInset = 0;

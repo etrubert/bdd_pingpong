@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { C, fontDisplay, fontSans, fontItalic, kicker } from '../theme';
 import { useOnboarding } from '../lib/onboarding';
+import OnboardingCalibration from './OnboardingCalibration';
+import { supabase } from '../lib/supabase';
 
 // ----- Atomes UI -----
 function Pill({ active, onClick, children, full }) {
@@ -431,7 +433,7 @@ function StepClub({ onFinish, initial }) {
 // ----- Composant principal -----
 export default function OnboardingScreen({ onComplete }) {
   const { save } = useOnboarding();
-  const [step, setStep] = useState(0);  // 0=connexion, 1=identité, 2=type, 3=last
+  const [step, setStep] = useState(0);  // 0=connexion, 1=identité, 2=type, 3=last, 4=calibration ELO
   const [data, setData] = useState({});
 
   const advance = (patch) => {
@@ -445,15 +447,41 @@ export default function OnboardingScreen({ onComplete }) {
     if (onComplete) onComplete(final);
   };
 
+  // Après choix du type de joueur : 'fun' → finish direct, sinon → calibration ELO
+  const handlePlayerType = (patch) => {
+    const merged = { ...data, ...patch };
+    setData(merged);
+    if (patch.playerType === 'fun') {
+      setStep(3); // step 3 = dernière étape classique (StepFun)
+    } else {
+      setStep(4); // step 4 = calibration ELO
+    }
+  };
+
+  // Calibration terminée → on sauvegarde et on redirige vers home
+  const handleCalibrationComplete = async (initialElo) => {
+    const final = { ...data, initialElo, completed: true, completedAt: Date.now() };
+    await save(final);
+    if (onComplete) onComplete(final);
+  };
+
   // Render current step
   let content;
   if (step === 0)      content = <StepConnexion onNext={advance} />;
   else if (step === 1) content = <StepIdentity onNext={advance} onBack={() => setStep(0)} initial={data} />;
-  else if (step === 2) content = <StepPlayerType onNext={advance} initial={data} />;
+  else if (step === 2) content = <StepPlayerType onNext={handlePlayerType} initial={data} />;
   else if (step === 3) {
-    if (data.playerType === 'fun')      content = <StepFun onFinish={finish} initial={data} />;
-    else if (data.playerType === 'progress') content = <StepProgress onFinish={finish} initial={data} />;
-    else                                       content = <StepClub onFinish={finish} initial={data} />;
+    // Uniquement pour les joueurs 'fun' (les autres passent par step 4)
+    content = <StepFun onFinish={finish} initial={data} />;
+  } else if (step === 4) {
+    // Calibration ELO pour 'progress' et 'club'
+    const userId = null; // sera remplacé par l'id Supabase réel une fois l'auth branchée
+    content = (
+      <OnboardingCalibration
+        userId={userId}
+        onComplete={handleCalibrationComplete}
+      />
+    );
   }
 
   return (
