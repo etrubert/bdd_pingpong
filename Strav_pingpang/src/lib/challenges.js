@@ -1,25 +1,8 @@
 // Store partage des defis (acceptes + en attente), persistant et synchronise entre vues
 import { useEffect, useState } from 'react';
 
-// Donnees mock par defaut pour les defis ENTRANTS (a TRAITER)
-const DEFAULT_INCOMING = [
-  {
-    from: 'Marc',
-    full: 'Marc Leclerc',
-    elo: 1520,
-    rank: '#18 Paris',
-    online: true,
-    color: ['#a8c2db', '#3b5a7a', '#0d1a2a'],
-    when: '2 min',
-    isNew: true,
-    date: 'Sam 21 · 14h',
-    venue: 'Marais · T3',
-    format: 'BO5',
-    enjeu: 'Classé',
-    gainW: 18,
-    lossL: 12,
-  },
-];
+// Pas de mock par defaut : nouveaux users = inbox vide.
+const DEFAULT_INCOMING = [];
 
 function makeStore(key, defaultValue) {
   let listeners = [];

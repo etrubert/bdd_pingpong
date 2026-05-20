@@ -194,7 +194,7 @@ function mapTraining(row) {
   };
 }
 
-export async function loadChatBundle() {
+export async function loadChatBundle(currentUserId) {
   if (!isSupabaseConfigured) return null;
 
   const [
@@ -218,8 +218,26 @@ export async function loadChatBundle() {
   ]);
 
   const profilesById = new Map(profiles.map((profile) => [profile.id, profile]));
-  const self = profilesById.get(SELF_PROFILE_ID) || profiles[0];
-  const selfId = self?.id || SELF_PROFILE_ID;
+  // selfId = utilisateur authentifié (jamais un mock par defaut).
+  // Si pas connecte, on retourne tout vide pour eviter de "voir" des conversations d'autrui.
+  if (!currentUserId) {
+    return {
+      self: null,
+      selfId: null,
+      friends: [],
+      conversations: [],
+      incoming: [],
+      outgoing: [],
+      accepted: [],
+      clubs: clubs.map(mapClub),
+      announcements: announcements.map((row) => mapAnnouncement(row, profilesById)),
+      training: trainings.length ? mapTraining(trainings[0]) : null,
+      teamGroups: [],
+      leaderboard: [],
+    };
+  }
+  const self = profilesById.get(currentUserId);
+  const selfId = currentUserId;
 
   // Leaderboard derive de elo_rating
   const leaderboard = [...profiles]
@@ -231,7 +249,13 @@ export async function loadChatBundle() {
   const membersByConversation = buildMembersByConversation(memberships);
   const messagesByConversation = buildMessagesByConversation(messages, selfId);
 
-  const chatConversations = conversations.map((conversation) => {
+  // Ne garder que les conversations dont je suis membre
+  const myConvIdsForChat = new Set(
+    memberships.filter((m) => m.user_id === selfId).map((m) => m.conversation_id),
+  );
+  const myConversations = conversations.filter((c) => myConvIdsForChat.has(c.id));
+
+  const chatConversations = myConversations.map((conversation) => {
     const memberIds = membersByConversation.get(conversation.id) || [];
     const otherMemberIds = memberIds.filter((id) => id !== selfId);
     const otherProfile = profilesById.get(otherMemberIds[0]);
@@ -285,10 +309,24 @@ export async function loadChatBundle() {
       messages: conversation.messages,
     }));
 
-  // Amis : tous les profils sauf moi, qui ne sont pas Coach/Antoine (33333333/44444444)
-  const friends = profiles
-    .filter((profile) => profile.id !== selfId && profile.id?.startsWith('22222222-'))
-    .map((profile) => mapProfile(profile, leaderboardRankById));
+  // Amis = profils des autres membres avec qui j'ai au moins une conversation DM.
+  // Nouveau user sans aucune conversation -> liste vide (il ajoute qui il veut).
+  const myConvIds = new Set(
+    memberships.filter((m) => m.user_id === selfId).map((m) => m.conversation_id),
+  );
+  const dmConvIds = new Set(
+    conversations.filter((c) => c.type === 'dm' && myConvIds.has(c.id)).map((c) => c.id),
+  );
+  const friendIds = new Set();
+  memberships.forEach((m) => {
+    if (dmConvIds.has(m.conversation_id) && m.user_id !== selfId) {
+      friendIds.add(m.user_id);
+    }
+  });
+  const friends = [...friendIds]
+    .map((id) => profilesById.get(id))
+    .filter(Boolean)
+    .map((p) => mapProfile(p, leaderboardRankById));
 
   // Defis - schema utilise challenger_id / challenged_id, status: pending/accepted/declined
   const incoming = challenges
@@ -343,6 +381,60 @@ export async function saveChallenge({ selfId = SELF_PROFILE_ID, opponentId, matc
     message: [format, enjeu, message].filter(Boolean).join(' · '),
   });
   return challenge;
+}
+
+// Recherche de profils par nom (ilike) pour suggérer des contacts à ajouter.
+// Si query est vide, renvoie une liste par défaut (top profils par ELO).
+// Exclut l'utilisateur courant et les ids déjà connus (amis existants par ex).
+export async function searchProfiles(query, { excludeIds = [], limit = 8 } = {}) {
+  if (!isSupabaseConfigured) return [];
+  const trimmed = (query || '').trim();
+  const params = {
+    select: 'id,display_name,elo_rating,play_style,email',
+    limit: String(limit + excludeIds.length + 1),
+  };
+  if (trimmed.length >= 1) {
+    params.display_name = `ilike.%${trimmed}%`;
+    params.order = 'display_name.asc';
+  } else {
+    params.order = 'elo_rating.desc.nullslast,display_name.asc';
+  }
+  const rows = await selectRows('profiles', params);
+  const excluded = new Set(excludeIds);
+  return rows
+    .filter((p) => !excluded.has(p.id) && p.display_name)
+    .slice(0, limit)
+    .map((p) => mapProfile(p));
+}
+
+// Crée (ou réutilise) une conversation DM entre selfId et otherId.
+// Renvoie l'id de la conversation.
+export async function startDmWith(selfId, otherId) {
+  if (!isSupabaseConfigured) throw new Error('Supabase non configuré');
+  if (!selfId || !otherId || selfId === otherId) throw new Error('Ids invalides');
+
+  // Cherche une DM existante partagée par les deux.
+  const [allMemberships, allConversations] = await Promise.all([
+    selectRows('conversation_members', { select: '*' }),
+    selectRows('conversations', { select: 'id,type' }),
+  ]);
+  const dmIds = new Set(allConversations.filter((c) => c.type === 'dm').map((c) => c.id));
+  const myDm = new Set(
+    allMemberships.filter((m) => m.user_id === selfId && dmIds.has(m.conversation_id)).map((m) => m.conversation_id),
+  );
+  const shared = allMemberships.find((m) => m.user_id === otherId && myDm.has(m.conversation_id));
+  if (shared) return shared.conversation_id;
+
+  const [conversation] = await insertRow('conversations', {
+    type: 'dm',
+    name: null,
+    preview: null,
+  });
+  await insertRow('conversation_members', [
+    { conversation_id: conversation.id, user_id: selfId },
+    { conversation_id: conversation.id, user_id: otherId },
+  ]);
+  return conversation.id;
 }
 
 export async function updateChallenge(challengeId, patch) {

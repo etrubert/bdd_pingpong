@@ -6,6 +6,7 @@ import Card from '../components/Card';
 import { PaddleSVG } from '../components/SVGIllustrations';
 import { useAcceptedChallenges, useIncomingChallenges } from '../lib/challenges';
 import { useMatches } from '../lib/matches';
+import { useAuth } from '../lib/auth';
 
 function StatRow({ label, value, valueFont = fontSans }) {
   return (
@@ -50,24 +51,38 @@ export default function HomeScreen({ onNav }) {
   const [acceptedChallenges] = useAcceptedChallenges();
   const [incomingChallenges] = useIncomingChallenges();
   const [matches] = useMatches();
+  const { profile } = useAuth();
+  const displayName = (profile?.display_name || profile?.email?.split('@')[0] || 'Joueur').toUpperCase();
+  const firstName = displayName.split(' ')[0];
+  // Joueur club -> on affiche elo. Sinon (fun/progress) -> "—" tant qu'aucun match joue.
+  const matchesPlayed = profile?.matches_played ?? 0;
+  const isClubPlayer = profile?.player_type === 'competition';
+  const hasMatches = matchesPlayed > 0;
+  const elo = profile?.elo_rating ?? 0;
+  const eloDisplay = hasMatches ? `${elo} (Glicko-2)` : '— (à jouer)';
+  const fftt = profile?.fftt_classification || (isClubPlayer ? '—' : 'Non classé');
+  // Streak / volume / daily goal : zero par defaut tant qu'aucun match
+  const streakDays = hasMatches ? 5 : 0;
+  const dailyGoalPct = hasMatches ? 75 : 0;
+  const trainingHours = hasMatches ? 12.4 : 0;
   const nextChallenge = acceptedChallenges[0];        // priorité 1 : défi accepté
   const pendingChallenge = incomingChallenges[0];     // priorité 2 : défi en attente
   const lastMatch = matches[0];                       // match le plus récent
   return (
     <div style={{ padding: '20px 18px 130px', display: 'flex', flexDirection: 'column', gap: 18 }}>
       {/* Active player */}
-      <button onClick={() => openSheet({ title: 'EUGENIA SOREL', body: <ProfileSheet /> })}
+      <button onClick={() => openSheet({ title: displayName, body: <ProfileSheet /> })}
         style={{ all: 'unset', cursor: 'pointer', display: 'block' }}>
       <Card style={{ padding: '24px 24px 26px' }}>
         <div style={kicker}>ACTIVE PLAYER</div>
         <div style={{
           fontFamily: fontDisplay, fontWeight: 800, fontSize: 66, lineHeight: 0.95,
           color: C.mint, letterSpacing: '0.01em', marginTop: 6, marginBottom: 22,
-        }}>EUGENIA</div>
+        }}>{firstName}</div>
 
-        <StatRow label="ELO RATING" value="1450 (Glicko-2)" />
+        <StatRow label="ELO RATING" value={eloDisplay} />
         <div style={{ height: 1, background: C.border, margin: '14px 0' }} />
-        <StatRow label="GLOBAL RANK" value="#24 PARIS" valueFont={fontDisplay} />
+        <StatRow label="GLOBAL RANK" value={fftt} valueFont={fontDisplay} />
 
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -79,7 +94,7 @@ export default function HomeScreen({ onNav }) {
           fontFamily: fontSans, fontWeight: 700, fontSize: 12, letterSpacing: '0.10em',
         }}>
           <span style={{ width: 6, height: 6, borderRadius: 99, background: C.cream }} />
-          STREAK: 5 DAYS
+          STREAK: {streakDays} {streakDays === 1 ? 'DAY' : 'DAYS'}
         </div>
       </Card>
       </button>
@@ -143,13 +158,13 @@ export default function HomeScreen({ onNav }) {
           )}
         </Card>
         </button>
-        <button onClick={() => showToast('Daily goal: 75% \u2014 keep going!')} style={{ all: 'unset', cursor: 'pointer' }}>
+        <button onClick={() => showToast(`Daily goal: ${dailyGoalPct}% \u2014 ${dailyGoalPct === 0 ? 'commence !' : 'keep going!'}`)} style={{ all: 'unset', cursor: 'pointer' }}>
         <Card style={{ padding: 18 }}>
           <div style={kicker}>DAILY GOAL</div>
           <div style={{ height: 6, background: 'rgba(184,220,197,0.18)', borderRadius: 99, marginTop: 18, overflow: 'hidden' }}>
-            <div style={{ width: '75%', height: '100%', background: `linear-gradient(90deg, ${C.mintDeep}, ${C.mint})`, borderRadius: 99 }} />
+            <div style={{ width: `${dailyGoalPct}%`, height: '100%', background: `linear-gradient(90deg, ${C.mintDeep}, ${C.mint})`, borderRadius: 99 }} />
           </div>
-          <div style={{ marginTop: 10, color: C.ink, fontFamily: fontSans, fontWeight: 700, fontSize: 14, letterSpacing: '0.06em' }}>75% COMPLETE</div>
+          <div style={{ marginTop: 10, color: C.ink, fontFamily: fontSans, fontWeight: 700, fontSize: 14, letterSpacing: '0.06em' }}>{dailyGoalPct}% COMPLETE</div>
         </Card>
         </button>
       </div>
@@ -256,7 +271,7 @@ export default function HomeScreen({ onNav }) {
       )}
 
       {/* Training volume */}
-      <button onClick={() => showToast('Training volume: 12.4h this week (+1.2h)')}
+      <button onClick={() => showToast(`Training volume: ${trainingHours}h this week`)}
         style={{ all: 'unset', cursor: 'pointer', display: 'block' }}>
       <Card style={{ padding: 18 }}>
         <div style={kicker}>TRAINING VOLUME</div>
@@ -264,7 +279,7 @@ export default function HomeScreen({ onNav }) {
           <div style={{
             fontFamily: fontDisplay, fontWeight: 800, fontSize: 46,
             color: C.ink, letterSpacing: '0.01em', lineHeight: 1,
-          }}>12.4H</div>
+          }}>{trainingHours}H</div>
           <div style={{ color: C.cream, fontFamily: fontSans, fontWeight: 700, fontSize: 12, letterSpacing: '0.14em' }}>THIS WEEK</div>
         </div>
       </Card>

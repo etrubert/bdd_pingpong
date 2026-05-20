@@ -9,8 +9,9 @@ import { C, fontDisplay, fontSans, fontItalic, kicker, iconBtn } from '../theme'
 import { Icon } from '../icons';
 import { useUI } from './uiContext';
 import { useSharing } from '../lib/sharing';
+import { useAuth } from '../lib/auth';
 import { useAcceptedChallenges, useIncomingChallenges } from '../lib/challenges';
-import { SELF_PROFILE_ID, loadChatBundle, saveChallenge, saveMessage, updateChallenge } from '../lib/chatData';
+import { SELF_PROFILE_ID, loadChatBundle, saveChallenge, saveMessage, searchProfiles, startDmWith, updateChallenge } from '../lib/chatData';
 
 // Marker icon for individual tables (small crème dot)
 const tableIcon = L.divIcon({
@@ -374,7 +375,8 @@ const MicIcon = ({ size = 12 }) => (
 );
 
 // ---------- Reusable bits ----------
-function SearchInput({ placeholder }) {
+function SearchInput({ placeholder, value, onChange, onFocus, onBlur }) {
+  const controlled = typeof value === 'string';
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 10,
@@ -382,9 +384,16 @@ function SearchInput({ placeholder }) {
       background: 'rgba(8,22,17,0.45)', border: `1px solid ${C.border}`,
     }}>
       <span style={{ color: C.inkFaint, display: 'flex' }}><SearchIcon /></span>
-      <input type="text" placeholder={placeholder} style={{
-        all: 'unset', flex: 1, fontFamily: fontSans, fontSize: 14, color: C.ink,
-      }} />
+      <input
+        type="text"
+        placeholder={placeholder}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        {...(controlled ? { value, onChange: (e) => onChange?.(e.target.value) } : {})}
+        style={{
+          all: 'unset', flex: 1, fontFamily: fontSans, fontSize: 14, color: C.ink,
+        }}
+      />
     </div>
   );
 }
@@ -433,26 +442,36 @@ function FriendRowItem({ f, actionIcon, actionLabel, onClickAction }) {
   );
 }
 
-function FriendsListView() {
+function FriendsListView({ friends: friendsProp }) {
   const { openSheet } = useUI();
-  const onlineCount = FRIENDS_ALL.filter(f => f.online).length;
+  const { userId } = useAuth();
+  const [friends, setFriends] = useState(friendsProp || []);
+  useEffect(() => {
+    if (friendsProp) return undefined;
+    let cancelled = false;
+    loadChatBundle(userId).then(b => { if (!cancelled && b) setFriends(b.friends); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [friendsProp, userId]);
+  const onlineCount = friends.filter(f => f.online).length;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <BackToProfileBtn />
       <div>
         <div style={kicker}>AMIS</div>
         <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 36, lineHeight: 1, color: C.ink, marginTop: 4 }}>
-          {FRIENDS_ALL.length} amis
+          {friends.length} {friends.length === 1 ? 'ami' : 'amis'}
         </div>
         <div style={{ fontFamily: fontSans, fontSize: 13, color: C.inkDim, marginTop: 6 }}>
-          <span style={{ color: '#3DD16B' }}>●</span> {onlineCount} en ligne · prets a jouer
+          {friends.length === 0
+            ? 'Tu n\'as pas encore d\'amis. Cherche-en !'
+            : <><span style={{ color: '#3DD16B' }}>●</span> {onlineCount} en ligne · prêts à jouer</>}
         </div>
       </div>
       <SearchInput placeholder="Rechercher un ami..." />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {FRIENDS_ALL.map(f => (
+        {friends.map(f => (
           <FriendRowItem
-            key={f.name}
+            key={f.id || f.name}
             f={f}
             actionIcon={<ChatIcon size={14} />}
             actionLabel="Message"
@@ -505,7 +524,15 @@ function MatchesListView() {
   );
 }
 
-function ChallengeView() {
+function ChallengeView({ friends: friendsProp }) {
+  const { userId } = useAuth();
+  const [friends, setFriends] = useState(friendsProp || []);
+  useEffect(() => {
+    if (friendsProp) return undefined;
+    let cancelled = false;
+    loadChatBundle(userId).then(b => { if (!cancelled && b) setFriends(b.friends); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [friendsProp, userId]);
   const { openSheet } = useUI();
   const openChallenge = (opp) => openSheet({ title: 'Nouveau defi', body: <NewChallengeView opponent={opp} /> });
   const SUGGESTED = [
@@ -525,20 +552,31 @@ function ChallengeView() {
         </div>
       </div>
 
-      <div>
-        <div style={{ ...kicker, marginBottom: 10 }}>MES AMIS</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {FRIENDS_ALL.slice(0, 6).map(f => (
-            <FriendRowItem
-              key={f.name}
-              f={f}
-              actionIcon={<SwordsIcon size={14} />}
-              actionLabel="Defier"
-              onClickAction={() => openChallenge(f)}
-            />
-          ))}
+      {friends.length > 0 && (
+        <div>
+          <div style={{ ...kicker, marginBottom: 10 }}>MES AMIS</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {friends.slice(0, 6).map(f => (
+              <FriendRowItem
+                key={f.id || f.name}
+                f={f}
+                actionIcon={<SwordsIcon size={14} />}
+                actionLabel="Defier"
+                onClickAction={() => openChallenge(f)}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+      {friends.length === 0 && (
+        <div style={{
+          padding: '14px 16px', borderRadius: 12,
+          background: 'rgba(184,220,197,0.06)', border: `1px solid ${C.border}`,
+          fontFamily: fontSans, fontSize: 13, color: C.inkDim, lineHeight: 1.5,
+        }}>
+          Tu n'as pas encore d'amis. Utilise la recherche pour trouver des joueurs.
+        </div>
+      )}
 
       <div style={{ marginTop: 8 }}>
         <div style={{ ...kicker, marginBottom: 10 }}>RECHERCHER UN ADVERSAIRE</div>
@@ -1471,11 +1509,119 @@ function TeamGroupRow({ g, onClick }) {
   );
 }
 
-function ClubsTabContent({ clubs = MY_CLUBS, announcements = [COACH_ANNOUNCE], training = NEXT_TRAINING, teamGroups = TEAM_GROUPS }) {
+function ClubsTabContent({ clubs = [], announcements = [], training = null, teamGroups = [] }) {
   const { openSheet, showToast } = useUI();
-  const a = announcements[0] || COACH_ANNOUNCE;
-  const [light, mid, dark] = a.color;
-  const t = training || NEXT_TRAINING;
+  const { profile } = useAuth();
+  const isClubPlayer = profile?.player_type === 'competition';
+  const hasClubs = clubs.length > 0;
+
+  // Suggestions : clubs proches (depuis maps_clubs.csv) si user pas en club
+  const [nearbyClubs, setNearbyClubs] = useState([]);
+  useEffect(() => {
+    if (hasClubs || isClubPlayer) return undefined;
+    let cancelled = false;
+    fetch('/data/maps_clubs.csv')
+      .then(r => r.text())
+      .then(text => {
+        if (cancelled) return;
+        const lines = text.split(/\r?\n/).filter(Boolean);
+        const headers = lines.shift().split(',').map(h => h.replace(/^﻿/, '').trim());
+        const userPos = (() => {
+          try {
+            const raw = localStorage.getItem('pp_user_pos');
+            return raw ? JSON.parse(raw) : [48.8566, 2.3522]; // Paris fallback
+          } catch { return [48.8566, 2.3522]; }
+        })();
+        const [ulat, ulon] = userPos;
+        const parsed = [];
+        for (const line of lines) {
+          const cells = line.split(',');
+          const row = {};
+          headers.forEach((h, i) => { row[h] = (cells[i] || '').trim(); });
+          const lat = parseFloat(row.latitude);
+          const lon = parseFloat(row.longitude);
+          if (row.club_nom && Number.isFinite(lat) && Number.isFinite(lon)) {
+            const dlat = (lat - ulat) * 111;
+            const dlon = (lon - ulon) * 111 * Math.cos(ulat * Math.PI / 180);
+            const km = Math.sqrt(dlat * dlat + dlon * dlon);
+            parsed.push({ name: row.club_nom, pays: row.pays, url: row.url, km });
+          }
+        }
+        parsed.sort((a, b) => a.km - b.km);
+        setNearbyClubs(parsed.slice(0, 6));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [hasClubs, isClubPlayer]);
+
+  // Si pas membre de club ET joueur non-competition → afficher uniquement les suggestions
+  if (!hasClubs && !isClubPlayer) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div>
+          <div style={kicker}>SUGGESTIONS</div>
+          <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 24, lineHeight: 1.1, color: C.ink, marginTop: 6 }}>
+            Clubs proches de toi
+          </div>
+          <div style={{ fontFamily: fontSans, fontSize: 13, color: C.inkDim, marginTop: 6, lineHeight: 1.5 }}>
+            Tu n'es membre d'aucun club. Voici des clubs autour de toi si tu veux te lancer.
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {nearbyClubs.length === 0 ? (
+            <div style={{ fontFamily: fontSans, fontSize: 13, color: C.inkDim, padding: '14px 0', textAlign: 'center' }}>
+              Chargement des clubs…
+            </div>
+          ) : nearbyClubs.map(c => (
+            <a key={c.name} href={c.url} target="_blank" rel="noopener noreferrer"
+               style={{
+                 textDecoration: 'none',
+                 display: 'flex', alignItems: 'center', gap: 12,
+                 padding: '12px 14px', borderRadius: 14,
+                 background: C.card, border: `1px solid ${C.border}`,
+               }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+                background: 'rgba(232,201,155,0.14)', border: `1px solid ${C.border}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: C.warm,
+              }}>{Icon.pin(18)}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: fontSans, fontWeight: 700, fontSize: 14, color: C.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</div>
+                <div style={{ fontFamily: fontSans, fontSize: 12, color: C.inkDim, marginTop: 2 }}>
+                  {c.pays} · {c.km.toFixed(1)} km
+                </div>
+              </div>
+              <span style={{ color: C.warm, fontFamily: fontSans, fontSize: 12, fontWeight: 700 }}>Voir →</span>
+            </a>
+          ))}
+        </div>
+
+        <div style={{ fontFamily: fontSans, fontSize: 12, color: C.inkDim, textAlign: 'center', marginTop: 4, lineHeight: 1.5 }}>
+          Données issues de la carte Finder · ouvre Finder pour explorer la carte complète.
+        </div>
+      </div>
+    );
+  }
+
+  // Cas user club mais sans rien de seede : message neutre
+  if (!hasClubs) {
+    return (
+      <div style={{
+        padding: '40px 16px', textAlign: 'center',
+        fontFamily: fontSans, fontSize: 14, color: C.inkDim, lineHeight: 1.5,
+      }}>
+        Tu n'es membre d'aucun club pour le moment.<br />
+        Va dans Finder pour en trouver un.
+      </div>
+    );
+  }
+
+  // A partir d'ici : user a au moins un club -> affichage classique
+  const a = announcements[0];
+  const [light, mid, dark] = a ? a.color : ['#cccccc','#666666','#222222'];
+  const t = training;
 
   const openCoachChat = () => {
     const coach = { full: a.author, name: a.author, color: a.color, online: false };
@@ -1499,6 +1645,7 @@ function ClubsTabContent({ clubs = MY_CLUBS, announcements = [COACH_ANNOUNCE], t
       </div>
 
       {/* ANNONCE DU COACH */}
+      {a && (
       <div style={{
         padding: '14px 16px', borderRadius: 16,
         background: 'rgba(232,201,155,0.06)', border: `1px solid rgba(232,201,155,0.30)`,
@@ -1538,8 +1685,10 @@ function ClubsTabContent({ clubs = MY_CLUBS, announcements = [COACH_ANNOUNCE], t
           }}><HeartIcon /> {a.likes}</button>
         </div>
       </div>
+      )}
 
       {/* Prochain entraînement */}
+      {t && (
       <div style={{
         display: 'flex', alignItems: 'center', gap: 14,
         padding: '14px', borderRadius: 16,
@@ -1566,8 +1715,10 @@ function ClubsTabContent({ clubs = MY_CLUBS, announcements = [COACH_ANNOUNCE], t
           fontFamily: fontSans, fontWeight: 700, fontSize: 13,
         }}>Je viens</button>
       </div>
+      )}
 
       {/* ÉQUIPES & GROUPES */}
+      {teamGroups.length > 0 && (
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
           <span style={{ ...kicker, lineHeight: 1.2 }}>ÉQUIPES &amp; GROUPES</span>
@@ -1592,6 +1743,7 @@ function ClubsTabContent({ clubs = MY_CLUBS, announcements = [COACH_ANNOUNCE], t
           })}
         </div>
       </div>
+      )}
     </div>
   );
 }
@@ -2422,33 +2574,49 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
 }
 
 export function MessagesView({ embedded = false }) {
-  const { openSheet } = useUI();
+  const { openSheet, showToast } = useUI();
+  const { userId } = useAuth();
   const [tab, setTab] = useState('tous');
-  const [conversations, setConversations] = useState(CONVERSATIONS);
+  // Nouveau user = tout vide. Pas de fallback sur les mocks.
+  const [conversations, setConversations] = useState([]);
   const [incoming, setIncoming] = useIncomingChallenges();
-  const [outgoing, setOutgoing] = useState(CHALLENGES_OUTGOING);
+  const [outgoing, setOutgoing] = useState([]);
   const [accepted, setAccepted] = useAcceptedChallenges();
-  const [friends, setFriends] = useState(FRIENDS_ALL);
-  const [clubs, setClubs] = useState(MY_CLUBS);
-  const [announcements, setAnnouncements] = useState([COACH_ANNOUNCE]);
-  const [training, setTraining] = useState(NEXT_TRAINING);
-  const [teamGroups, setTeamGroups] = useState(TEAM_GROUPS);
+  const [friends, setFriends] = useState([]);
+  const [clubs, setClubs] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [training, setTraining] = useState(null);
+  const [teamGroups, setTeamGroups] = useState([]);
   const [dataStatus, setDataStatus] = useState('local');
+  const [searchQ, setSearchQ] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [adding, setAdding] = useState(null); // profileId en cours d'ajout
+  const [searchFocused, setSearchFocused] = useState(false);
+
+  const reloadBundle = () => {
+    loadChatBundle(userId).then((bundle) => {
+      if (!bundle) return;
+      setConversations(bundle.conversations);
+      setFriends(bundle.friends);
+    }).catch(() => {});
+  };
 
   useEffect(() => {
     let cancelled = false;
-    loadChatBundle()
+    loadChatBundle(userId)
       .then((bundle) => {
         if (cancelled || !bundle) return;
-        setConversations(bundle.conversations.length ? bundle.conversations : CONVERSATIONS);
+        // On garde exactement ce que Supabase retourne (vide = vide).
+        setConversations(bundle.conversations);
         setIncoming(bundle.incoming);
         setOutgoing(bundle.outgoing);
         setAccepted(bundle.accepted);
-        setFriends(bundle.friends.length ? bundle.friends : FRIENDS_ALL);
-        setClubs(bundle.clubs.length ? bundle.clubs : MY_CLUBS);
-        setAnnouncements(bundle.announcements.length ? bundle.announcements : [COACH_ANNOUNCE]);
-        setTraining(bundle.training || NEXT_TRAINING);
-        setTeamGroups(bundle.teamGroups.length ? bundle.teamGroups : TEAM_GROUPS);
+        setFriends(bundle.friends);
+        setClubs(bundle.clubs);
+        setAnnouncements(bundle.announcements);
+        setTraining(bundle.training);
+        setTeamGroups(bundle.teamGroups);
         setDataStatus('supabase');
       })
       .catch((error) => {
@@ -2456,7 +2624,41 @@ export function MessagesView({ embedded = false }) {
         if (!cancelled) setDataStatus('error');
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [userId]);
+
+  // Recherche debouncee de profils sur Supabase.
+  // Quand l'input est focus, on charge aussi des suggestions par defaut (query vide).
+  useEffect(() => {
+    const q = searchQ.trim();
+    if (!q && !searchFocused) { setSearchResults([]); setSearching(false); return undefined; }
+    setSearching(true);
+    const excludeIds = [userId, ...friends.map((f) => f.id || f.profileId)].filter(Boolean);
+    const handle = setTimeout(() => {
+      searchProfiles(q, { excludeIds, limit: 8 })
+        .then((rows) => setSearchResults(rows))
+        .catch(() => setSearchResults([]))
+        .finally(() => setSearching(false));
+    }, q ? 220 : 0);
+    return () => { clearTimeout(handle); setSearching(false); };
+  }, [searchQ, searchFocused, userId, friends]);
+
+  const addAndOpen = async (profile) => {
+    if (!userId) { showToast('Connecte-toi pour ajouter un ami'); return; }
+    try {
+      setAdding(profile.id);
+      const convId = await startDmWith(userId, profile.id);
+      setSearchQ('');
+      setSearchResults([]);
+      reloadBundle();
+      const contact = { ...profile, conversationId: convId, selfId: userId };
+      openSheet({ title: profile.full || profile.name, body: <ChatView contact={contact} /> });
+    } catch (err) {
+      console.error(err);
+      showToast('Impossible d\'ajouter ce joueur');
+    } finally {
+      setAdding(null);
+    }
+  };
 
   const unreadCount = conversations.filter(c => c.unread).length;
   // Defis "a traiter" = incoming (entrants) + contre-propositions (a revalider)
@@ -2506,7 +2708,42 @@ export function MessagesView({ embedded = false }) {
           Supabase indisponible, affichage des donnees locales.
         </div>
       )}
-      <SearchInput placeholder={searchPlaceholder} />
+      <SearchInput
+        placeholder={searchPlaceholder}
+        value={searchQ}
+        onChange={setSearchQ}
+        onFocus={() => setSearchFocused(true)}
+        onBlur={() => setTimeout(() => setSearchFocused(false), 180)}
+      />
+
+      {/* Suggestions de joueurs depuis la recherche */}
+      {(searchFocused || searchQ.trim()) && (
+        <div style={{
+          display: 'flex', flexDirection: 'column', gap: 8,
+          padding: '12px', borderRadius: 14,
+          background: 'rgba(8,22,17,0.45)', border: `1px solid ${C.border}`,
+        }}>
+          <div style={{ ...kicker, marginBottom: 4 }}>
+            {searching ? 'RECHERCHE…' : searchQ.trim() ? `RÉSULTATS (${searchResults.length})` : 'SUGGESTIONS'}
+          </div>
+          {!searching && searchResults.length === 0 && (
+            <div style={{ fontFamily: fontSans, fontSize: 13, color: C.inkDim, padding: '8px 4px' }}>
+              {searchQ.trim()
+                ? `Aucun joueur trouvé pour « ${searchQ.trim()} ».`
+                : 'Aucun joueur disponible pour le moment.'}
+            </div>
+          )}
+          {searchResults.map((p) => (
+            <FriendRowItem
+              key={p.id || p.name}
+              f={p}
+              actionIcon={<ChatIcon size={14} />}
+              actionLabel={adding === p.id ? '…' : 'Ajouter'}
+              onClickAction={() => addAndOpen(p)}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Statut en ligne — uniquement sur l'onglet Tous */}
       {isTous && (
@@ -2551,8 +2788,8 @@ export function MessagesView({ embedded = false }) {
         </div>
       )}
 
-      {/* Stories row — uniquement sur l'onglet Tous */}
-      {isTous && (
+      {/* Stories row — uniquement sur l'onglet Tous, et seulement si on a au moins un ami */}
+      {isTous && friends.length > 0 && (
         <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 4 }}>
           {stories.map(s => {
             const handle = () => {
@@ -2630,12 +2867,22 @@ export function MessagesView({ embedded = false }) {
         />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {shown.map((c, idx) => (
-            <button key={idx} onClick={() => openConversation(c)}
-                    style={{ all: 'unset', cursor: 'pointer', display: 'block' }}>
-              <ConversationRow c={c} />
-            </button>
-          ))}
+          {shown.length === 0 ? (
+            <div style={{
+              padding: '32px 16px', textAlign: 'center',
+              fontFamily: fontSans, fontSize: 13.5, color: C.inkDim, lineHeight: 1.55,
+            }}>
+              Tu n'as encore aucune conversation.<br />
+              Ajoute un ami pour démarrer un échange.
+            </div>
+          ) : (
+            shown.map((c, idx) => (
+              <button key={idx} onClick={() => openConversation(c)}
+                      style={{ all: 'unset', cursor: 'pointer', display: 'block' }}>
+                <ConversationRow c={c} />
+              </button>
+            ))
+          )}
         </div>
       )}
     </div>
@@ -2801,8 +3048,12 @@ export { ProfileSheet };
 
 export default function TopBar({ topInset = 0 }) {
   const { openSheet } = useUI();
+  const { profile } = useAuth();
   const ref = useRef(null);
   const [hidden, setHidden] = useState(false);
+  const userName = profile?.display_name || profile?.email?.split('@')[0] || 'Toi';
+  const userFirst = userName.split(' ')[0];
+  const userInitial = (userFirst[0] || 'T').toUpperCase();
 
   useEffect(() => {
     const el = ref.current;
@@ -2857,9 +3108,21 @@ export default function TopBar({ topInset = 0 }) {
         fontSize: 18, color: C.ink, whiteSpace: 'nowrap', textAlign: 'center',
       }}>PING PANG PARIS</div>
       <button onClick={() => openSheet({
-        title: 'EUGENIA SOREL',
+        title: userName.toUpperCase(),
         body: <ProfileSheet />,
-      })} style={iconBtn}>{Icon.user(26)}</button>
+      })} style={{
+        ...iconBtn,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{
+          width: 32, height: 32, borderRadius: '50%',
+          background: 'radial-gradient(60% 60% at 35% 30%, #d6b890 0%, #6b4a2e 60%, #1c100a 100%)',
+          border: `1.5px solid ${C.borderHi}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: fontSans, fontWeight: 800, fontSize: 13, color: '#fff',
+          letterSpacing: 0,
+        }}>{userInitial}</div>
+      </button>
       </div>
     </div>
   );
