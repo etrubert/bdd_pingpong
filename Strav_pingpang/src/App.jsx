@@ -12,6 +12,8 @@ import MerchScreen from './screens/MerchScreen';
 import ChatScreen from './screens/ChatScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import PlaceholderScreen from './screens/PlaceholderScreen';
+import Leaderboard from './screens/Leaderboard';
+import { useOnboarding } from './lib/onboarding';
 import { useAuth } from './lib/auth';
 
 function useViewport() {
@@ -30,13 +32,13 @@ function useViewport() {
 export default function App() {
   const [tab, setTab] = useState('home');
   const { vw, vh, isMobile } = useViewport();
-  const { isAuthed, profile } = useAuth();
-  // Onboarding fini = profil Supabase contient region ET player_type
-  // (champs obligatoires remplis pendant le questionnaire).
-  const onboardingDone = !!(profile?.region && profile?.player_type);
+  const { isAuthed, profile, userId } = useAuth();
+  const { completed: onboardingLocal } = useOnboarding();
+
+  // Profil Supabase complet OU onboarding local terminé (fallback démo)
+  const onboardingDone = !!(profile?.region && profile?.player_type) || onboardingLocal;
   const showApp = isAuthed && onboardingDone;
 
-  // iPhone aspect ratio (402:874 ≈ 0.46) — fit to viewport with some breathing room
   const PHONE_RATIO = 402 / 874;
   const maxByHeight = vh - 48;
   const maxByWidth = vw - 48;
@@ -45,22 +47,20 @@ export default function App() {
 
   const screen = useMemo(() => {
     switch (tab) {
-      case 'home':    return <HomeScreen onNav={setTab} />;
-      case 'train':   return <TrainScreen />;
-      case 'matches': return <MatchesScreen />;
-      case 'finder':  return <FinderScreen />;
-      case 'chat':    return <ChatScreen />;
-      case 'merch':   return <MerchScreen />;
-      default:        return <HomeScreen onNav={setTab} />;
+      case 'home':        return <HomeScreen onNav={setTab} />;
+      case 'train':       return <TrainScreen />;
+      case 'matches':     return <MatchesScreen />;
+      case 'leaderboard': return <Leaderboard currentUserId={userId} />;
+      case 'finder':      return <FinderScreen />;
+      case 'chat':        return <ChatScreen />;
+      case 'merch':       return <MerchScreen />;
+      default:            return <HomeScreen onNav={setTab} />;
     }
-  }, [tab]);
+  }, [tab, userId]);
 
-  // Pas de status bar dans le mockup. Sur mobile reel, env(safe-area-inset-top) est applique cote TopBar.
   const mockTopInset = 0;
-
   const scrollRef = useRef(null);
 
-  // Reset scroll to top whenever the active tab changes
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTo({ top: 0, behavior: 'auto' });
   }, [tab]);

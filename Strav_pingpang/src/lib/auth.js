@@ -22,6 +22,8 @@ function writeSession(s) {
     else localStorage.removeItem(KEY_SESSION);
   } catch {}
   notify();
+  // Garder le client @supabase/supabase-js aligné avec auth REST
+  import('./supabase.js').then(({ syncSupabaseSession }) => syncSupabaseSession()).catch(() => {});
 }
 function readProfile() {
   try {

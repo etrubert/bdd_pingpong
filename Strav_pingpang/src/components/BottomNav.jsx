@@ -7,7 +7,8 @@ export default function BottomNav({ tab, onTab }) {
     { id: 'train',   label: 'TRAIN',   icon: Icon.brain },
     { id: 'finder',  label: 'FINDER',  icon: Icon.map },
     { id: 'chat',    label: 'CHAT',    icon: Icon.chat },
-    { id: 'matches', label: 'MATCHES', icon: Icon.trophy },
+    { id: 'matches',     label: 'MATCHES', icon: Icon.trophy },
+    { id: 'leaderboard', label: 'RANKING', icon: Icon.trend },
     { id: 'merch',   label: 'MERCH',   icon: Icon.bag },
   ];
   return (

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { C, fontDisplay, fontSans, fontItalic, kicker } from '../theme';
 import { useOnboarding } from '../lib/onboarding';
+import OnboardingCalibration from './OnboardingCalibration';
 import { signUp, signIn, updateProfile, useAuth } from '../lib/auth';
 
 // ----- Atomes UI -----
@@ -527,8 +528,7 @@ async function saveProfileToSupabase(data) {
 // ----- Composant principal -----
 export default function OnboardingScreen({ onComplete }) {
   const { save } = useOnboarding();
-  const { isAuthed, profile } = useAuth();
-  // Si deja authentifie mais profil incomplet → on saute directement au questionnaire
+  const { isAuthed, profile, userId } = useAuth();
   const initialStep = isAuthed ? 1 : 0;
   const [step, setStep] = useState(initialStep);
   const [data, setData] = useState(() => ({
@@ -561,14 +561,37 @@ export default function OnboardingScreen({ onComplete }) {
     if (onComplete) onComplete(final);
   };
 
+  const handlePlayerType = (patch) => {
+    const merged = { ...data, ...patch };
+    setData(merged);
+    if (patch.playerType === 'fun') {
+      setStep(3);
+    } else {
+      setStep(4);
+    }
+  };
+
+  const handleCalibrationComplete = async (initialElo) => {
+    const final = { ...data, initialElo, completed: true, completedAt: Date.now() };
+    await saveProfileToSupabase(final);
+    await save(final);
+    if (onComplete) onComplete(final);
+  };
+
   let content;
   if (step === 0)      content = <StepConnexion onSignedUp={onSignedUp} onSignedIn={onSignedIn} />;
   else if (step === 1) content = <StepIdentity onNext={advance} onBack={() => setStep(0)} initial={data} />;
-  else if (step === 2) content = <StepPlayerType onNext={advance} initial={data} />;
+  else if (step === 2) content = <StepPlayerType onNext={handlePlayerType} initial={data} />;
   else if (step === 3) {
-    if (data.playerType === 'fun')      content = <StepFun onFinish={finish} initial={data} />;
-    else if (data.playerType === 'progress') content = <StepProgress onFinish={finish} initial={data} />;
-    else                                       content = <StepClub onFinish={finish} initial={data} />;
+    // Uniquement pour les joueurs 'fun' (les autres passent par step 4)
+    content = <StepFun onFinish={finish} initial={data} />;
+  } else if (step === 4) {
+    content = (
+      <OnboardingCalibration
+        userId={userId}
+        onComplete={handleCalibrationComplete}
+      />
+    );
   }
 
   return (
