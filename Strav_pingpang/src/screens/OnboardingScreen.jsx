@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { C, fontDisplay, fontSans, fontItalic, kicker } from '../theme';
 import { useOnboarding } from '../lib/onboarding';
 import OnboardingCalibration from './OnboardingCalibration';
-import { signUp, signIn, signOut, updateProfile, useAuth } from '../lib/auth';
+import { signUp, signIn, signOut, refreshProfile, updateProfile, useAuth } from '../lib/auth';
 
 // ----- Atomes UI -----
 function Pill({ active, onClick, children, full }) {
@@ -119,11 +119,11 @@ function StepConnexion({ onSignedUp, onSignedIn, currentSession, onContinueAsCur
             throw new Error(e.message || 'Compte créé mais connexion impossible (confirmation email requise ?)');
           }
         }
-        onSignedUp({ email });
+        await onSignedUp({ email });
       } else {
         // Connexion : on vérifie email + mot de passe contre Supabase auth.
         await signIn({ email, password });
-        onSignedIn({ email });
+        await onSignedIn({ email });
       }
     } catch (e) {
       const msg = e.message || 'Erreur';
@@ -142,33 +142,6 @@ function StepConnexion({ onSignedUp, onSignedIn, currentSession, onContinueAsCur
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingTop: 30 }}>
-      {currentSession && (
-        <div style={{
-          padding: '12px 14px', borderRadius: 12,
-          background: 'rgba(232,201,155,0.08)',
-          border: '1px solid rgba(232,201,155,0.35)',
-          display: 'flex', flexDirection: 'column', gap: 8,
-        }}>
-          <div style={{ fontFamily: fontSans, fontSize: 12.5, color: C.inkDim, lineHeight: 1.5 }}>
-            Tu es déjà connecté en tant que <strong style={{ color: C.ink }}>{currentSession}</strong>.
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={onContinueAsCurrent} style={{
-              all: 'unset', cursor: 'pointer', flex: 1, textAlign: 'center',
-              padding: '10px', borderRadius: 10,
-              background: C.warm, color: '#0C211A',
-              fontFamily: fontSans, fontWeight: 800, fontSize: 12, letterSpacing: '0.12em',
-            }}>CONTINUER</button>
-            <button onClick={onSignOutCurrent} style={{
-              all: 'unset', cursor: 'pointer', flex: 1, textAlign: 'center',
-              padding: '10px', borderRadius: 10,
-              background: 'transparent', border: `1px solid ${C.border}`,
-              color: C.inkDim,
-              fontFamily: fontSans, fontWeight: 700, fontSize: 12, letterSpacing: '0.12em',
-            }}>CHANGER DE COMPTE</button>
-          </div>
-        </div>
-      )}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
         <div style={{
           width: 70, height: 70, borderRadius: '50%',
@@ -680,8 +653,24 @@ export default function OnboardingScreen({ onComplete }) {
     setStep(s => s + 1);
   };
 
-  const onSignedUp = ({ email }) => { setData(d => ({ ...d, email })); setStep(1); };
-  const onSignedIn = ({ email }) => { setData(d => ({ ...d, email })); setStep(1); };
+  // Signup : compte tout frais → toujours questionnaire complet
+  const onSignedUp = ({ email }) => {
+    setData(d => ({ ...d, email }));
+    setStep(1);
+  };
+
+  // Signin : si le profil existant est déjà complet (region + player_type)
+  // on bypass le questionnaire et on entre direct dans l'app.
+  // Sinon on poursuit le questionnaire pour compléter ce qui manque.
+  const onSignedIn = async ({ email }) => {
+    const fresh = await refreshProfile();
+    if (fresh?.region && fresh?.player_type) {
+      if (onComplete) onComplete(fresh);
+    } else {
+      setData(d => ({ ...d, ...profileToFormData(fresh), email }));
+      setStep(1);
+    }
+  };
 
   // Permet à l'user de revenir à l'écran de connexion depuis le questionnaire
   // (utile s'il veut changer de compte)

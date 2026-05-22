@@ -447,3 +447,170 @@ export async function updateChallenge(challengeId, patch) {
   const [challenge] = await updateRows('challenges', { id: `eq.${challengeId}` }, schemaPatch);
   return challenge;
 }
+
+// =============================================================
+// JEU DE DONNÉES DÉMO (amis fictifs, conversations, défis)
+// Affiché quand le compte n'a pas encore d'amis/conversations
+// dans Supabase, pour que le chat/défis ne soient pas vides.
+// =============================================================
+
+const DEMO_FRIENDS = [
+  { id: 'demo-1', profileId: 'demo-1', name: 'Julien B.',  full: 'Julien Bertin',     elo: 1480, rank: '#218', style: 'attaquant',  online: true,  color: PALETTE[0] },
+  { id: 'demo-2', profileId: 'demo-2', name: 'Marie L.',   full: 'Marie Lemaire',     elo: 1390, rank: '#312', style: 'polyvalent', online: false, color: PALETTE[1] },
+  { id: 'demo-3', profileId: 'demo-3', name: 'Clara D.',   full: 'Clara Durand',      elo: 1510, rank: '#187', style: 'attaquant',  online: true,  color: PALETTE[2] },
+  { id: 'demo-4', profileId: 'demo-4', name: 'Thomas R.',  full: 'Thomas Renaud',     elo: 1455, rank: '#256', style: 'defenseur',  online: false, color: PALETTE[3] },
+  { id: 'demo-5', profileId: 'demo-5', name: 'Sophie L.',  full: 'Sophie Leroux',     elo: 1620, rank: '#94',  style: 'attaquant',  online: true,  color: PALETTE[4] },
+  { id: 'demo-6', profileId: 'demo-6', name: 'Marc L.',    full: 'Marc Leclerc',      elo: 1520, rank: '#162', style: 'polyvalent', online: false, color: PALETTE[5] },
+  { id: 'demo-7', profileId: 'demo-7', name: 'Paul D.',    full: 'Paul Dupont',       elo: 1340, rank: '#398', style: 'defenseur',  online: true,  color: PALETTE[0] },
+];
+
+const DEMO_CONVERSATIONS = [
+  { id: 'conv-1', conversationId: 'conv-1', profileId: 'demo-1',
+    full: 'Julien Bertin', name: 'Julien B.', elo: 1480, rank: '#218',
+    color: PALETTE[0], online: true,
+    preview: 'On se refait un match ce soir ?', when: '14:32',
+    unread: true, isDefi: false, isClub: false, voice: false,
+    messages: [
+      { id: 'm-1-1', from: 'them', text: 'Salut ! Dispo ce soir ?', when: '14:30', isDefi: false },
+      { id: 'm-1-2', from: 'them', text: 'On se refait un match ce soir ?', when: '14:32', isDefi: false },
+    ],
+  },
+  { id: 'conv-2', conversationId: 'conv-2', profileId: 'demo-2',
+    full: 'Marie Lemaire', name: 'Marie L.', elo: 1390, rank: '#312',
+    color: PALETTE[1], online: false,
+    preview: 'Bien joué pour hier ! 🏓', when: 'Hier',
+    unread: false, isDefi: false, isClub: false, voice: false,
+    messages: [
+      { id: 'm-2-1', from: 'me',   text: 'GG pour la victoire !', when: '19:45', isDefi: false },
+      { id: 'm-2-2', from: 'them', text: 'Bien joué pour hier ! 🏓', when: '20:02', isDefi: false },
+    ],
+  },
+  { id: 'conv-3', conversationId: 'conv-3', profileId: 'demo-6',
+    full: 'Marc Leclerc', name: 'Marc L.', elo: 1520, rank: '#162',
+    color: PALETTE[5], online: false,
+    preview: 'Je te défie samedi 14h ?', when: '2j',
+    unread: true, isDefi: true, isClub: false, voice: false,
+    messages: [
+      { id: 'm-3-1', from: 'them', text: 'Je te défie samedi 14h ?', when: '10:15', isDefi: true },
+    ],
+  },
+  { id: 'conv-4', conversationId: 'conv-4', profileId: null,
+    full: 'Le Marais Ping · Équipe 2', name: 'Le Marais Ping',
+    color: PALETTE[2], colorB: PALETTE[3], online: false,
+    preview: 'Coach : RDV samedi 8h pour le match', when: '7j',
+    unread: false, isDefi: false, isClub: true, voice: false,
+    messages: [
+      { id: 'm-4-1', from: 'them', text: 'Coach : RDV samedi 8h pour le match', when: '08:00', isDefi: false },
+    ],
+  },
+  { id: 'conv-5', conversationId: 'conv-5', profileId: 'demo-3',
+    full: 'Clara Durand', name: 'Clara D.', elo: 1510, rank: '#187',
+    color: PALETTE[2], online: true,
+    preview: '[Message vocal · 0:42]', when: '3j',
+    unread: false, isDefi: false, isClub: false, voice: true,
+    messages: [
+      { id: 'm-5-1', from: 'them', text: '[Message vocal · 0:42]', when: '16:10', isDefi: false, isVoice: true },
+    ],
+  },
+];
+
+const DEMO_INCOMING = [
+  { id: 'def-in-1', challengeId: 'def-in-1', profileId: 'demo-6',
+    full: 'Marc Leclerc', from: 'Marc', color: PALETTE[5], online: false,
+    elo: 1520, rank: '#162', when: '2h',
+    status: 'sent', date: 'Sam 21 · 14h', venue: 'Marais T3',
+    format: 'BO5', enjeu: 'Classé', gainW: 22, lossL: 12,
+    summary: 'Sam 21 · 14h · Marais T3 · BO5 · Classé',
+    isNew: true,
+  },
+  { id: 'def-in-2', challengeId: 'def-in-2', profileId: 'demo-5',
+    full: 'Sophie Leroux', from: 'Sophie', color: PALETTE[4], online: true,
+    elo: 1620, rank: '#94', when: '5h',
+    status: 'sent', date: 'Dim 22 · 18h', venue: 'Bercy',
+    format: 'BO5', enjeu: 'Classé', gainW: 28, lossL: 8,
+    summary: 'Dim 22 · 18h · Bercy · BO5 · Classé',
+    isNew: true,
+  },
+];
+
+const DEMO_ACCEPTED = [
+  { id: 'def-acc-1', challengeId: 'def-acc-1', profileId: 'demo-2',
+    full: 'Marie Lemaire', from: 'Marie', color: PALETTE[1], online: false,
+    elo: 1390, rank: '#312', when: '1j',
+    status: 'accepted', date: 'Demain · 18h30', venue: 'Villette T1',
+    format: 'BO5', enjeu: 'Classé', gainW: 14, lossL: 12,
+    summary: 'Demain · 18h30 · Villette T1',
+  },
+  { id: 'def-acc-2', challengeId: 'def-acc-2', profileId: 'demo-3',
+    full: 'Clara Durand', from: 'Clara', color: PALETTE[2], online: true,
+    elo: 1510, rank: '#187', when: '2j',
+    status: 'accepted', date: 'Sam 21 · 16h', venue: 'Luxembourg',
+    format: 'BO7', enjeu: 'Tournoi', gainW: 18, lossL: 10,
+    summary: 'Sam 21 · 16h · Luxembourg',
+  },
+];
+
+const DEMO_OUTGOING = [
+  { id: 'def-out-1', challengeId: 'def-out-1', profileId: 'demo-1',
+    full: 'Julien Bertin', from: 'Julien', color: PALETTE[0], online: true,
+    elo: 1480, rank: '#218', when: '2h',
+    status: 'sent', date: 'Sam 21 · 20h', venue: 'BO5',
+    format: 'BO5', enjeu: 'Classé', gainW: 14, lossL: 12,
+    summary: 'Sam 21 · 20h · BO5',
+  },
+  { id: 'def-out-2', challengeId: 'def-out-2', profileId: 'demo-7',
+    full: 'Paul Dupont', from: 'Paul', color: PALETTE[0], online: true,
+    elo: 1340, rank: '#398', when: '1j',
+    status: 'sent', date: 'Dim 22 · 11h', venue: 'BO3',
+    format: 'BO3', enjeu: 'Amical', gainW: 0, lossL: 0,
+    summary: 'Dim 22 · 11h · BO3',
+  },
+  { id: 'def-out-3', challengeId: 'def-out-3', profileId: 'demo-5',
+    full: 'Sophie Leroux', from: 'Sophie', color: PALETTE[4], online: true,
+    elo: 1620, rank: '#94', when: '3j',
+    status: 'counter', date: 'Sam 21 · 14h', venue: 'Bercy',
+    format: 'BO5', enjeu: 'Classé', gainW: 28, lossL: 8,
+    summary: 'Contre-proposition reçue',
+    counter: {
+      you:     'Sam 21 · 14h',
+      them:    'Dim 22 · 18h',
+      message: 'Pas dispo samedi, dimanche ça t\'irait ?',
+    },
+  },
+];
+
+// --- Persistance "lu / non lu" des conversations (localStorage) ---
+// Permet aux conversations marquées comme lues de le rester entre les
+// ouvertures successives de la sheet Chat (et entre les reloads).
+const READ_KEY = 'pp_read_convs';
+
+export function getReadConvIds() {
+  try {
+    const raw = localStorage.getItem(READ_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch { return new Set(); }
+}
+
+export function markConvAsRead(conversationId) {
+  if (!conversationId) return;
+  const set = getReadConvIds();
+  if (set.has(conversationId)) return;
+  set.add(conversationId);
+  try { localStorage.setItem(READ_KEY, JSON.stringify([...set])); } catch {}
+}
+
+function applyReadState(conversations) {
+  const readSet = getReadConvIds();
+  if (readSet.size === 0) return conversations;
+  return conversations.map(c => readSet.has(c.id) ? { ...c, unread: false } : c);
+}
+
+export function getDemoChatBundle() {
+  return {
+    friends:       DEMO_FRIENDS,
+    conversations: applyReadState(DEMO_CONVERSATIONS),
+    incoming:      DEMO_INCOMING,
+    outgoing:      DEMO_OUTGOING,
+    accepted:      DEMO_ACCEPTED,
+  };
+}

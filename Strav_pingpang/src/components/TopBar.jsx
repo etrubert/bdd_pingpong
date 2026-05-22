@@ -11,7 +11,8 @@ import { useUI } from './uiContext';
 import { useSharing } from '../lib/sharing';
 import { signOut, useAuth } from '../lib/auth';
 import { useAcceptedChallenges, useIncomingChallenges } from '../lib/challenges';
-import { SELF_PROFILE_ID, loadChatBundle, saveChallenge, saveMessage, searchProfiles, startDmWith, updateChallenge } from '../lib/chatData';
+import { SELF_PROFILE_ID, loadChatBundle, getDemoChatBundle, markConvAsRead, saveChallenge, saveMessage, searchProfiles, startDmWith, updateChallenge } from '../lib/chatData';
+import { selectRows } from '../lib/supabaseClient';
 
 // Marker icon for individual tables (small crème dot)
 const tableIcon = L.divIcon({
@@ -398,10 +399,32 @@ function SearchInput({ placeholder, value, onChange, onFocus, onBlur }) {
   );
 }
 
+function ChatIconBtn() {
+  const { openSheet } = useUI();
+  return (
+    <button onClick={() => openSheet({ title: 'Messages', body: <MessagesView /> })}
+            aria-label="Ouvrir le chat"
+            style={{
+              all: 'unset', cursor: 'pointer', flexShrink: 0,
+              width: 36, height: 36, borderRadius: 999,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(232,201,155,0.14)',
+              border: '1px solid rgba(232,201,155,0.35)',
+              color: C.warm,
+            }}>
+      {Icon.chat(18)}
+    </button>
+  );
+}
+
 function BackToProfileBtn() {
   const { openSheet } = useUI();
   return (
-    <button onClick={() => openSheet({ title: 'EUGENIA SOREL', body: <ProfileSheet /> })}
+    <button onClick={() => openSheet({
+              title: 'EUGENIA SOREL',
+              body: <ProfileSheet />,
+              closeAll: true,
+            })}
             style={{
               all: 'unset', cursor: 'pointer',
               fontFamily: fontSans, fontSize: 13, fontWeight: 700,
@@ -449,13 +472,17 @@ function FriendsListView({ friends: friendsProp }) {
   useEffect(() => {
     if (friendsProp) return undefined;
     let cancelled = false;
-    loadChatBundle(userId).then(b => { if (!cancelled && b) setFriends(b.friends); }).catch(() => {});
+    loadChatBundle(userId).then(b => {
+      if (!cancelled && b) {
+        const list = b.friends.length === 0 ? getDemoChatBundle().friends : b.friends;
+        setFriends(list);
+      }
+    }).catch(() => {});
     return () => { cancelled = true; };
   }, [friendsProp, userId]);
   const onlineCount = friends.filter(f => f.online).length;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <BackToProfileBtn />
       <div>
         <div style={kicker}>AMIS</div>
         <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 36, lineHeight: 1, color: C.ink, marginTop: 4 }}>
@@ -488,7 +515,6 @@ function MatchesListView() {
   const filtered = MATCHES_ALL.filter(m => filter === 'all' || (filter === 'wins' ? m.win : !m.win));
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <BackToProfileBtn />
       <div>
         <div style={kicker}>HISTORIQUE</div>
         <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 36, lineHeight: 1, color: C.ink, marginTop: 4 }}>
@@ -530,7 +556,12 @@ function ChallengeView({ friends: friendsProp }) {
   useEffect(() => {
     if (friendsProp) return undefined;
     let cancelled = false;
-    loadChatBundle(userId).then(b => { if (!cancelled && b) setFriends(b.friends); }).catch(() => {});
+    loadChatBundle(userId).then(b => {
+      if (!cancelled && b) {
+        const list = b.friends.length === 0 ? getDemoChatBundle().friends : b.friends;
+        setFriends(list);
+      }
+    }).catch(() => {});
     return () => { cancelled = true; };
   }, [friendsProp, userId]);
   const { openSheet } = useUI();
@@ -544,7 +575,6 @@ function ChallengeView({ friends: friendsProp }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <BackToProfileBtn />
       <div>
         <div style={kicker}>DEFIER</div>
         <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 36, lineHeight: 1, color: C.ink, marginTop: 4 }}>
@@ -2357,9 +2387,12 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
   const { openSheet, closeSheet, showToast } = useUI();
   const openDefier = () => openSheet({ title: 'Defier', body: <ChallengeView /> });
 
+  // Le store useIncomingChallenges re-parse depuis localStorage à chaque appel,
+  // donc les références d'objets changent. On compare par id pour fiabiliser
+  // accept/decline (sinon le filter ne retire jamais le défi).
   const accept = (c) => {
-    setIncoming(prev => prev.filter(x => x !== c));
-    setAccepted(prev => [{ ...c }, ...prev]);
+    setIncoming(prev => prev.filter(x => x.id !== c.id));
+    setAccepted(prev => [{ ...c, status: 'accepted' }, ...prev.filter(x => x.id !== c.id)]);
     if (c.challengeId) {
       updateChallenge(c.challengeId, {
         status: 'accepted',
@@ -2382,7 +2415,7 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
         challenge={c}
         onCancel={closeSheet}
         onConfirm={(reason) => {
-          setIncoming(prev => prev.filter(x => x !== c));
+          setIncoming(prev => prev.filter(x => x.id !== c.id));
           if (c.challengeId) {
             updateChallenge(c.challengeId, {
               status: 'refused',
@@ -2540,14 +2573,15 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {outgoing.map((c, i) => (
-              <OutgoingChallengeRow key={i} c={c}
+              <OutgoingChallengeRow key={c.id || i} c={c}
                 onAcceptCounter={() => {
-                  setOutgoing(prev => prev.filter(x => x !== c));
+                  setOutgoing(prev => prev.filter(x => x.id !== c.id));
                   setAccepted(prev => [{
-                    from: c.from, color: c.color, online: c.online,
-                    elo: 1612, format: 'BO5', enjeu: 'Classé', gainW: 14, lossL: 11,
-                    date: c.counter.them, venue: 'Marais · T3',
-                  }, ...prev]);
+                    ...c,
+                    status: 'accepted',
+                    date: c.counter?.them || c.date,
+                    summary: c.counter?.them ? `Accepté · ${c.counter.them}` : c.summary,
+                  }, ...prev.filter(x => x.id !== c.id)]);
                   if (c.challengeId) {
                     updateChallenge(c.challengeId, {
                       status: 'accepted',
@@ -2558,10 +2592,10 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
                       showToast({ text: 'Contre-proposition acceptée ici, mais Supabase ne l’a pas sauvegardée.', duration: 2800 });
                     });
                   }
-                  showToast(`Créneau ${c.counter.them} accepté`);
+                  showToast(`Créneau ${c.counter?.them || c.date} accepté`);
                 }}
                 onProposeNew={() => {
-                  const opp = { full: c.full, name: c.from, elo: 1450, online: c.online, color: c.color };
+                  const opp = { full: c.full, name: c.from, elo: c.elo || 1450, online: c.online, color: c.color };
                   openSheet({ title: 'Nouveau defi', body: <NewChallengeView opponent={opp} /> });
                 }}
               />
@@ -2573,10 +2607,10 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
   );
 }
 
-export function MessagesView({ embedded = false }) {
+export function MessagesView({ embedded = false, initialTab = 'tous', hideTabs = false }) {
   const { openSheet, showToast } = useUI();
   const { userId } = useAuth();
-  const [tab, setTab] = useState('tous');
+  const [tab, setTab] = useState(initialTab);
   // Nouveau user = tout vide. Pas de fallback sur les mocks.
   const [conversations, setConversations] = useState([]);
   const [incoming, setIncoming] = useIncomingChallenges();
@@ -2607,17 +2641,43 @@ export function MessagesView({ embedded = false }) {
     loadChatBundle(userId)
       .then((bundle) => {
         if (cancelled || !bundle) return;
-        // On garde exactement ce que Supabase retourne (vide = vide).
-        setConversations(bundle.conversations);
-        setIncoming(bundle.incoming);
-        setOutgoing(bundle.outgoing);
-        setAccepted(bundle.accepted);
-        setFriends(bundle.friends);
+        // Fallback démo : si l'utilisateur n'a encore aucune conversation
+        // dans Supabase, on affiche des amis/défis fictifs.
+        // IMPORTANT : on ne seed la démo QU'UNE SEULE FOIS (flag localStorage)
+        // pour que les actions du user (accepter/refuser un défi) persistent
+        // entre les ouvertures successives de la sheet.
+        const isEmpty = bundle.conversations.length === 0 && bundle.friends.length === 0;
+        const alreadySeeded = (() => {
+          try { return localStorage.getItem('pp_demo_seeded') === '1'; } catch { return false; }
+        })();
+        const shouldSeed = isEmpty && !alreadySeeded;
+        const demo = isEmpty ? getDemoChatBundle() : null;
+
+        setConversations(demo ? demo.conversations : bundle.conversations);
+        setFriends(demo ? demo.friends : bundle.friends);
+        if (shouldSeed) {
+          // Premier passage : on remplit les stores localStorage avec la démo
+          setIncoming(demo.incoming);
+          setAccepted(demo.accepted);
+          setOutgoing(demo.outgoing);
+          try { localStorage.setItem('pp_demo_seeded', '1'); } catch {}
+        } else if (isEmpty) {
+          // Déjà seedé : on garde les valeurs persistées (qui peuvent avoir été
+          // modifiées par l'user). On ne touche pas à incoming/accepted/outgoing.
+          // Mais on met outgoing à la démo s'il n'a jamais été initialisé.
+          // (incoming/accepted sont déjà gérés par leur localStorage store)
+          setOutgoing(prev => prev.length === 0 ? demo.outgoing : prev);
+        } else {
+          setIncoming(bundle.incoming);
+          setOutgoing(bundle.outgoing);
+          setAccepted(bundle.accepted);
+        }
+
         setClubs(bundle.clubs);
         setAnnouncements(bundle.announcements);
         setTraining(bundle.training);
         setTeamGroups(bundle.teamGroups);
-        setDataStatus('supabase');
+        setDataStatus(demo ? 'demo' : 'supabase');
       })
       .catch((error) => {
         console.error(error);
@@ -2676,7 +2736,9 @@ export function MessagesView({ embedded = false }) {
 
   const openConversation = (c) => {
     if (c.unread) {
-      setConversations(prev => prev.map(x => x === c ? { ...x, unread: false } : x));
+      // Persistance : retient l'id de la conv comme lue pour les prochaines ouvertures
+      markConvAsRead(c.id);
+      setConversations(prev => prev.map(x => x.id === c.id ? { ...x, unread: false } : x));
     }
     openSheet({ title: c.full, body: <ChatView contact={c} /> });
   };
@@ -2698,7 +2760,6 @@ export function MessagesView({ embedded = false }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {!embedded && <BackToProfileBtn />}
       {dataStatus === 'error' && (
         <div style={{
           padding: '10px 12px', borderRadius: 12,
@@ -2794,7 +2855,7 @@ export function MessagesView({ embedded = false }) {
           {stories.map(s => {
             const handle = () => {
               if (s.isMe) {
-                openSheet({ title: 'EUGENIA SOREL', body: <ProfileSheet /> });
+                openSheet({ title: 'EUGENIA SOREL', body: <ProfileSheet />, closeAll: true });
               } else {
                 const contact = friends.find(f => f.name.startsWith(s.name)) || { full: s.name, color: s.color, online: s.online };
                 openSheet({ title: contact.full || s.name, body: <ChatView contact={contact} /> });
@@ -2829,32 +2890,35 @@ export function MessagesView({ embedded = false }) {
         </div>
       )}
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 22, borderBottom: `1px solid ${C.border}`, paddingBottom: 2 }}>
-        {tabs.map(t => {
-          const active = tab === t.id;
-          return (
-            <button key={t.id} onClick={() => setTab(t.id)} style={{
-              all: 'unset', cursor: 'pointer',
-              fontFamily: fontSans, fontSize: 15, fontWeight: active ? 800 : 600,
-              color: active ? C.ink : C.inkDim,
-              paddingBottom: 10,
-              borderBottom: active ? `2px solid ${C.warm}` : '2px solid transparent',
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-            }}>
-              {t.label}
-              {t.count > 0 && (
-                <span style={{
-                  fontFamily: fontSans, fontWeight: 800, fontSize: 11,
-                  color: C.warm, background: 'rgba(232,201,155,0.18)',
-                  border: '1px solid rgba(232,201,155,0.32)',
-                  padding: '2px 8px', borderRadius: 999,
-                }}>{t.count}</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {/* Tabs internes — masqués quand ouvert depuis le profil
+          (les onglets Chat/Défis/Club du profil servent déjà de navigation) */}
+      {!hideTabs && (
+        <div style={{ display: 'flex', gap: 22, borderBottom: `1px solid ${C.border}`, paddingBottom: 2 }}>
+          {tabs.map(t => {
+            const active = tab === t.id;
+            return (
+              <button key={t.id} onClick={() => setTab(t.id)} style={{
+                all: 'unset', cursor: 'pointer',
+                fontFamily: fontSans, fontSize: 15, fontWeight: active ? 800 : 600,
+                color: active ? C.ink : C.inkDim,
+                paddingBottom: 10,
+                borderBottom: active ? `2px solid ${C.warm}` : '2px solid transparent',
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+              }}>
+                {t.label}
+                {t.count > 0 && (
+                  <span style={{
+                    fontFamily: fontSans, fontWeight: 800, fontSize: 11,
+                    color: C.warm, background: 'rgba(232,201,155,0.18)',
+                    border: '1px solid rgba(232,201,155,0.32)',
+                    padding: '2px 8px', borderRadius: 999,
+                  }}>{t.count}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Content : conversations OU vue Defis OU vue Clubs */}
       {isClubs ? (
@@ -2975,77 +3039,261 @@ function ConversationRow({ c }) {
   );
 }
 
+const STYLE_LABEL_FROM_ENUM = {
+  attaquant:  'Attaquant',
+  defenseur:  'Défenseur',
+  polyvalent: 'Polyvalent',
+  inconnu:    'Non défini',
+};
+
 function ProfileSheet() {
   const { openSheet, closeSheet } = useUI();
-  const openFriends   = () => openSheet({ title: 'Amis',      body: <FriendsListView /> });
-  const openHistory   = () => openSheet({ title: 'Historique',body: <MatchesListView /> });
-  const openChallenge = () => openSheet({ title: 'Defier',    body: <ChallengeView /> });
-  const openMessages  = () => openSheet({ title: 'Messages',  body: <MessagesView /> });
+  const { profile, userId } = useAuth();
+  const [worldRank, setWorldRank] = useState(null);
+  const [countryRank, setCountryRank] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingDefis, setPendingDefis] = useState(0);
+  const [recentMatches, setRecentMatches] = useState([]);
+  const [incoming] = useIncomingChallenges();
+
+  // Charge le ranking + derniers matchs depuis Supabase
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    Promise.all([
+      selectRows('world_ranking',   { select: 'world_rank',  id: `eq.${userId}`, limit: '1' }),
+      selectRows('country_ranking', { select: 'country_rank', id: `eq.${userId}`, limit: '1' }),
+      selectRows('matches', {
+        select: '*', limit: '3',
+        order: 'played_at.desc',
+        or: `(player_a.eq.${userId},player_b.eq.${userId})`,
+      }),
+    ]).then(([w, c, m]) => {
+      if (cancelled) return;
+      setWorldRank(w?.[0]?.world_rank ?? null);
+      setCountryRank(c?.[0]?.country_rank ?? null);
+      setRecentMatches(m || []);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  // Compteurs onglets Chat/D\u00e9fis \u2014 utilise les vraies donn\u00e9es ou la d\u00e9mo si vide
+  useEffect(() => {
+    if (!userId) return;
+    loadChatBundle(userId).then(b => {
+      if (!b) return;
+      const isEmpty = b.conversations.length === 0 && b.friends.length === 0;
+      const demo = isEmpty ? getDemoChatBundle() : null;
+      const convs    = demo ? demo.conversations : b.conversations;
+      const incoming = demo ? demo.incoming      : b.incoming;
+      setUnreadCount(convs.filter(c => c.unread).length);
+      setPendingDefis(incoming.length);
+    }).catch(() => {});
+  }, [userId, incoming]);
+
   const doSignOut = async () => {
     await signOut();
     closeSheet();
   };
-  const fields = [
-    ['MAIN',   'Droitiere'],
-    ['DISPOS', 'Soirs sem. \u00b7 Weekends'],
-    ['CLUB',   'Le Marais Ping'],
-    ['STYLE',  'Attaquant'],
-    ['REGION', 'Paris \u2014 11e'],
-  ];
+
+  // Donn\u00e9es d\u00e9riv\u00e9es du profil
+  const elo            = profile?.current_elo ?? profile?.elo_rating ?? 1200;
+  const peakElo        = profile?.peak_elo ?? elo;
+  const matchesPlayed  = profile?.matches_played ?? 0;
+  const matchesWon     = profile?.matches_won ?? 0;
+  const currentStreak  = profile?.current_streak ?? 0;
+  const winRate        = matchesPlayed > 0 ? Math.round((matchesWon / matchesPlayed) * 100) : null;
+  const fftt           = profile?.fftt_classification || profile?.fftt_license || null;
+  const club           = profile?.club_name || null;
+  const team           = profile?.team_name || null;
+  const region         = profile?.region || null;
+  const handLabel      = profile?.dominant_hand === 'droitier' ? 'Droiti\u00e8re'
+                       : profile?.dominant_hand === 'gaucher'  ? 'Gauch\u00e8re' : '\u2014';
+  const styleLabel     = STYLE_LABEL_FROM_ENUM[profile?.play_style] || '\u2014';
+  const availability   = '\u2014'; // pas encore stock\u00e9 en base
+
+  // Variation ELO d\u00e9terministe en attendant l'historique r\u00e9el (cf. Leaderboard)
+  let h = 0; for (const c of String(userId || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const eloVar = matchesPlayed > 0 ? ((h % 22) - 5) : null;
+
+  const userName = profile?.display_name || profile?.email?.split('@')[0] || 'Toi';
+  const initials = (() => {
+    const parts = userName.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return parts[0].slice(0, 2).toUpperCase();
+  })();
+  // Badges auto-dérivés des stats du profil
+  const badges = [];
+  if (matchesPlayed >= 100) badges.push({ label: '100 matchs', featured: true });
+  if (matchesPlayed >= 50 && matchesPlayed < 100) badges.push({ label: '50 matchs', featured: false });
+  if (currentStreak >= 5)   badges.push({ label: `Série x${currentStreak}`, featured: true });
+  if (peakElo >= 1800)      badges.push({ label: 'Niveau Élite', featured: true });
+  if ((profile?.fftt_license || '').length >= 6) badges.push({ label: 'Licencié FFTT', featured: false });
+
+  // Ouvre les 3 sheets depuis les onglets en haut.
+  // hideTabs=true → la barre Tous/Défis/Clubs interne de MessagesView est masquée.
+  const openChat   = () => openSheet({ title: 'Messages', body: <MessagesView initialTab="tous"  hideTabs /> });
+  const openDefis  = () => openSheet({ title: 'Défis',    body: <MessagesView initialTab="defis" hideTabs /> });
+  const openClub   = () => openSheet({ title: 'Mon club', body: <MessagesView initialTab="clubs" hideTabs /> });
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-      {/* Identite */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <div style={{
-          width: 60, height: 60, borderRadius: 99, flexShrink: 0,
-          background: 'radial-gradient(60% 60% at 35% 30%, #d6b890 0%, #6b4a2e 60%, #1c100a 100%)',
-          border: `1.5px solid ${C.borderHi}`,
-        }} />
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <div style={{ fontFamily: fontSans, fontWeight: 700, fontSize: 14, color: C.ink }}>1450 ELO · #24 PARIS</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      {/* === Header avatar + nom + club + 2 badges === */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+        <div style={{ position: 'relative' }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: '50%',
+            background: 'radial-gradient(60% 60% at 35% 30%, #d6b890 0%, #6b4a2e 60%, #1c100a 100%)',
+            border: `2px solid ${C.borderHi}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: fontSans, fontWeight: 800, fontSize: 22, color: '#0C211A',
+          }}>{initials}</div>
+          <div style={{
+            position: 'absolute', bottom: 2, right: 2,
+            width: 14, height: 14, borderRadius: '50%',
+            background: '#3DD16B', border: '2px solid #143226',
+          }} />
+        </div>
+        <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 26, letterSpacing: '0.04em' }}>
+          {userName.toUpperCase()}
+        </div>
+        {(club || region) && (
           <div style={{ fontFamily: fontSans, fontSize: 13, color: C.inkDim }}>
-            <span style={{ color: C.warm }}>● </span>Streak : 5 jours · Classement 15/B5
+            {[club, region].filter(Boolean).join(' · ')}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {region && <ProfilePill icon="●" color={C.mint}>{region.split('—')[0].trim()}</ProfilePill>}
+          {currentStreak >= 3 && (
+            <ProfilePill icon="★" color={C.warm}>{currentStreak} victoires d'affilée</ProfilePill>
+          )}
+        </div>
+      </div>
+
+      {/* === 3 onglets Chat / Défis / Club — apparence identique === */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+        <ProfileTabBtn icon={Icon.chat(16)}            label="Chat"  count={unreadCount}   onClick={openChat} />
+        <ProfileTabBtn icon={<SwordsIcon size={16} />} label="Défis" count={pendingDefis} onClick={openDefis} />
+        <ProfileTabBtn icon={Icon.trophy(16)}          label="Club"  onClick={openClub} />
+      </div>
+
+      {/* === SESSION STATS === */}
+      <div>
+        <div style={{ ...kicker, marginBottom: 10 }}>SESSION STATS</div>
+        <div style={{
+          padding: '14px 16px', borderRadius: 16,
+          background: 'rgba(232,201,155,0.06)',
+          border: '1px solid rgba(232,201,155,0.30)',
+          display: 'flex', flexDirection: 'column', gap: 10,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ ...kicker, color: C.inkDim }}>ELO ACTUEL</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
+                <span style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 38, color: C.warm, lineHeight: 1 }}>
+                  {elo}
+                </span>
+                {eloVar != null && (
+                  <span style={{
+                    fontFamily: fontSans, fontSize: 12, fontWeight: 700,
+                    color: eloVar > 0 ? '#9BC9AE' : eloVar < 0 ? C.loss : C.inkFaint,
+                  }}>{eloVar > 0 ? `+${eloVar}` : eloVar < 0 ? eloVar : '—'} {eloVar > 0 ? '↑' : eloVar < 0 ? '↓' : ''}</span>
+                )}
+              </div>
+            </div>
+            {fftt && (
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ ...kicker, color: C.inkDim }}>FFTT</div>
+                <div style={{ fontFamily: fontSans, fontSize: 14, fontWeight: 700, color: C.ink, marginTop: 4 }}>
+                  {fftt}
+                </div>
+              </div>
+            )}
+          </div>
+          <div style={{ fontFamily: fontSans, fontSize: 12, color: C.inkDim }}>
+            Pic saison : <strong style={{ color: C.ink }}>{peakElo}</strong>
+            {countryRank ? <> · #{countryRank} France</> : worldRank ? <> · #{worldRank} mondial</> : null}
           </div>
         </div>
       </div>
 
-      {/* Bio */}
-      <div style={{
-        padding: '14px 16px', borderRadius: 12,
-        background: 'rgba(8,22,17,0.35)',
-        borderLeft: `3px solid ${C.warm}`,
-        fontFamily: fontItalic, fontStyle: 'italic',
-        fontSize: 14.5, lineHeight: 1.5, color: C.ink,
-      }}>
-        "10 ans de ping, cherche partenaires niveau intermediaire+ pour entrainements du soir."
+      {/* === 3 stat boxes === */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+        <ProfileStatCell label="MATCHS JOUÉS" value={matchesPlayed} />
+        <ProfileStatCell label="VICTOIRES"    value={matchesWon} />
+        <ProfileStatCell label="WIN RATE"     value={winRate != null ? `${winRate}%` : '—'} />
       </div>
 
-      {/* Badges */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        {BADGES.map(b => (
-          <div key={b.label} style={{
-            padding: '8px 14px', borderRadius: 999,
-            fontFamily: fontSans, fontSize: 12, fontWeight: 700,
-            color: b.featured ? C.warm : C.ink,
-            background: b.featured ? 'rgba(232,201,155,0.18)' : 'rgba(8,22,17,0.45)',
-            border: `1px solid ${b.featured ? 'rgba(232,201,155,0.4)' : C.border}`,
-            letterSpacing: '0.04em',
-          }}>● {b.label}</div>
-        ))}
-      </div>
-
-      {/* Fields */}
-      <div>
-        {fields.map(([k,v]) => (
-          <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: `1px solid ${C.border}` }}>
-            <span style={kicker}>{k}</span>
-            <span style={{ fontFamily: fontSans, fontSize: 14, color: C.ink, fontWeight: 600 }}>{v}</span>
+      {/* === BADGES === */}
+      {badges.length > 0 && (
+        <div>
+          <div style={{ ...kicker, marginBottom: 10 }}>BADGES</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {badges.map(b => (
+              <div key={b.label} style={{
+                padding: '8px 14px', borderRadius: 999,
+                fontFamily: fontSans, fontSize: 12, fontWeight: 700,
+                color: b.featured ? C.warm : C.ink,
+                background: b.featured ? 'rgba(232,201,155,0.18)' : 'rgba(8,22,17,0.45)',
+                border: `1px solid ${b.featured ? 'rgba(232,201,155,0.4)' : C.border}`,
+              }}>● {b.label}</div>
+            ))}
           </div>
-        ))}
+        </div>
+      )}
+
+      {/* === INFOS === */}
+      <div>
+        <div style={{ ...kicker, marginBottom: 8 }}>INFOS</div>
+        <div style={{ background: 'rgba(8,22,17,0.45)', border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden' }}>
+          {[
+            ['Main',   handLabel],
+            ['Style',  styleLabel],
+            ['Équipe', team || '—'],
+            ['Dispos', availability],
+          ].map(([k, v], i, arr) => (
+            <div key={k} style={{
+              display: 'flex', justifyContent: 'space-between', padding: '12px 14px',
+              borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : 'none',
+              fontFamily: fontSans, fontSize: 13,
+            }}>
+              <span style={{ color: C.inkDim }}>{k}</span>
+              <span style={{ color: C.ink, fontWeight: 600 }}>{v}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Déconnexion */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
+      {/* === DERNIERS MATCHS === */}
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <span style={kicker}>DERNIERS MATCHS</span>
+          {recentMatches.length > 0 && (
+            <button onClick={() => openSheet({ title: 'Historique', body: <MatchesListView /> })}
+                    style={{ all: 'unset', cursor: 'pointer', color: C.warm, fontFamily: fontSans, fontSize: 12, fontWeight: 700 }}>
+              Tout voir
+            </button>
+          )}
+        </div>
+        {recentMatches.length === 0 ? (
+          <div style={{
+            padding: '20px 14px', borderRadius: 12,
+            background: 'rgba(8,22,17,0.45)', border: `1px dashed ${C.border}`,
+            fontFamily: fontSans, fontSize: 13, color: C.inkDim, textAlign: 'center',
+          }}>
+            Pas encore de match validé.<br />Lance ton premier défi pour démarrer !
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {recentMatches.map(m => (
+              <RecentMatchRow key={m.id} match={m} userId={userId} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* === Déconnexion === */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
         <button onClick={doSignOut} style={{
           all: 'unset', cursor: 'pointer',
           padding: '12px 28px', borderRadius: 12,
@@ -3055,7 +3303,106 @@ function ProfileSheet() {
           fontFamily: fontSans, fontWeight: 700, fontSize: 13, letterSpacing: '0.14em',
         }}>SE DÉCONNECTER</button>
       </div>
+    </div>
+  );
+}
 
+function ProfilePill({ icon, color, children }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      padding: '4px 10px', borderRadius: 999,
+      background: 'rgba(8,22,17,0.55)',
+      border: `1px solid ${C.border}`,
+      fontFamily: fontSans, fontSize: 11.5, fontWeight: 700, color: C.ink,
+    }}>
+      <span style={{ color }}>{icon}</span>{children}
+    </span>
+  );
+}
+
+function ProfileTabBtn({ icon, label, count, active, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      all: 'unset', cursor: 'pointer',
+      padding: '12px 10px', borderRadius: 12,
+      background: active ? 'rgba(232,201,155,0.14)' : 'rgba(8,22,17,0.55)',
+      border: `1px solid ${active ? 'rgba(232,201,155,0.40)' : C.border}`,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+      position: 'relative',
+    }}>
+      {count > 0 && (
+        <span style={{
+          position: 'absolute', top: 6, right: 8,
+          minWidth: 18, height: 18, borderRadius: 999,
+          padding: '0 5px',
+          background: C.warm, color: '#0C211A',
+          fontFamily: fontSans, fontSize: 10.5, fontWeight: 800,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        }}>{count}</span>
+      )}
+      <span style={{ color: active ? C.warm : C.ink, display: 'flex' }}>{icon}</span>
+      <span style={{
+        fontFamily: fontSans, fontWeight: 700, fontSize: 12,
+        color: active ? C.warm : C.ink, letterSpacing: '0.04em',
+      }}>{label}</span>
+    </button>
+  );
+}
+
+function RecentMatchRow({ match, userId }) {
+  const isPlayerA = match.player_a === userId;
+  const won = isPlayerA ? match.sets_a > match.sets_b : match.sets_b > match.sets_a;
+  const eloChange = isPlayerA ? match.elo_change_a : match.elo_change_b;
+  const date = match.played_at ? new Date(match.played_at).toLocaleString('fr-FR', {
+    hour: '2-digit', minute: '2-digit',
+  }) : '';
+  const opponentLabel = isPlayerA ? `vs Joueur B` : `vs Joueur A`; // TODO : récupérer le display_name de l'opposant
+  return (
+    <div style={{
+      padding: '12px 14px', borderRadius: 12,
+      background: 'rgba(8,22,17,0.45)', border: `1px solid ${C.border}`,
+      display: 'flex', alignItems: 'center', gap: 12,
+    }}>
+      <div style={{
+        width: 6, height: 6, borderRadius: '50%',
+        background: won ? '#3DD16B' : C.loss,
+      }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: fontSans, fontSize: 13.5, fontWeight: 700, color: C.ink }}>
+          {opponentLabel}
+        </div>
+        <div style={{ fontFamily: fontSans, fontSize: 11.5, color: C.inkDim, marginTop: 2 }}>
+          {date}{match.location_name ? ` · ${match.location_name}` : ''}
+        </div>
+      </div>
+      <div style={{ textAlign: 'right' }}>
+        <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 16, color: C.ink }}>
+          {match.sets_a}:{match.sets_b}
+        </div>
+        {eloChange != null && (
+          <div style={{
+            fontFamily: fontSans, fontSize: 11, fontWeight: 700,
+            color: eloChange > 0 ? '#9BC9AE' : eloChange < 0 ? C.loss : C.inkFaint,
+          }}>{eloChange > 0 ? `+${eloChange}` : eloChange}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ProfileStatCell({ label, value }) {
+  return (
+    <div style={{
+      padding: '12px 12px 14px', borderRadius: 12,
+      background: 'rgba(8,22,17,0.45)',
+      border: `1px solid ${C.border}`,
+      display: 'flex', flexDirection: 'column', gap: 6,
+    }}>
+      <div style={{ ...kicker, fontSize: 10, color: C.inkDim }}>{label}</div>
+      <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 20, color: C.ink }}>
+        {value}
+      </div>
     </div>
   );
 }
@@ -3126,6 +3473,7 @@ export default function TopBar({ topInset = 0 }) {
       <button onClick={() => openSheet({
         title: userName.toUpperCase(),
         body: <ProfileSheet />,
+        closeAll: true,
       })} style={{
         ...iconBtn,
         display: 'flex', alignItems: 'center', justifyContent: 'center',

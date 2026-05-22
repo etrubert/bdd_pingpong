@@ -4,7 +4,11 @@ import { UICtx } from './uiContext';
 
 export default function UIProvider({ children, isMobile }) {
   const [toast, setToast] = useState(null);
-  const [sheet, setSheet] = useState(null);
+  // Pile de sheets : on empile à chaque openSheet, on dépile au close.
+  // Permet de revenir à la sheet précédente (ex : fermer le chat → profil)
+  // plutôt que de tout fermer d'un coup.
+  const [sheetStack, setSheetStack] = useState([]);
+  const sheet = sheetStack[sheetStack.length - 1] || null;
   const tRef = useRef(0);
 
   const showToast = (msg) => {
@@ -14,14 +18,19 @@ export default function UIProvider({ children, isMobile }) {
     tRef.current = setTimeout(() => setToast(null), config.duration || 1800);
   };
   const hideToast = () => { clearTimeout(tRef.current); setToast(null); };
-  const openSheet = (s) => setSheet(s);
-  const closeSheet = () => setSheet(null);
+  const openSheet     = (s) => setSheetStack(stack => [...stack, s]);
+  const closeSheet    = () => setSheetStack(stack => stack.slice(0, -1));
+  const closeAllSheets = () => setSheetStack([]);
+
+  // Si la sheet courante a `closeAll: true`, le X ferme TOUTE la pile.
+  // Sinon il dépile seulement (back navigation).
+  const handleClose = sheet?.closeAll ? closeAllSheets : closeSheet;
 
   return (
-    <UICtx.Provider value={{ showToast, hideToast, openSheet, closeSheet, isMobile }}>
+    <UICtx.Provider value={{ showToast, hideToast, openSheet, closeSheet, closeAllSheets, isMobile }}>
       {children}
       <ToastLayer toast={toast} onDismiss={hideToast} />
-      <Sheet sheet={sheet} onClose={closeSheet} />
+      <Sheet sheet={sheet} onClose={handleClose} />
     </UICtx.Provider>
   );
 }
@@ -87,13 +96,17 @@ function Sheet({ sheet, onClose }) {
         <>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '14px 22px 8px',
+            padding: '14px 22px 8px', gap: 10,
           }}>
-            <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 28, letterSpacing: '0.02em' }}>
-              {sheet.title}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+              {sheet.leftAction}
+              <div style={{
+                fontFamily: fontDisplay, fontWeight: 800, fontSize: 28, letterSpacing: '0.02em',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>{sheet.title}</div>
             </div>
             <button onClick={onClose} aria-label="Close" style={{
-              all: 'unset', cursor: 'pointer',
+              all: 'unset', cursor: 'pointer', flexShrink: 0,
               width: 36, height: 36, borderRadius: 999,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: 'rgba(242,247,242,0.08)',
