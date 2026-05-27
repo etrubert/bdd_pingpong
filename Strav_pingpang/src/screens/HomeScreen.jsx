@@ -7,6 +7,8 @@ import { PaddleSVG } from '../components/SVGIllustrations';
 import { useAcceptedChallenges, useIncomingChallenges } from '../lib/challenges';
 import { useMatches } from '../lib/matches';
 import { useAuth } from '../lib/auth';
+import { MerchHomeSection } from './MerchScreen';
+import StreakCard from '../components/StreakCard';
 
 function StatRow({ label, value, valueFont = fontSans }) {
   return (
@@ -46,7 +48,7 @@ function SessionSheet() {
   );
 }
 
-export default function HomeScreen({ onNav }) {
+export default function HomeScreen({ onNav, onOpenProduct }) {
   const { showToast, openSheet } = useUI();
   const [acceptedChallenges] = useAcceptedChallenges();
   const [incomingChallenges] = useIncomingChallenges();
@@ -98,6 +100,9 @@ export default function HomeScreen({ onNav }) {
         </div>
       </Card>
       </button>
+
+      {/* Streak de connexion (changement 2) — incite au retour quotidien */}
+      <StreakCard displayName={firstName} />
 
       {/* Quote + CTA */}
       <div style={{
@@ -284,6 +289,12 @@ export default function HomeScreen({ onNav }) {
         </div>
       </Card>
       </button>
+
+      {/* Boutique en bas du Home (changement 1) */}
+      <MerchHomeSection
+        onOpenProduct={(p) => onOpenProduct?.(p)}
+        onSeeAll={() => onNav('merch')}
+      />
     </div>
   );
 }

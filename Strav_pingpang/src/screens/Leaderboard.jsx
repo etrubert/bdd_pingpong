@@ -7,6 +7,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { C, fontDisplay, fontSans, kicker } from '../theme';
 import { supabase } from '../lib/supabase';
+import { useWorldRanking } from '../lib/worldPlayers';
 
 // ----- Filtres disponibles (gardent toute la logique précédente) -----
 const FILTERS = [
@@ -101,16 +102,9 @@ export default function Leaderboard({ currentUserId }) {
   const [rows, setRows] = useState([]);
   const [me, setMe] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [totalPlayers, setTotalPlayers] = useState(0);
   const [nearbyClubNames, setNearbyClubNames] = useState(null);
   const [myProfileClub, setMyProfileClub] = useState(null);
   const [myCountryRank, setMyCountryRank] = useState(null);
-
-  // Total joueurs (pour le sous-titre + percentile)
-  useEffect(() => {
-    supabase.from('world_ranking').select('id', { count: 'exact', head: true })
-      .then(({ count }) => { if (count != null) setTotalPlayers(count); });
-  }, []);
 
   // Profil utilisateur (club + country rank + fallback ELO si pas encore dans le ranking)
   const [myProfile, setMyProfile] = useState(null);
@@ -147,52 +141,47 @@ export default function Leaderboard({ currentUserId }) {
     return () => { cancelled = true; };
   }, [filter, nearbyClubNames]);
 
+  // Classement mondial unifié (CSV scrapés normalisés + joueurs app Supabase)
+  const { ranking: worldRanking, loading: worldLoading } = useWorldRanking();
+  const totalPlayers = worldRanking.length;
+
   useEffect(() => { setExpanded(false); }, [filter]);
 
-  // Fetch ranking selon le filtre
+  // Filtrage + ré-attribution du rang selon le filtre actif.
+  // On range sur le classement mondial complet déjà trié par ELO.
   useEffect(() => {
     let cancelled = false;
     async function run() {
       setLoading(true);
+      if (worldLoading) return;
       try {
-        const limit = expanded ? FULL_LIMIT : TOP_N;
         const filterDef = FILTERS.find(f => f.value === filter);
-        let q;
+        let pool = worldRanking;
 
         if (filterDef?.country) {
-          q = supabase.from('world_ranking').select('*').eq('country', filterDef.country).limit(limit);
+          pool = worldRanking.filter(p => p.country === filterDef.country);
         } else if (filter === 'region') {
           if (nearbyClubNames === null) return;
-          if (nearbyClubNames.length === 0) {
-            if (!cancelled) { setRows([]); setLoading(false); }
-            return;
-          }
-          q = supabase.from('world_ranking').select('*').in('club', nearbyClubNames).limit(limit);
+          const set = new Set(nearbyClubNames);
+          pool = worldRanking.filter(p => p.club && set.has(p.club));
         } else if (filter === 'club') {
-          if (!myProfileClub) {
-            if (!cancelled) { setRows([]); setLoading(false); }
-            return;
-          }
-          q = supabase.from('world_ranking').select('*').eq('club', myProfileClub).limit(limit);
-        } else {
-          q = supabase.from('world_ranking').select('*').limit(limit);
+          if (!myProfileClub) { if (!cancelled) { setRows([]); setLoading(false); } return; }
+          pool = worldRanking.filter(p => p.club === myProfileClub);
         }
 
-        const { data, error } = await q;
-        if (error) throw error;
+        // Rang local au filtre (1..n) tout en gardant l'ELO mondial
+        const limit = expanded ? FULL_LIMIT : TOP_N;
+        const ranked = pool.map((p, i) => ({ ...p, world_rank: p.world_rank, local_rank: i + 1 }));
         if (cancelled) return;
-        setRows(data || []);
+        setRows(ranked.slice(0, limit));
 
+        // Ma position : on cherche le user courant dans le classement complet
         if (currentUserId) {
-          const inList = (data || []).find(r => r.id === currentUserId);
-          if (inList) setMe(inList);
-          else {
-            const { data: myData } = await supabase.from('world_ranking').select('*').eq('id', currentUserId).maybeSingle();
-            if (!cancelled) setMe(myData || null);
-          }
+          const mine = worldRanking.find(p => p.id === currentUserId);
+          setMe(mine || null);
         }
       } catch (err) {
-        console.error('Leaderboard fetch error:', err);
+        console.error('Leaderboard filter error:', err);
         if (!cancelled) setRows([]);
       } finally {
         if (!cancelled) setLoading(false);
@@ -200,7 +189,7 @@ export default function Leaderboard({ currentUserId }) {
     }
     run();
     return () => { cancelled = true; };
-  }, [filter, expanded, currentUserId, nearbyClubNames, myProfileClub]);
+  }, [filter, expanded, currentUserId, nearbyClubNames, myProfileClub, worldRanking, worldLoading]);
 
   const top3 = useMemo(() => rows.slice(0, 3), [rows]);
   const rest = useMemo(() => rows.slice(3), [rows]);
@@ -451,7 +440,7 @@ function RankRow({ player, isCurrentUser }) {
         width: 28, textAlign: 'center',
         fontFamily: fontDisplay, fontWeight: 800, fontSize: 22,
         color: C.warm, letterSpacing: '0.02em',
-      }}>{player.world_rank}</div>
+      }}>{player.local_rank ?? player.world_rank}</div>
 
       <div style={{
         width: 42, height: 42, borderRadius: '50%', flexShrink: 0,

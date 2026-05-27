@@ -4,6 +4,32 @@ import Card from '../components/Card';
 
 const PRODUCT_LIMIT = 10;
 
+// Hook partagé : charge le catalogue produits depuis le CSV public.
+// Utilisé par MerchScreen (boutique pleine page) ET HomeScreen (aperçu en bas).
+export function useMerchProducts(limit = PRODUCT_LIMIT) {
+  const [products, setProducts] = useState([]);
+  const [status, setStatus] = useState('Chargement…');
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/data/pingpang_data.csv')
+      .then(r => {
+        if (!r.ok) throw new Error('CSV introuvable');
+        return r.text();
+      })
+      .then(text => {
+        if (cancelled) return;
+        const parsed = parseProductsCsv(text);
+        setProducts(parsed.slice(0, limit));
+        setStatus(parsed.length === 0 ? 'Aucun produit' : '');
+      })
+      .catch(() => { if (!cancelled) setStatus('Impossible de charger les produits'); });
+    return () => { cancelled = true; };
+  }, [limit]);
+
+  return { products, status };
+}
+
 // Multi-line aware CSV parser: handles quoted fields containing commas AND newlines.
 function parseCsv(csvText) {
   const rows = [];
@@ -31,7 +57,7 @@ function parseCsv(csvText) {
   return rows.filter(r => r.length > 1 || (r.length === 1 && r[0].length > 0));
 }
 
-function parseProductsCsv(csvText) {
+export function parseProductsCsv(csvText) {
   const rows = parseCsv(csvText);
   if (rows.length === 0) return [];
   const headers = rows.shift().map(h => h.trim());
@@ -56,7 +82,7 @@ function formatPrice(min, max) {
   return `${fmt(a)} – ${fmt(b)}`;
 }
 
-function ProductCard({ product, onClick }) {
+export function ProductCard({ product, onClick }) {
   return (
     <button
       onClick={onClick}
@@ -96,7 +122,7 @@ function ProductCard({ product, onClick }) {
   );
 }
 
-function ProductDetail({ product, onBack }) {
+export function ProductDetail({ product, onBack }) {
   const [imgIdx, setImgIdx] = useState(0);
   const images = useMemo(() => splitPipe(product.image_urls), [product]);
   const colors = useMemo(() => splitPipe(product.colors), [product]);
@@ -213,24 +239,60 @@ function ProductDetail({ product, onBack }) {
   );
 }
 
-export default function MerchScreen() {
-  const [products, setProducts] = useState([]);
-  const [status, setStatus] = useState('Chargement…');
-  const [selected, setSelected] = useState(null);
+// =====================================================================
+// Section boutique pour le HomeScreen : titre + grille produits.
+// Au clic sur un produit, on remonte l'info au parent (App) qui bascule
+// sur l'onglet MERCH avec le produit pré-ouvert.
+// =====================================================================
+export function MerchHomeSection({ onOpenProduct, onSeeAll }) {
+  const { products, status } = useMerchProducts(6);
 
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+        <div>
+          <div style={kicker}>BOUTIQUE</div>
+          <div style={{
+            fontFamily: fontDisplay, fontWeight: 800, fontSize: 34, lineHeight: 0.95,
+            color: C.ink, letterSpacing: '0.02em', marginTop: 4,
+          }}>PING PANG SHOP</div>
+        </div>
+        <button onClick={onSeeAll} style={{
+          all: 'unset', cursor: 'pointer',
+          fontFamily: fontSans, fontWeight: 700, fontSize: 12,
+          letterSpacing: '0.10em', color: C.mint,
+        }}>TOUT VOIR →</button>
+      </div>
+
+      {status ? (
+        <div style={{
+          padding: '30px 16px', textAlign: 'center',
+          fontFamily: fontSans, fontSize: 13, color: C.inkDim,
+        }}>{status}</div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {products.map(p => (
+            <ProductCard key={p.id || p.handle} product={p} onClick={() => onOpenProduct(p)} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function MerchScreen({ initialProduct = null, onConsumeInitial }) {
+  const { products, status } = useMerchProducts();
+  const [selected, setSelected] = useState(initialProduct);
+
+  // Si Home a demandé l'ouverture d'un produit précis, on l'affiche puis on
+  // prévient le parent pour qu'il réinitialise (évite la réouverture au retour).
   useEffect(() => {
-    fetch('/data/pingpang_data.csv')
-      .then(r => {
-        if (!r.ok) throw new Error('CSV introuvable');
-        return r.text();
-      })
-      .then(text => {
-        const parsed = parseProductsCsv(text);
-        setProducts(parsed.slice(0, PRODUCT_LIMIT));
-        setStatus(parsed.length === 0 ? 'Aucun produit' : '');
-      })
-      .catch(() => setStatus('Impossible de charger les produits'));
-  }, []);
+    if (initialProduct) {
+      setSelected(initialProduct);
+      onConsumeInitial?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialProduct]);
 
   if (selected) {
     return <ProductDetail product={selected} onBack={() => setSelected(null)} />;
