@@ -1,0 +1,618 @@
+// =====================================================================
+// PING PANG PARIS — Leaderboard
+// DA : top 3 en podium, top 10 + bouton "voir tout", TA POSITION en carte
+// dorée, stats du joueur en bas. Donnees vues `world_ranking` + Finder.
+// =====================================================================
+
+import { useState, useEffect, useMemo } from 'react';
+import { C, fontDisplay, fontSans, kicker } from '../theme';
+import { supabase } from '../lib/supabase';
+
+// ----- Filtres disponibles (gardent toute la logique précédente) -----
+const FILTERS = [
+  { value: 'world',    label: 'Monde',      flag: '🌍' },
+  { value: 'france',   label: 'France',     flag: '🇫🇷', country: 'FR' },
+  { value: 'portugal', label: 'Portugal',   flag: '🇵🇹', country: 'PT' },
+  { value: 'spain',    label: 'Espagne',    flag: '🇪🇸', country: 'ES' },
+  { value: 'germany',  label: 'Allemagne',  flag: '🇩🇪', country: 'DE' },
+  { value: 'china',    label: 'Chine',      flag: '🇨🇳', country: 'CN' },
+  { value: 'usa',      label: 'USA',        flag: '🇺🇸', country: 'US' },
+  { value: 'region',   label: 'Ma région',  flag: '📍' },
+  { value: 'club',     label: 'Mon club',   flag: '🏓' },
+];
+
+const TOP_N = 10;
+const FULL_LIMIT = 200;
+const REGION_RADIUS_KM = 50;
+const PARIS_FALLBACK = [48.8566, 2.3522];
+
+const PALETTE = [
+  ['#a8c2db', '#3b5a7a'], ['#d6a8a8', '#7a3b3b'],
+  ['#bedba8', '#5a7a3b'], ['#d6c0a8', '#7a5e3b'],
+  ['#a8b8d6', '#3b4d7a'], ['#d6b890', '#6b4a2e'],
+  ['#b0a8d6', '#4a3b7a'], ['#d6a8c8', '#7a3b5e'],
+];
+
+function colorFromId(id) {
+  if (!id) return PALETTE[0];
+  let h = 0;
+  for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return PALETTE[h % PALETTE.length];
+}
+
+function initialsOf(name = '') {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function countryFlag(code) {
+  const f = { FR: '🇫🇷', US: '🇺🇸', CN: '🇨🇳', JP: '🇯🇵', KR: '🇰🇷', DE: '🇩🇪', ES: '🇪🇸', PT: '🇵🇹' };
+  return f[code] || '🌍';
+}
+
+function distanceKm(lat1, lon1, lat2, lon2) {
+  const dLat = (lat2 - lat1) * 111;
+  const dLon = (lon2 - lon1) * 111 * Math.cos((lat1 * Math.PI) / 180);
+  return Math.sqrt(dLat * dLat + dLon * dLon);
+}
+
+function readUserPos() {
+  try { const raw = localStorage.getItem('pp_user_pos'); return raw ? JSON.parse(raw) : null; }
+  catch { return null; }
+}
+
+function parseClubsCsv(text) {
+  const lines = text.split(/\r?\n/).filter(Boolean);
+  if (lines.length < 2) return [];
+  const headers = lines.shift().split(',').map(h => h.replace(/^﻿/, '').trim());
+  return lines.map(line => {
+    const cells = line.split(',');
+    const row = {};
+    headers.forEach((h, i) => { row[h] = (cells[i] || '').trim(); });
+    return row;
+  });
+}
+
+// ELO variation : tant que l'historique des matchs n'est pas alimenté,
+// on dérive une variation déterministe à partir de l'id du joueur pour
+// avoir le même look que la maquette (env. 60% positives, 30% négatives, 10% stables).
+// Quand le trigger ELO commencera à tourner et que `peak_elo` divergera de
+// `current_elo`, cette valeur sera remplacée par la vraie variation.
+function variationOf(player) {
+  if (player.peak_elo != null && player.current_elo != null && player.peak_elo !== player.current_elo) {
+    return player.current_elo - player.peak_elo;
+  }
+  // Hash déterministe de l'id → [0, 99]
+  let h = 0;
+  for (const c of String(player.id || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const bucket = h % 100;
+  if (bucket < 10) return null;             // 10% stables
+  if (bucket < 35) return -((h % 9) + 1);   // 25% ↓ entre -1 et -9
+  return (h % 22) + 1;                      // 65% ↑ entre +1 et +22
+}
+
+// =====================================================================
+
+export default function Leaderboard({ currentUserId }) {
+  const [filter, setFilter] = useState('world');
+  const [expanded, setExpanded] = useState(false);
+  const [rows, setRows] = useState([]);
+  const [me, setMe] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [totalPlayers, setTotalPlayers] = useState(0);
+  const [nearbyClubNames, setNearbyClubNames] = useState(null);
+  const [myProfileClub, setMyProfileClub] = useState(null);
+  const [myCountryRank, setMyCountryRank] = useState(null);
+
+  // Total joueurs (pour le sous-titre + percentile)
+  useEffect(() => {
+    supabase.from('world_ranking').select('id', { count: 'exact', head: true })
+      .then(({ count }) => { if (count != null) setTotalPlayers(count); });
+  }, []);
+
+  // Profil utilisateur (club + country rank + fallback ELO si pas encore dans le ranking)
+  const [myProfile, setMyProfile] = useState(null);
+  useEffect(() => {
+    if (!currentUserId) return;
+    supabase.from('profiles')
+      .select('id, display_name, club_name, country, region, current_elo, peak_elo, matches_played, matches_won, current_streak, best_streak')
+      .eq('id', currentUserId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        setMyProfile(data);
+        setMyProfileClub(data.club_name || null);
+        if (data.country) {
+          supabase.from('country_ranking').select('country_rank').eq('id', currentUserId).maybeSingle()
+            .then(({ data: cr }) => { if (cr) setMyCountryRank(cr.country_rank); });
+        }
+      });
+  }, [currentUserId]);
+
+  // Clubs proches (pour le filtre "Ma région")
+  useEffect(() => {
+    if (filter !== 'region' || nearbyClubNames !== null) return;
+    let cancelled = false;
+    fetch('/data/maps_clubs.csv').then(r => r.text()).then(text => {
+      if (cancelled) return;
+      const [ulat, ulon] = readUserPos() || PARIS_FALLBACK;
+      const near = parseClubsCsv(text)
+        .filter(r => r.club_nom && Number.isFinite(parseFloat(r.latitude)) && Number.isFinite(parseFloat(r.longitude)))
+        .filter(r => distanceKm(ulat, ulon, parseFloat(r.latitude), parseFloat(r.longitude)) <= REGION_RADIUS_KM)
+        .map(r => r.club_nom);
+      setNearbyClubNames(near);
+    }).catch(() => setNearbyClubNames([]));
+    return () => { cancelled = true; };
+  }, [filter, nearbyClubNames]);
+
+  useEffect(() => { setExpanded(false); }, [filter]);
+
+  // Fetch ranking selon le filtre
+  useEffect(() => {
+    let cancelled = false;
+    async function run() {
+      setLoading(true);
+      try {
+        const limit = expanded ? FULL_LIMIT : TOP_N;
+        const filterDef = FILTERS.find(f => f.value === filter);
+        let q;
+
+        if (filterDef?.country) {
+          q = supabase.from('world_ranking').select('*').eq('country', filterDef.country).limit(limit);
+        } else if (filter === 'region') {
+          if (nearbyClubNames === null) return;
+          if (nearbyClubNames.length === 0) {
+            if (!cancelled) { setRows([]); setLoading(false); }
+            return;
+          }
+          q = supabase.from('world_ranking').select('*').in('club', nearbyClubNames).limit(limit);
+        } else if (filter === 'club') {
+          if (!myProfileClub) {
+            if (!cancelled) { setRows([]); setLoading(false); }
+            return;
+          }
+          q = supabase.from('world_ranking').select('*').eq('club', myProfileClub).limit(limit);
+        } else {
+          q = supabase.from('world_ranking').select('*').limit(limit);
+        }
+
+        const { data, error } = await q;
+        if (error) throw error;
+        if (cancelled) return;
+        setRows(data || []);
+
+        if (currentUserId) {
+          const inList = (data || []).find(r => r.id === currentUserId);
+          if (inList) setMe(inList);
+          else {
+            const { data: myData } = await supabase.from('world_ranking').select('*').eq('id', currentUserId).maybeSingle();
+            if (!cancelled) setMe(myData || null);
+          }
+        }
+      } catch (err) {
+        console.error('Leaderboard fetch error:', err);
+        if (!cancelled) setRows([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    run();
+    return () => { cancelled = true; };
+  }, [filter, expanded, currentUserId, nearbyClubNames, myProfileClub]);
+
+  const top3 = useMemo(() => rows.slice(0, 3), [rows]);
+  const rest = useMemo(() => rows.slice(3), [rows]);
+  const visibleRest = expanded ? rest : rest.slice(0, TOP_N - 3);
+
+  const emptyMessage = filter === 'region' && nearbyClubNames?.length === 0
+    ? 'Aucun club Finder dans ton rayon (50 km). Active la géolocalisation dans Finder.'
+    : filter === 'club' && !myProfileClub
+      ? 'Tu n\'as pas renseigné de club dans ton profil.'
+      : rows.length === 0 && !loading
+        ? 'Aucun joueur pour ce filtre.'
+        : null;
+
+  return (
+    <div style={{
+      padding: '20px 18px 40px',
+      display: 'flex', flexDirection: 'column', gap: 22,
+      color: C.ink, fontFamily: fontSans,
+    }}>
+      {/* --- Header --- */}
+      <div>
+        <div style={{ ...kicker, color: C.warm }}>CLASSEMENT MONDIAL</div>
+        <div style={{
+          fontFamily: fontDisplay, fontWeight: 800, fontSize: 44, lineHeight: 1,
+          color: C.ink, marginTop: 6, letterSpacing: '0.02em',
+        }}>LEADERBOARD</div>
+        <div style={{ fontFamily: fontSans, fontSize: 13, color: C.inkDim, marginTop: 6 }}>
+          {totalPlayers.toLocaleString('fr-FR')} joueurs · saison en cours
+        </div>
+      </div>
+
+      {/* --- Filter pills --- */}
+      <div style={{
+        display: 'flex', gap: 8, overflowX: 'auto',
+        paddingBottom: 6, marginLeft: -4, paddingLeft: 4,
+        scrollbarWidth: 'none',
+      }}>
+        {FILTERS.map(f => {
+          const active = filter === f.value;
+          return (
+            <button key={f.value} onClick={() => setFilter(f.value)} style={{
+              all: 'unset', cursor: 'pointer', flexShrink: 0,
+              padding: '9px 16px', borderRadius: 999,
+              background: active ? C.warm : 'rgba(8,22,17,0.55)',
+              border: active ? `1px solid ${C.warm}` : `1px solid ${C.border}`,
+              color: active ? '#0C211A' : C.ink,
+              fontFamily: fontSans, fontWeight: 700, fontSize: 13,
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+            }}>
+              <span>{f.flag}</span><span>{f.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {emptyMessage && (
+        <div style={{
+          padding: '28px 16px', textAlign: 'center',
+          fontFamily: fontSans, fontSize: 13.5, color: C.inkDim, lineHeight: 1.5,
+        }}>{emptyMessage}</div>
+      )}
+
+      {/* --- Podium top 3 --- */}
+      {top3.length === 3 && <Podium players={top3} />}
+
+      {/* --- TOP 10 MONDIAL section --- */}
+      {rows.length > 3 && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+            <span style={{ ...kicker, color: C.warm, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <span style={{
+                width: 12, height: 12, borderRadius: 3, border: `1.5px solid ${C.warm}`,
+              }} />
+              TOP 10 {filter === 'world' ? 'MONDIAL' : (FILTERS.find(f => f.value === filter)?.label || '').toUpperCase()}
+            </span>
+            <span style={{ ...kicker, color: C.inkDim, textTransform: 'none', fontSize: 11.5, letterSpacing: '0.04em' }}>Élite</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {visibleRest.slice(0, expanded ? FULL_LIMIT : TOP_N - 3).map(p => (
+              <RankRow key={`${p.source}-${p.id}`} player={p} isCurrentUser={p.id === currentUserId} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* --- "Suite du classement" séparation quand on est en mode étendu --- */}
+      {expanded && rest.length > TOP_N - 3 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 14,
+          margin: '4px 0 -4px',
+        }}>
+          <span style={{
+            ...kicker, textTransform: 'uppercase',
+            color: C.inkDim, fontSize: 10.5, letterSpacing: '0.16em',
+            whiteSpace: 'pre-line', lineHeight: 1.25,
+          }}>SUITE DU{'\n'}CLASSEMENT</span>
+          <div style={{ flex: 1, height: 1, background: C.border }} />
+        </div>
+      )}
+
+      {/* --- Bouton "Voir tout" / "Réduire" --- */}
+      {rest.length > TOP_N - 3 && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
+          <button onClick={() => setExpanded(v => !v)} style={{
+            all: 'unset', cursor: 'pointer',
+            padding: expanded ? '10px 22px' : '12px 28px',
+            borderRadius: 12,
+            background: expanded ? 'rgba(184,220,197,0.06)' : 'rgba(232,201,155,0.14)',
+            border: `1px solid ${expanded ? C.border : 'rgba(232,201,155,0.45)'}`,
+            color: expanded ? C.mint : C.warm,
+            fontFamily: fontSans, fontWeight: 700,
+            fontSize: expanded ? 12 : 13,
+            letterSpacing: '0.14em',
+          }}>
+            {expanded ? 'RÉDUIRE' : 'VOIR LE CLASSEMENT COMPLET'}
+          </button>
+        </div>
+      )}
+
+      {/* --- TA POSITION --- */}
+      {(me || myProfile) && (
+        <MyPositionCard
+          me={me || {
+            id: myProfile.id,
+            display_name: myProfile.display_name,
+            country: myProfile.country,
+            club: myProfile.club_name,
+            current_elo: myProfile.current_elo,
+            peak_elo: myProfile.peak_elo,
+            matches_played: myProfile.matches_played,
+            current_streak: myProfile.current_streak,
+            world_rank: null, // pas encore classé
+          }}
+          totalPlayers={totalPlayers}
+          countryRank={myCountryRank}
+          unranked={!me}
+        />
+      )}
+
+      {/* --- Stats du joueur en bas --- */}
+      {(me || myProfile) && (
+        <StatBoxes
+          me={me || {
+            country: myProfile.country,
+            current_streak: myProfile.current_streak,
+            world_rank: null,
+          }}
+          totalPlayers={totalPlayers}
+          countryRank={myCountryRank}
+        />
+      )}
+    </div>
+  );
+}
+
+// ---------- Podium ----------
+function Podium({ players }) {
+  const [p2, p1, p3] = [players[1], players[0], players[2]];
+  return (
+    <div style={{
+      position: 'relative', marginTop: 4,
+      padding: '24px 18px 18px', borderRadius: 18,
+      background: 'rgba(8,22,17,0.45)',
+      border: `1px solid ${C.border}`,
+    }}>
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1.25fr 1fr',
+        alignItems: 'end', gap: 12,
+      }}>
+        <PodiumSpot p={p2} rank={2} accent="silver" size={70} />
+        <PodiumSpot p={p1} rank={1} accent="gold" size={92} crown />
+        <PodiumSpot p={p3} rank={3} accent="bronze" size={70} />
+      </div>
+    </div>
+  );
+}
+
+function PodiumSpot({ p, rank, accent, size, crown }) {
+  if (!p) return <div />;
+  const [light, dark] = colorFromId(p.id);
+  const isGold = accent === 'gold';
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+      {crown && (
+        <div style={{ fontSize: 22, marginBottom: -4 }}>👑</div>
+      )}
+      <div style={{ position: 'relative' }}>
+        <div style={{
+          width: size, height: size, borderRadius: '50%',
+          background: `radial-gradient(60% 60% at 35% 30%, ${light} 0%, ${dark} 70%, #0C211A 100%)`,
+          border: `2px solid ${isGold ? C.warm : 'rgba(184,220,197,0.30)'}`,
+          boxShadow: isGold ? '0 0 32px rgba(232,201,155,0.45)' : 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#0C211A', fontFamily: fontSans, fontWeight: 800,
+          fontSize: size * 0.30, letterSpacing: '0.02em',
+        }}>{initialsOf(p.display_name)}</div>
+        <div style={{
+          position: 'absolute', bottom: -4, right: -4,
+          width: 22, height: 22, borderRadius: '50%',
+          background: isGold ? C.warm : C.card,
+          border: isGold ? 'none' : `1px solid ${C.border}`,
+          color: isGold ? '#0C211A' : C.ink,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: fontSans, fontWeight: 800, fontSize: 11,
+        }}>{rank}</div>
+      </div>
+      <div style={{
+        fontFamily: fontSans, fontWeight: 700,
+        fontSize: isGold ? 14 : 13, color: C.ink,
+        textAlign: 'center', lineHeight: 1.15,
+        maxWidth: size + 26, wordWrap: 'break-word',
+      }}>{shortenName(p.display_name)}</div>
+      <div style={{
+        fontFamily: fontDisplay, fontWeight: 800,
+        fontSize: isGold ? 24 : 20,
+        color: isGold ? C.warm : C.ink,
+      }}>{p.current_elo}</div>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 5,
+        fontFamily: fontSans, fontSize: 11, color: C.inkDim,
+      }}>
+        <span>{countryFlag(p.country)}</span>
+        {isGold && <span>· {p.matches_played} matchs</span>}
+      </div>
+    </div>
+  );
+}
+
+function shortenName(name = '') {
+  // Réduit à "Prénom NOM" max — coupe les middle names trop longs
+  const parts = name.trim().split(/\s+/);
+  if (parts.length <= 2) return name;
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+}
+
+// ---------- Rank row ----------
+function RankRow({ player, isCurrentUser }) {
+  const [light, dark] = colorFromId(player.id);
+  const variation = variationOf(player);
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 14,
+      padding: '14px 16px', borderRadius: 16,
+      background: isCurrentUser ? 'rgba(232,201,155,0.10)' : 'rgba(8,22,17,0.45)',
+      border: `1px solid ${isCurrentUser ? 'rgba(232,201,155,0.40)' : C.border}`,
+    }}>
+      <div style={{
+        width: 28, textAlign: 'center',
+        fontFamily: fontDisplay, fontWeight: 800, fontSize: 22,
+        color: C.warm, letterSpacing: '0.02em',
+      }}>{player.world_rank}</div>
+
+      <div style={{
+        width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
+        background: `radial-gradient(60% 60% at 35% 30%, ${light} 0%, ${dark} 70%, #0C211A 100%)`,
+        border: `1.5px solid ${C.borderHi}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: '#0C211A', fontFamily: fontSans, fontWeight: 800, fontSize: 13,
+      }}>{initialsOf(player.display_name)}</div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          fontFamily: fontSans, fontSize: 14, fontWeight: 700, color: C.ink,
+        }}>
+          <span style={{
+            flex: 1, minWidth: 0,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {player.display_name}
+          </span>
+          {player.current_streak >= 5 && (
+            <span style={{
+              flexShrink: 0,
+              padding: '2px 8px', borderRadius: 999,
+              background: 'rgba(232,155,139,0.16)',
+              border: '1px solid rgba(232,155,139,0.40)',
+              color: C.loss, fontSize: 10.5, fontWeight: 800,
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+            }}>🔥 {player.current_streak}</span>
+          )}
+          {isCurrentUser && (
+            <span style={{
+              flexShrink: 0,
+              padding: '2px 8px', borderRadius: 999,
+              background: C.warm, color: '#0C211A',
+              fontSize: 10, fontWeight: 800, letterSpacing: '0.08em',
+            }}>TOI</span>
+          )}
+        </div>
+        <div style={{
+          fontFamily: fontSans, fontSize: 12, color: C.inkDim, marginTop: 3,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {countryFlag(player.country)} {player.club || player.country} · {player.matches_played} matchs
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+        <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 20, color: C.ink }}>
+          {player.current_elo}
+        </div>
+        <div style={{
+          fontFamily: fontSans, fontSize: 11.5, fontWeight: 700,
+          color: variation == null ? C.inkFaint : variation > 0 ? '#9BC9AE' : C.loss,
+        }}>
+          {variation == null ? '—' : variation > 0 ? `↑ ${variation}` : `↓ ${-variation}`}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- TA POSITION ----------
+function MyPositionCard({ me, totalPlayers, countryRank, unranked }) {
+  const [light, dark] = colorFromId(me.id);
+  const variation = unranked ? null : variationOf(me);
+  return (
+    <div>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 14,
+        margin: '0 0 10px',
+      }}>
+        <div style={{ flex: 1, height: 1, background: C.border }} />
+        <span style={{ ...kicker, color: C.warm, fontSize: 11 }}>· · ·  TA POSITION  · · ·</span>
+        <div style={{ flex: 1, height: 1, background: C.border }} />
+      </div>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 14,
+        padding: '16px 18px', borderRadius: 18,
+        background: 'rgba(232,201,155,0.08)',
+        border: `1.5px solid ${C.warm}`,
+        boxShadow: '0 0 32px rgba(232,201,155,0.10)',
+      }}>
+        <div>
+          <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 24, color: C.warm }}>
+            {unranked ? '—' : `#${me.world_rank}`}
+          </div>
+          <div style={{ ...kicker, color: C.inkDim, fontSize: 10, marginTop: 2 }}>
+            {unranked ? 'Non classé' : 'Mondial'}
+          </div>
+        </div>
+        <div style={{
+          width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+          background: `radial-gradient(60% 60% at 35% 30%, ${light} 0%, ${dark} 70%, #0C211A 100%)`,
+          border: `1.5px solid ${C.warm}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#0C211A', fontFamily: fontSans, fontWeight: 800, fontSize: 14,
+        }}>{initialsOf(me.display_name)}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{
+              fontFamily: fontSans, fontWeight: 700, fontSize: 14, color: C.ink,
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>{me.display_name}</span>
+            <span style={{
+              padding: '2px 8px', borderRadius: 999,
+              background: C.warm, color: '#0C211A',
+              fontSize: 10, fontWeight: 800, letterSpacing: '0.08em',
+            }}>TOI</span>
+          </div>
+          <div style={{ fontFamily: fontSans, fontSize: 12, color: C.inkDim, marginTop: 3 }}>
+            {countryFlag(me.country)} {me.club || me.country} · {me.matches_played} matchs
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+          <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 22, color: C.warm }}>
+            {me.current_elo}
+          </div>
+          <div style={{
+            fontFamily: fontSans, fontSize: 11.5, fontWeight: 700,
+            color: variation == null ? C.inkFaint : variation > 0 ? '#9BC9AE' : C.loss,
+          }}>
+            {variation == null ? '—' : variation > 0 ? `↑ ${variation}` : `↓ ${-variation}`}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Stat boxes ----------
+function StatBoxes({ me, totalPlayers, countryRank }) {
+  const percentile = totalPlayers > 0 && me.world_rank
+    ? Math.max(1, Math.round((me.world_rank / totalPlayers) * 100))
+    : null;
+  const streak = me.current_streak ?? 0;
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+      <StatBox label="TOP MONDIAL" value={percentile != null ? `${percentile}%` : '—'} accent={C.warm} />
+      <StatBox
+        label={(<span>RANG {countryFlag(me.country)}</span>)}
+        value={countryRank != null ? `#${countryRank}` : '—'}
+      />
+      <StatBox label="STREAK" value={(<span>🔥 {streak}</span>)} accent={streak >= 5 ? C.loss : undefined} />
+    </div>
+  );
+}
+
+function StatBox({ label, value, accent }) {
+  return (
+    <div style={{
+      padding: '12px 10px 14px', borderRadius: 14,
+      background: 'rgba(8,22,17,0.55)',
+      border: `1px solid ${C.border}`,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+    }}>
+      <div style={{ ...kicker, fontSize: 10, color: C.inkDim }}>{label}</div>
+      <div style={{
+        fontFamily: fontDisplay, fontWeight: 800, fontSize: 22,
+        color: accent || C.ink,
+      }}>{value}</div>
+    </div>
+  );
+}

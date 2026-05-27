@@ -25,6 +25,18 @@ npm run lint
 
 Les scripts Python, CSV, JSON et GeoJSON restent a la racine du depot. L'app web reste dans `Strav_pingpang` pour garder le frontend separe des fichiers de donnees et de scraping.
 
+Pour activer Google Maps dans l'onglet `FINDER`, copie l'exemple d'environnement puis ajoute ta cle API :
+
+```bash
+cp Strav_pingpang/.env.example Strav_pingpang/.env
+```
+
+Dans `Strav_pingpang/.env` :
+
+```bash
+VITE_GOOGLE_MAPS_API_KEY=ta_cle_google_maps
+```
+
 ---
 
 Script unique pour scraper :

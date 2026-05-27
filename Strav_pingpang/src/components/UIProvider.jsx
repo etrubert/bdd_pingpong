@@ -1,117 +1,123 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { C, fontDisplay, fontSans } from '../theme';
 import { UICtx } from './uiContext';
 
 export default function UIProvider({ children, isMobile }) {
   const [toast, setToast] = useState(null);
-  const [sheet, setSheet] = useState(null);
-  const [drawer, setDrawer] = useState(false);
+  // Pile de sheets : on empile à chaque openSheet, on dépile au close.
+  // Permet de revenir à la sheet précédente (ex : fermer le chat → profil)
+  // plutôt que de tout fermer d'un coup.
+  const [sheetStack, setSheetStack] = useState([]);
+  const sheet = sheetStack[sheetStack.length - 1] || null;
   const tRef = useRef(0);
 
   const showToast = (msg) => {
-    setToast(msg);
+    const config = (msg && typeof msg === 'object') ? msg : { text: msg };
+    setToast(config);
     clearTimeout(tRef.current);
-    tRef.current = setTimeout(() => setToast(null), 1800);
+    tRef.current = setTimeout(() => setToast(null), config.duration || 1800);
   };
-  const openSheet = (s) => setSheet(s);
-  const closeSheet = () => setSheet(null);
+  const hideToast = () => { clearTimeout(tRef.current); setToast(null); };
+  const openSheet     = (s) => setSheetStack(stack => [...stack, s]);
+  const closeSheet    = () => setSheetStack(stack => stack.slice(0, -1));
+  const closeAllSheets = () => setSheetStack([]);
+
+  // Si la sheet courante a `closeAll: true`, le X ferme TOUTE la pile.
+  // Sinon il dépile seulement (back navigation).
+  const handleClose = sheet?.closeAll ? closeAllSheets : closeSheet;
 
   return (
-    <UICtx.Provider value={{ showToast, openSheet, closeSheet, drawer, setDrawer, isMobile }}>
+    <UICtx.Provider value={{ showToast, hideToast, openSheet, closeSheet, closeAllSheets, isMobile }}>
       {children}
-      <ToastLayer toast={toast} />
-      <Sheet sheet={sheet} onClose={closeSheet} />
-      <Drawer open={drawer} onClose={() => setDrawer(false)} />
+      <ToastLayer toast={toast} onDismiss={hideToast} />
+      <Sheet sheet={sheet} onClose={handleClose} />
     </UICtx.Provider>
   );
 }
 
-function ToastLayer({ toast }) {
+function ToastLayer({ toast, onDismiss }) {
+  const hasAction = toast && toast.action;
   return (
     <div style={{
       position: 'absolute', left: 0, right: 0, bottom: 100, zIndex: 100,
       display: 'flex', justifyContent: 'center', pointerEvents: 'none',
+      padding: '0 18px',
     }}>
       <div style={{
         opacity: toast ? 1 : 0, transform: `translateY(${toast ? 0 : 8}px)`,
         transition: 'all .25s ease',
-        padding: '12px 20px', borderRadius: 999,
-        background: 'rgba(8,22,17,0.92)', color: '#F2F7F2',
+        padding: hasAction ? '12px 8px 12px 18px' : '12px 20px',
+        borderRadius: hasAction ? 16 : 999,
+        background: 'rgba(8,22,17,0.94)', color: '#F2F7F2',
         border: '1px solid rgba(184,220,197,0.32)',
         fontFamily: '"Inter", system-ui, sans-serif', fontWeight: 600,
-        fontSize: 13, letterSpacing: '0.06em',
+        fontSize: 13, letterSpacing: '0.04em',
         boxShadow: '0 12px 32px rgba(0,0,0,0.45)',
-        maxWidth: '85%', textAlign: 'center',
-      }}>{toast}</div>
-    </div>
-  );
-}
-
-function Sheet({ sheet, onClose }) {
-  const open = !!sheet;
-  return (
-    <div onClick={onClose} style={{
-      position: 'absolute', inset: 0, zIndex: 90,
-      pointerEvents: open ? 'auto' : 'none',
-      background: open ? 'rgba(0,0,0,0.55)' : 'transparent',
-      transition: 'background .25s ease',
-      display: 'flex', alignItems: 'flex-end',
-    }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        width: '100%', maxHeight: '78%', overflow: 'auto',
-        background: '#143226', borderTopLeftRadius: 26, borderTopRightRadius: 26,
-        borderTop: '1px solid rgba(184,220,197,0.22)',
-        transform: `translateY(${open ? 0 : 100}%)`,
-        transition: 'transform .3s cubic-bezier(.2,.8,.2,1)',
-        padding: '14px 22px 110px',
-        color: '#F2F7F2',
+        maxWidth: '85%',
+        display: 'flex', alignItems: 'center', gap: 12,
+        pointerEvents: hasAction ? 'auto' : 'none',
       }}>
-        <div style={{ width: 44, height: 4, borderRadius: 99, background: 'rgba(242,247,242,0.25)', margin: '4px auto 18px' }} />
-        {sheet && (
-          <>
-            <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 28, letterSpacing: '0.02em', marginBottom: 10 }}>{sheet.title}</div>
-            {sheet.body}
-            <button onClick={onClose} style={{
-              marginTop: 24, width: '100%', padding: '14px 20px', borderRadius: 12,
-              background: 'transparent', border: '1px solid rgba(184,220,197,0.32)',
-              color: C.cream, fontFamily: fontSans,
-              fontWeight: 700, fontSize: 12, letterSpacing: '0.18em', cursor: 'pointer',
-            }}>CLOSE</button>
-          </>
+        <div style={{ flex: 1 }}>{toast?.text}</div>
+        {hasAction && (
+          <button onClick={() => { toast.action.onClick(); onDismiss(); }}
+                  style={{
+                    all: 'unset', cursor: 'pointer',
+                    padding: '6px 12px', borderRadius: 10,
+                    color: '#EFE5C8', fontWeight: 800, fontSize: 12,
+                    letterSpacing: '0.10em',
+                  }}>{toast.action.label.toUpperCase()}</button>
         )}
       </div>
     </div>
   );
 }
 
-function Drawer({ open, onClose }) {
-  const items = ['Profile','Achievements','Equipment','Coaching','Subscriptions','Settings','Sign out'];
+function Sheet({ sheet, onClose }) {
+  const open = !!sheet;
+  const scrollRef = useRef(null);
+  useEffect(() => {
+    if (scrollRef.current && sheet) scrollRef.current.scrollTo({ top: 0, behavior: 'auto' });
+  }, [sheet]);
   return (
-    <div onClick={onClose} style={{
-      position: 'absolute', inset: 0, zIndex: 95,
+    <div ref={scrollRef} style={{
+      position: 'absolute', inset: 0, zIndex: 90,
       pointerEvents: open ? 'auto' : 'none',
-      background: open ? 'rgba(0,0,0,0.55)' : 'transparent',
-      transition: 'background .25s ease',
+      background: '#143226',
+      opacity: open ? 1 : 0,
+      transform: `translateY(${open ? 0 : 100}%)`,
+      transition: 'transform .32s cubic-bezier(.2,.8,.2,1), opacity .25s ease',
+      display: 'flex', flexDirection: 'column',
+      color: '#F2F7F2',
+      overflow: 'auto',
+      paddingTop: 'env(safe-area-inset-top, 0px)',
+      paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
     }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        position: 'absolute', top: 0, bottom: 0, left: 0, width: 280,
-        background: '#0E2820', borderRight: '1px solid rgba(184,220,197,0.18)',
-        transform: `translateX(${open ? 0 : -100}%)`,
-        transition: 'transform .3s cubic-bezier(.2,.8,.2,1)',
-        padding: '70px 22px 30px', color: '#F2F7F2',
-        display: 'flex', flexDirection: 'column', gap: 4,
-      }}>
-        <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 24, letterSpacing: '0.04em', color: C.mint, marginBottom: 20 }}>MENU</div>
-        {items.map(it => (
-          <button key={it} onClick={onClose} style={{
-            textAlign: 'left', padding: '14px 4px',
-            background: 'none', border: 'none', cursor: 'pointer',
-            borderBottom: '1px solid rgba(184,220,197,0.10)',
-            color: '#F2F7F2', fontFamily: fontSans,
-            fontWeight: 600, fontSize: 14, letterSpacing: '0.04em',
-          }}>{it}</button>
-        ))}
-      </div>
+      {sheet && (
+        <>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '14px 22px 8px', gap: 10,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+              {sheet.leftAction}
+              <div style={{
+                fontFamily: fontDisplay, fontWeight: 800, fontSize: 28, letterSpacing: '0.02em',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>{sheet.title}</div>
+            </div>
+            <button onClick={onClose} aria-label="Close" style={{
+              all: 'unset', cursor: 'pointer', flexShrink: 0,
+              width: 36, height: 36, borderRadius: 999,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(242,247,242,0.08)',
+              color: C.ink, fontSize: 22, lineHeight: 1,
+            }}>×</button>
+          </div>
+          <div style={{ padding: '12px 22px 0', flex: 1 }}>
+            {sheet.body}
+          </div>
+        </>
+      )}
     </div>
   );
 }

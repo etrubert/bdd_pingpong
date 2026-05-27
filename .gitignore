@@ -1,28 +1,17 @@
+# macOS
+.DS_Store
+
 # Python
+.venv
 __pycache__/
 *.py[cod]
-*.egg-info/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
 
-# Virtualenv
-.venv/
-venv/
-env/
-
-# Env files
-.env
-.env.*
-!.env.example
-
-# Données temporaires / checkpoints
-data/maps_table_checkpoint.json
-
-# OS
-.DS_Store
-Thumbs.db
-
-# IDE
-.idea/
-.vscode/
+# Node / Vite generated files
+node_modules/
+Strav_pingpang/node_modules/
+Strav_pingpang/dist/
+Strav_pingpang/dist-ssr/
+Strav_pingpang/.env
+Strav_pingpang/.env.local
+*.log
+*.local

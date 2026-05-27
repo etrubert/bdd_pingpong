@@ -3,10 +3,10 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev": "npm --prefix Strav_pingpang run dev",
-    "build": "npm --prefix Strav_pingpang run build",
-    "preview": "npm --prefix Strav_pingpang run preview",
-    "lint": "npm --prefix Strav_pingpang run lint",
-    "install:app": "npm --prefix Strav_pingpang install"
+    "dev": "cd Strav_pingpang && npm run dev",
+    "build": "cd Strav_pingpang && npm run build",
+    "preview": "cd Strav_pingpang && npm run preview",
+    "lint": "cd Strav_pingpang && npm run lint",
+    "install:app": "cd Strav_pingpang && npm install"
   }
 }

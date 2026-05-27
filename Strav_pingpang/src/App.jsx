@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { C, fontSans } from './theme';
 import UIProvider from './components/UIProvider';
 import TopBar from './components/TopBar';
@@ -7,31 +7,64 @@ import IOSDevice from './components/IOSDevice';
 import HomeScreen from './screens/HomeScreen';
 import TrainScreen from './screens/TrainScreen';
 import MatchesScreen from './screens/MatchesScreen';
+import FinderScreen from './screens/FinderScreen';
+import MerchScreen from './screens/MerchScreen';
+import ChatScreen from './screens/ChatScreen';
+import OnboardingScreen from './screens/OnboardingScreen';
 import PlaceholderScreen from './screens/PlaceholderScreen';
+import Leaderboard from './screens/Leaderboard';
+import { useAuth } from './lib/auth';
 
 function useViewport() {
-  const [vw, setVw] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  const [vp, setVp] = useState({
+    vw: typeof window !== 'undefined' ? window.innerWidth : 1024,
+    vh: typeof window !== 'undefined' ? window.innerHeight : 800,
+  });
   useEffect(() => {
-    const onR = () => setVw(window.innerWidth);
+    const onR = () => setVp({ vw: window.innerWidth, vh: window.innerHeight });
     window.addEventListener('resize', onR);
     return () => window.removeEventListener('resize', onR);
   }, []);
-  return { vw, isMobile: vw < 640 };
+  return { vw: vp.vw, vh: vp.vh, isMobile: vp.vw < 640 };
 }
 
 export default function App() {
   const [tab, setTab] = useState('home');
-  const { isMobile } = useViewport();
+  const { vw, vh, isMobile } = useViewport();
+  const { isAuthed, profile, userId } = useAuth();
+
+  // À chaque (re)chargement de l'app, on veut TOUJOURS atterrir sur l'écran
+  // de connexion. Ce flag in-memory (non persisté) bascule sur true uniquement
+  // quand l'utilisateur clique explicitement CONTINUER ou termine l'onboarding.
+  const [hasEnteredApp, setHasEnteredApp] = useState(false);
+
+  const onboardingDone = !!(profile?.region && profile?.player_type);
+  const showApp = hasEnteredApp && isAuthed && onboardingDone;
+
+  const PHONE_RATIO = 402 / 874;
+  const maxByHeight = vh - 48;
+  const maxByWidth = vw - 48;
+  const deviceHeight = Math.min(maxByHeight, maxByWidth / PHONE_RATIO);
+  const deviceWidth = deviceHeight * PHONE_RATIO;
 
   const screen = useMemo(() => {
     switch (tab) {
-      case 'home':    return <HomeScreen onNav={setTab} />;
-      case 'train':   return <TrainScreen />;
-      case 'matches': return <MatchesScreen />;
-      case 'finder':  return <PlaceholderScreen title="FINDER" blurb="Locate clubs, tables and rivals across Paris." />;
-      case 'merch':   return <PlaceholderScreen title="MERCH" blurb="Paddles, rubbers, apparel \u2014 curated for the active player." />;
-      default:        return <HomeScreen onNav={setTab} />;
+      case 'home':        return <HomeScreen onNav={setTab} />;
+      case 'train':       return <TrainScreen />;
+      case 'matches':     return <MatchesScreen />;
+      case 'leaderboard': return <Leaderboard currentUserId={userId} />;
+      case 'finder':      return <FinderScreen />;
+      case 'chat':        return <ChatScreen />;
+      case 'merch':       return <MerchScreen />;
+      default:            return <HomeScreen onNav={setTab} />;
     }
+  }, [tab, userId]);
+
+  const mockTopInset = 0;
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTo({ top: 0, behavior: 'auto' });
   }, [tab]);
 
   const inner = (
@@ -40,14 +73,21 @@ export default function App() {
         position: 'relative', height: '100%', width: '100%',
         background: C.bgGrad, color: C.ink, overflow: 'hidden',
       }}>
-        <div style={{
-          position: 'absolute', inset: 0, overflowY: 'auto',
-          paddingTop: isMobile ? 0 : 44,
-        }}>
-          <TopBar />
-          {screen}
-        </div>
-        <BottomNav tab={tab} onTab={setTab} />
+        {!showApp ? (
+          <div style={{ position: 'absolute', inset: 0, overflowY: 'auto' }}>
+            <OnboardingScreen onComplete={() => setHasEnteredApp(true)} />
+          </div>
+        ) : (
+          <>
+            <div ref={scrollRef} style={{
+              position: 'absolute', inset: 0, overflowY: 'auto',
+            }}>
+              <TopBar topInset={mockTopInset} />
+              {screen}
+            </div>
+            <BottomNav tab={tab} onTab={setTab} />
+          </>
+        )}
       </div>
     </UIProvider>
   );
@@ -70,10 +110,10 @@ export default function App() {
       boxSizing: 'border-box',
       background: '#06120D',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '32px 16px',
+      padding: '16px',
       backgroundImage: 'radial-gradient(60% 50% at 50% 0%, rgba(184,220,197,0.04) 0%, rgba(0,0,0,0) 70%)',
     }}>
-      <IOSDevice width={402} height={874} dark={true}>
+      <IOSDevice width={deviceWidth} height={deviceHeight} dark={true}>
         {inner}
       </IOSDevice>
     </div>
