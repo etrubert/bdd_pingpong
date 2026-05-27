@@ -12,7 +12,7 @@ function Pill({ active, onClick, children, full }) {
       padding: '8px 16px', borderRadius: 999,
       border: `1px solid ${active ? C.warm : C.border}`,
       background: active ? C.warm : 'rgba(8,22,17,0.45)',
-      color: active ? '#0C211A' : C.ink,
+      color: active ? '#092C25' : C.ink,
       fontFamily: fontSans, fontWeight: 700, fontSize: 13,
       textAlign: 'center',
       ...(full ? { flex: 1 } : {}),
@@ -27,7 +27,7 @@ function PrimaryBtn({ onClick, children, disabled }) {
       width: '100%', padding: '15px', textAlign: 'center',
       borderRadius: 12,
       background: disabled ? 'rgba(232,201,155,0.30)' : C.warm,
-      color: '#0C211A',
+      color: '#092C25',
       fontFamily: fontSans, fontWeight: 800, fontSize: 14, letterSpacing: '0.16em',
       opacity: disabled ? 0.5 : 1,
     }}>{children}</button>
@@ -74,7 +74,7 @@ function StepHeader({ step, total, kickerLabel, title, subtitle }) {
         {Array.from({ length: total }).map((_, i) => (
           <div key={i} style={{
             flex: 1, height: 3, borderRadius: 2,
-            background: i < step ? C.warm : 'rgba(184,220,197,0.10)',
+            background: i < step ? C.warm : 'rgba(245,246,243,0.10)',
           }} />
         ))}
       </div>
@@ -171,7 +171,7 @@ function StepConnexion({ onSignedUp, onSignedIn, currentSession, onContinueAsCur
               all: 'unset', cursor: 'pointer', flex: 1, textAlign: 'center',
               padding: '10px 0', borderRadius: 999,
               background: active ? C.warm : 'transparent',
-              color: active ? '#0C211A' : C.ink,
+              color: active ? '#092C25' : C.ink,
               fontFamily: fontSans, fontWeight: 700, fontSize: 12.5, letterSpacing: '0.08em',
             }}>{opt.label}</button>
           );
@@ -305,7 +305,7 @@ function StepPlayerType({ onNext, initial }) {
                 background: active ? C.warm : 'transparent',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                {active && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#0C211A' }} />}
+                {active && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#092C25' }} />}
               </div>
               <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                 <div style={{ fontFamily: fontSans, fontWeight: 700, fontSize: 15, color: active ? C.warm : C.ink }}>{opt.title}</div>

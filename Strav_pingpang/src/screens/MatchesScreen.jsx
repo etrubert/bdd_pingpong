@@ -45,7 +45,7 @@ function StatTile({ value, label }) {
   return (
     <div style={{
       padding: '18px 12px 14px', borderRadius: 14,
-      background: 'rgba(184,220,197,0.04)', border: `1px solid ${C.border}`,
+      background: 'rgba(245,246,243,0.04)', border: `1px solid ${C.border}`,
       textAlign: 'center',
     }}>
       <div style={{
@@ -123,7 +123,7 @@ function EloChart({ data }) {
         <path d={linePath} stroke="#E8C99B" strokeWidth="2" fill="none" strokeLinejoin="round" strokeLinecap="round" />
         {points.map((p, i) => (
           <circle key={i} cx={p.x} cy={p.y} r={i === points.length - 1 ? 4 : 2.5}
-            fill={i === points.length - 1 ? '#E8C99B' : '#0C211A'}
+            fill={i === points.length - 1 ? '#E8C99B' : '#092C25'}
             stroke="#E8C99B" strokeWidth="1.6" />
         ))}
       </svg>

@@ -38,7 +38,7 @@ function SessionMedia({ image, video, height = 150, rounded = 14 }) {
   return (
     <div style={{
       width: '100%', height, borderRadius: rounded,
-      background: 'repeating-linear-gradient(45deg, rgba(184,220,197,0.05) 0px, rgba(184,220,197,0.05) 10px, rgba(8,22,17,0.4) 10px, rgba(8,22,17,0.4) 20px)',
+      background: 'repeating-linear-gradient(45deg, rgba(245,246,243,0.05) 0px, rgba(245,246,243,0.05) 10px, rgba(8,22,17,0.4) 10px, rgba(8,22,17,0.4) 20px)',
       border: `1px dashed ${C.borderHi}`,
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
       color: C.inkFaint,
@@ -74,7 +74,7 @@ function SessionDetail({ session }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{
                     fontFamily: fontSans, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.10em',
-                    color: '#0C211A', background: phase.color || C.mint,
+                    color: '#092C25', background: phase.color || C.mint,
                     padding: '3px 8px', borderRadius: 999,
                   }}>{phase.label}</span>
                   <span style={{ fontFamily: fontSans, fontSize: 11.5, color: C.inkDim }}>{step.duration}</span>
@@ -125,7 +125,7 @@ function SessionsLibrary() {
                     {Object.entries(counts).map(([ph, n]) => (
                       <span key={ph} style={{
                         fontFamily: fontSans, fontSize: 10.5, fontWeight: 700,
-                        color: '#0C211A', background: SESSION_PHASES[ph]?.color || C.mint,
+                        color: '#092C25', background: SESSION_PHASES[ph]?.color || C.mint,
                         padding: '3px 8px', borderRadius: 7,
                       }}>{n} {SESSION_PHASES[ph]?.label.toLowerCase()}</span>
                     ))}

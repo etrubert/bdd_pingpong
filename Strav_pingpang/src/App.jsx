@@ -113,7 +113,7 @@ export default function App() {
       background: '#06120D',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '16px',
-      backgroundImage: 'radial-gradient(60% 50% at 50% 0%, rgba(184,220,197,0.04) 0%, rgba(0,0,0,0) 70%)',
+      backgroundImage: 'radial-gradient(60% 50% at 50% 0%, rgba(245,246,243,0.04) 0%, rgba(0,0,0,0) 70%)',
     }}>
       <IOSDevice width={deviceWidth} height={deviceHeight} dark={true}>
         {inner}

@@ -1,4 +1,4 @@
-import { C, fontDisplay, fontSans, fontItalic, kicker, btnPrimary, btnGhost } from '../theme';
+import { C, fontDisplay, fontSans, kicker, btnPrimary, btnGhost } from '../theme';
 import { Icon } from '../icons';
 import { useUI } from '../components/uiContext';
 import { ProfileSheet } from '../components/TopBar';
@@ -39,7 +39,7 @@ function MerchPreviewCard({ category, products, onOpen, wide = false }) {
         padding: 16,
         overflow: 'hidden',
         borderRadius: 14,
-        background: `radial-gradient(80% 80% at 86% 10%, ${category.accent}22 0%, rgba(20,50,38,0) 58%), linear-gradient(180deg, #193E2F 0%, #143226 100%)`,
+        background: `radial-gradient(80% 80% at 86% 10%, ${category.accent}22 0%, rgba(20,50,38,0) 58%), linear-gradient(180deg, #0E3A30 0%, #124638 100%)`,
         display: 'flex',
         alignItems: 'flex-end',
       }}>
@@ -165,12 +165,11 @@ export default function HomeScreen({ onNav }) {
   const isClubPlayer = profile?.player_type === 'competition';
   const hasMatches = matchesPlayed > 0;
   const elo = profile?.elo_rating ?? 0;
-  const eloDisplay = hasMatches ? `${elo} (Glicko-2)` : '— (à jouer)';
+  const eloDisplay = hasMatches ? `${elo}` : '—';
   const fftt = profile?.fftt_classification || (isClubPlayer ? '—' : 'Non classé');
-  // Streak / volume / daily goal : zero par defaut tant qu'aucun match
+  // Streak / daily goal : zero par defaut tant qu'aucun match
   const streakDays = hasMatches ? 5 : 0;
   const dailyGoalPct = hasMatches ? 75 : 0;
-  const trainingHours = hasMatches ? 12.4 : 0;
   const nextChallenge = acceptedChallenges[0];        // priorité 1 : défi accepté
   const pendingChallenge = incomingChallenges[0];     // priorité 2 : défi en attente
   const lastMatch = matches[0];                       // match le plus récent
@@ -208,7 +207,7 @@ export default function HomeScreen({ onNav }) {
       {/* Streak de connexion (changement 2) — incite au retour quotidien */}
       <StreakCard displayName={firstName} />
 
-      {/* Quote + CTA */}
+      {/* CTA */}
       <div style={{
         position: 'relative', borderRadius: 22, overflow: 'hidden',
         border: `1px solid ${C.border}`,
@@ -218,25 +217,17 @@ export default function HomeScreen({ onNav }) {
           <PaddleSVG />
           <div style={{
             position: 'absolute', inset: 0,
-            background: 'radial-gradient(60% 50% at 50% 35%, rgba(184,220,197,0.10) 0%, rgba(20,50,38,0) 70%), linear-gradient(180deg, rgba(20,50,38,0) 40%, rgba(20,50,38,0.85) 90%)',
+            background: 'radial-gradient(60% 50% at 50% 35%, rgba(245,246,243,0.10) 0%, rgba(20,50,38,0) 70%), linear-gradient(180deg, rgba(20,50,38,0) 40%, rgba(20,50,38,0.85) 90%)',
           }} />
         </div>
-        <div style={{ position: 'relative', padding: '26px 24px 24px' }}>
-          <div style={{
-            fontFamily: fontItalic, fontStyle: 'italic',
-            fontSize: 21, lineHeight: 1.25, color: C.ink,
-            textWrap: 'pretty',
-          }}>
-            &ldquo;Precision is not an accident. It is the result of high-intent training.&rdquo;
-          </div>
-          <div style={{ height: 130 }} />
+        <div style={{ position: 'relative', padding: 14 }}>
           <button onClick={() => onNav('train')} style={{
             width: '100%', padding: '18px 20px', borderRadius: 16,
             background: C.mint, border: 'none',
-            color: '#0C211A',
+            color: '#092C25',
             fontFamily: fontSans, fontWeight: 700, fontSize: 14,
             letterSpacing: '0.18em', cursor: 'pointer',
-            boxShadow: '0 0 32px rgba(184,220,197,0.35), 0 10px 30px rgba(0,0,0,0.3)',
+            boxShadow: '0 0 32px rgba(245,246,243,0.35), 0 10px 30px rgba(0,0,0,0.3)',
           }}>QUICK START TRAINING</button>
         </div>
       </div>
@@ -249,11 +240,11 @@ export default function HomeScreen({ onNav }) {
           padding: 14,
           background: lastMatch
             ? (lastMatch.win
-                ? 'linear-gradient(180deg, rgba(184,220,197,0.10) 0%, rgba(20,50,38,0) 70%), linear-gradient(180deg, #193E2F 0%, #143226 100%)'
-                : 'linear-gradient(180deg, rgba(232,155,139,0.10) 0%, rgba(20,50,38,0) 70%), linear-gradient(180deg, #193E2F 0%, #143226 100%)')
+                ? 'linear-gradient(180deg, rgba(245,246,243,0.10) 0%, rgba(20,50,38,0) 70%), linear-gradient(180deg, #0E3A30 0%, #124638 100%)'
+                : 'linear-gradient(180deg, rgba(232,155,139,0.10) 0%, rgba(20,50,38,0) 70%), linear-gradient(180deg, #0E3A30 0%, #124638 100%)')
             : undefined,
           border: lastMatch
-            ? `1px solid ${lastMatch.win ? 'rgba(184,220,197,0.30)' : 'rgba(232,155,139,0.30)'}`
+            ? `1px solid ${lastMatch.win ? 'rgba(245,246,243,0.30)' : 'rgba(232,155,139,0.30)'}`
             : undefined,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -261,7 +252,7 @@ export default function HomeScreen({ onNav }) {
             {lastMatch && (
               <span style={{
                 fontFamily: fontSans, fontWeight: 800, fontSize: 9.5,
-                color: lastMatch.win ? '#0C211A' : '#fff',
+                color: lastMatch.win ? '#092C25' : '#fff',
                 background: lastMatch.win ? C.mint : C.loss,
                 padding: '2px 7px', borderRadius: 999, letterSpacing: '0.08em',
               }}>{lastMatch.win ? 'WIN' : 'LOSS'}</span>
@@ -274,10 +265,10 @@ export default function HomeScreen({ onNav }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
                 <div style={{
                   width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-                  background: `radial-gradient(60% 60% at 35% 30%, ${lastMatch.color?.[0] || C.mint} 0%, ${lastMatch.color?.[1] || C.mintDeep} 70%, #0C211A 100%)`,
+                  background: `radial-gradient(60% 60% at 35% 30%, ${lastMatch.color?.[0] || C.mint} 0%, ${lastMatch.color?.[1] || C.mintDeep} 70%, #092C25 100%)`,
                   border: `1.5px solid ${C.borderHi}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#0C211A', fontFamily: fontSans, fontWeight: 800, fontSize: 11,
+                  color: '#092C25', fontFamily: fontSans, fontWeight: 800, fontSize: 11,
                 }}>{lastMatch.initials || (lastMatch.name || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
@@ -319,7 +310,7 @@ export default function HomeScreen({ onNav }) {
             </>
           ) : (
             <div style={{ marginTop: 14, color: C.inkDim, fontFamily: fontSans, fontSize: 12.5, lineHeight: 1.45 }}>
-              Aucun match récent. Lance ton premier match pour faire évoluer ton ELO.
+              Aucun match récent.
             </div>
           )}
         </Card>
@@ -373,7 +364,7 @@ export default function HomeScreen({ onNav }) {
               <span style={{ color: dailyGoalPct >= 100 ? C.mint : C.inkDim }}>{dailyGoalPct}%</span>
             </div>
             <div style={{
-              height: 5, background: 'rgba(184,220,197,0.18)',
+              height: 5, background: 'rgba(245,246,243,0.18)',
               borderRadius: 99, marginTop: 6, overflow: 'hidden',
             }}>
               <div style={{
@@ -392,7 +383,7 @@ export default function HomeScreen({ onNav }) {
           style={{ all: 'unset', cursor: 'pointer', display: 'block' }}>
           <Card style={{
             padding: 18,
-            background: 'linear-gradient(180deg, rgba(232,201,155,0.10) 0%, rgba(20,50,38,0) 70%), linear-gradient(180deg, #193E2F 0%, #143226 100%)',
+            background: 'linear-gradient(180deg, rgba(232,201,155,0.10) 0%, rgba(20,50,38,0) 70%), linear-gradient(180deg, #0E3A30 0%, #124638 100%)',
             border: '1px solid rgba(232,201,155,0.35)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
@@ -439,7 +430,7 @@ export default function HomeScreen({ onNav }) {
           style={{ all: 'unset', cursor: 'pointer', display: 'block' }}>
           <Card style={{
             padding: 18,
-            background: 'linear-gradient(180deg, rgba(66,133,244,0.10) 0%, rgba(20,50,38,0) 70%), linear-gradient(180deg, #193E2F 0%, #143226 100%)',
+            background: 'linear-gradient(180deg, rgba(66,133,244,0.10) 0%, rgba(20,50,38,0) 70%), linear-gradient(180deg, #0E3A30 0%, #124638 100%)',
             border: '1px solid rgba(66,133,244,0.40)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
@@ -486,21 +477,6 @@ export default function HomeScreen({ onNav }) {
           </Card>
         </button>
       )}
-
-      {/* Training volume */}
-      <button onClick={() => showToast(`Training volume: ${trainingHours}h this week`)}
-        style={{ all: 'unset', cursor: 'pointer', display: 'block' }}>
-      <Card style={{ padding: 18 }}>
-        <div style={kicker}>TRAINING VOLUME</div>
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 6 }}>
-          <div style={{
-            fontFamily: fontDisplay, fontWeight: 800, fontSize: 46,
-            color: C.ink, letterSpacing: '0.01em', lineHeight: 1,
-          }}>{trainingHours}H</div>
-          <div style={{ color: C.cream, fontFamily: fontSans, fontWeight: 700, fontSize: 12, letterSpacing: '0.14em' }}>THIS WEEK</div>
-        </div>
-      </Card>
-      </button>
 
       <HomeBoutiquePreview />
     </div>

@@ -27,7 +27,7 @@ export default function BottomNav({ tab, onTab }) {
             background: 'none', border: 'none', cursor: 'pointer',
             display: 'flex', flexDirection: 'column', alignItems: 'center',
             gap: 3, padding: '6px 2px 4px', borderRadius: 10,
-            color: active ? C.cream : 'rgba(242,247,242,0.78)',
+            color: active ? C.cream : 'rgba(245,246,243,0.78)',
             position: 'relative',
           }}>
             {active && <div style={{

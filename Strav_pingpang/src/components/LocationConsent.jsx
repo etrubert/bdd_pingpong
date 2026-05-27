@@ -24,7 +24,7 @@ export default function LocationConsent() {
     }}>
       <div style={{
         width: '100%', maxWidth: 320,
-        background: 'linear-gradient(180deg, #193E2F 0%, #143226 100%)',
+        background: 'linear-gradient(180deg, #0E3A30 0%, #124638 100%)',
         border: `1px solid ${C.borderHi}`, borderRadius: 22,
         padding: 24, textAlign: 'center',
         boxShadow: '0 20px 60px rgba(0,0,0,0.5)',

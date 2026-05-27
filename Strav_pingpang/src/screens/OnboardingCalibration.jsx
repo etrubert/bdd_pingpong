@@ -38,7 +38,7 @@ function Stepper({ total = 4, current = 4 }) {
       {Array.from({ length: total }).map((_, i) => (
         <div key={i} style={{
           flex: 1, height: 3, borderRadius: 2,
-          background: i < current ? C.warm : 'rgba(184,220,197,0.10)',
+          background: i < current ? C.warm : 'rgba(245,246,243,0.10)',
         }} />
       ))}
     </div>
@@ -56,7 +56,7 @@ function Pill({ active, onClick, children }) {
       padding: '8px 16px', borderRadius: 999,
       border: `1px solid ${active ? C.warm : C.border}`,
       background: active ? C.warm : 'rgba(8,22,17,0.45)',
-      color: active ? '#0C211A' : C.ink,
+      color: active ? '#092C25' : C.ink,
       fontFamily: fontSans, fontWeight: 700, fontSize: 13,
     }}>{children}</button>
   );
@@ -70,7 +70,7 @@ function LevelRow({ active, onClick, children }) {
       padding: '14px 16px', borderRadius: 12,
       border: `1px solid ${active ? C.warm : C.border}`,
       background: active ? C.warm : 'rgba(8,22,17,0.55)',
-      color: active ? '#0C211A' : C.ink,
+      color: active ? '#092C25' : C.ink,
       fontFamily: fontSans, fontSize: 14,
       fontWeight: active ? 700 : 500,
     }}>{children}</button>
@@ -93,7 +93,7 @@ function SelfRatingSlider({ value, onChange }) {
           onChange={e => onChange(Number(e.target.value))}
           style={{
             width: '100%', appearance: 'none', height: 4,
-            background: `linear-gradient(to right, ${C.warm} 0%, ${C.warm} ${value}%, rgba(184,220,197,0.18) ${value}%, rgba(184,220,197,0.18) 100%)`,
+            background: `linear-gradient(to right, ${C.warm} 0%, ${C.warm} ${value}%, rgba(245,246,243,0.18) ${value}%, rgba(245,246,243,0.18) 100%)`,
             borderRadius: 999, outline: 'none',
           }}
         />
@@ -102,14 +102,14 @@ function SelfRatingSlider({ value, onChange }) {
             -webkit-appearance: none;
             width: 18px; height: 18px; border-radius: 50%;
             background: ${C.warm};
-            border: 2px solid #0C211A;
+            border: 2px solid #092C25;
             cursor: pointer;
             box-shadow: 0 0 12px rgba(232,201,155,0.45);
           }
           input[type="range"]::-moz-range-thumb {
             width: 18px; height: 18px; border-radius: 50%;
             background: ${C.warm};
-            border: 2px solid #0C211A;
+            border: 2px solid #092C25;
             cursor: pointer;
           }
         `}</style>
@@ -269,7 +269,7 @@ export default function OnboardingCalibration({ userId, onComplete, initialAnswe
         marginTop: 22, padding: '15px', textAlign: 'center',
         borderRadius: 12,
         background: (!canSubmit || submitting) ? 'rgba(232,201,155,0.30)' : C.warm,
-        color: '#0C211A',
+        color: '#092C25',
         fontFamily: fontSans, fontWeight: 800, fontSize: 14, letterSpacing: '0.16em',
         opacity: (!canSubmit || submitting) ? 0.5 : 1,
       }}>{submitting ? 'SAUVEGARDE...' : "LET'S PLAY"}</button>

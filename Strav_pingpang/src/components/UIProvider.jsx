@@ -49,7 +49,7 @@ function ToastLayer({ toast, onDismiss }) {
         padding: hasAction ? '12px 8px 12px 18px' : '12px 20px',
         borderRadius: hasAction ? 16 : 999,
         background: 'rgba(8,22,17,0.94)', color: '#F2F7F2',
-        border: '1px solid rgba(184,220,197,0.32)',
+        border: '1px solid rgba(245,246,243,0.32)',
         fontFamily: '"Inter", system-ui, sans-serif', fontWeight: 600,
         fontSize: 13, letterSpacing: '0.04em',
         boxShadow: '0 12px 32px rgba(0,0,0,0.45)',
@@ -82,7 +82,7 @@ function Sheet({ sheet, onClose }) {
     <div ref={scrollRef} style={{
       position: 'absolute', inset: 0, zIndex: 90,
       pointerEvents: open ? 'auto' : 'none',
-      background: '#143226',
+      background: '#124638',
       opacity: open ? 1 : 0,
       transform: `translateY(${open ? 0 : 100}%)`,
       transition: 'transform .32s cubic-bezier(.2,.8,.2,1), opacity .25s ease',
@@ -109,7 +109,7 @@ function Sheet({ sheet, onClose }) {
               all: 'unset', cursor: 'pointer', flexShrink: 0,
               width: 36, height: 36, borderRadius: 999,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'rgba(242,247,242,0.08)',
+              background: 'rgba(245,246,243,0.08)',
               color: C.ink, fontSize: 22, lineHeight: 1,
             }}>×</button>
           </div>

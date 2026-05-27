@@ -51,7 +51,7 @@ function ProductTile({ product, accent, onSelect }) {
           ) : (
             <div style={{
               width: 62, height: 74, borderRadius: '42% 42% 8px 8px',
-              background: `linear-gradient(180deg, ${accent}, #143226)`,
+              background: `linear-gradient(180deg, ${accent}, #124638)`,
               border: `1px solid ${accent}`,
             }} />
           )}
@@ -94,7 +94,7 @@ function FeaturedProduct({ product, accent, onSelect }) {
     >
       <Card style={{
         padding: 14, overflow: 'hidden',
-        background: `linear-gradient(180deg, ${accent}22 0%, rgba(20,50,38,0.12) 58%), linear-gradient(180deg, #193E2F 0%, #143226 100%)`,
+        background: `linear-gradient(180deg, ${accent}22 0%, rgba(20,50,38,0.12) 58%), linear-gradient(180deg, #0E3A30 0%, #124638 100%)`,
         border: `1px solid ${accent}88`,
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 12 }}>
@@ -112,7 +112,7 @@ function FeaturedProduct({ product, accent, onSelect }) {
             padding: '4px 10px', borderRadius: 999,
             fontFamily: fontSans, fontWeight: 900, fontSize: 9,
             letterSpacing: '0.10em',
-            color: '#0C211A', background: C.warm,
+            color: '#092C25', background: C.warm,
           }}>SIGNATURE</div>
         </div>
 
@@ -140,7 +140,7 @@ function FeaturedProduct({ product, accent, onSelect }) {
           </div>
           <div style={{
             padding: '8px 15px', borderRadius: 999,
-            background: C.ink, color: '#0C211A',
+            background: C.ink, color: '#092C25',
             fontFamily: fontSans, fontWeight: 900, fontSize: 10,
           }}>Voir</div>
         </div>
@@ -241,7 +241,7 @@ export default function MerchScreen({ initialCategory = 'apparel', standalone = 
               style={{
                 border: active ? `1px solid ${C.warm}` : `1px solid ${C.borderHi}`,
                 background: active ? C.warm : 'rgba(8,22,17,0.35)',
-                color: active ? '#0C211A' : C.ink,
+                color: active ? '#092C25' : C.ink,
                 borderRadius: 999,
                 padding: '7px 12px',
                 fontFamily: fontSans,

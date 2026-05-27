@@ -296,7 +296,7 @@ export default function Leaderboard({ currentUserId }) {
               padding: '9px 16px', borderRadius: 999,
               background: active ? C.warm : 'rgba(8,22,17,0.55)',
               border: active ? `1px solid ${C.warm}` : `1px solid ${C.border}`,
-              color: active ? '#0C211A' : C.ink,
+              color: active ? '#092C25' : C.ink,
               fontFamily: fontSans, fontWeight: 700, fontSize: 13,
               display: 'inline-flex', alignItems: 'center', gap: 6,
             }}>
@@ -367,7 +367,7 @@ export default function Leaderboard({ currentUserId }) {
             all: 'unset', cursor: 'pointer',
             padding: expanded ? '10px 22px' : '12px 28px',
             borderRadius: 12,
-            background: expanded ? 'rgba(184,220,197,0.06)' : 'rgba(232,201,155,0.14)',
+            background: expanded ? 'rgba(245,246,243,0.06)' : 'rgba(232,201,155,0.14)',
             border: `1px solid ${expanded ? C.border : 'rgba(232,201,155,0.45)'}`,
             color: expanded ? C.mint : C.warm,
             fontFamily: fontSans, fontWeight: 700,
@@ -449,11 +449,11 @@ function PodiumSpot({ p, rank, accent, size, crown }) {
       <div style={{ position: 'relative' }}>
         <div style={{
           width: size, height: size, borderRadius: '50%',
-          background: `radial-gradient(60% 60% at 35% 30%, ${light} 0%, ${dark} 70%, #0C211A 100%)`,
-          border: `2px solid ${isGold ? C.warm : 'rgba(184,220,197,0.30)'}`,
+          background: `radial-gradient(60% 60% at 35% 30%, ${light} 0%, ${dark} 70%, #092C25 100%)`,
+          border: `2px solid ${isGold ? C.warm : 'rgba(245,246,243,0.30)'}`,
           boxShadow: isGold ? '0 0 32px rgba(232,201,155,0.45)' : 'none',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#0C211A', fontFamily: fontSans, fontWeight: 800,
+          color: '#092C25', fontFamily: fontSans, fontWeight: 800,
           fontSize: size * 0.30, letterSpacing: '0.02em',
         }}>{initialsOf(p.display_name)}</div>
         <div style={{
@@ -461,7 +461,7 @@ function PodiumSpot({ p, rank, accent, size, crown }) {
           width: 22, height: 22, borderRadius: '50%',
           background: isGold ? C.warm : C.card,
           border: isGold ? 'none' : `1px solid ${C.border}`,
-          color: isGold ? '#0C211A' : C.ink,
+          color: isGold ? '#092C25' : C.ink,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontFamily: fontSans, fontWeight: 800, fontSize: 11,
         }}>{rank}</div>
@@ -514,10 +514,10 @@ function RankRow({ player, isCurrentUser }) {
 
       <div style={{
         width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
-        background: `radial-gradient(60% 60% at 35% 30%, ${light} 0%, ${dark} 70%, #0C211A 100%)`,
+        background: `radial-gradient(60% 60% at 35% 30%, ${light} 0%, ${dark} 70%, #092C25 100%)`,
         border: `1.5px solid ${C.borderHi}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: '#0C211A', fontFamily: fontSans, fontWeight: 800, fontSize: 13,
+        color: '#092C25', fontFamily: fontSans, fontWeight: 800, fontSize: 13,
       }}>{initialsOf(player.display_name)}</div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -545,7 +545,7 @@ function RankRow({ player, isCurrentUser }) {
             <span style={{
               flexShrink: 0,
               padding: '2px 8px', borderRadius: 999,
-              background: C.warm, color: '#0C211A',
+              background: C.warm, color: '#092C25',
               fontSize: 10, fontWeight: 800, letterSpacing: '0.08em',
             }}>TOI</span>
           )}
@@ -604,10 +604,10 @@ function MyPositionCard({ me, totalPlayers, countryRank, unranked }) {
         </div>
         <div style={{
           width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-          background: `radial-gradient(60% 60% at 35% 30%, ${light} 0%, ${dark} 70%, #0C211A 100%)`,
+          background: `radial-gradient(60% 60% at 35% 30%, ${light} 0%, ${dark} 70%, #092C25 100%)`,
           border: `1.5px solid ${C.warm}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#0C211A', fontFamily: fontSans, fontWeight: 800, fontSize: 14,
+          color: '#092C25', fontFamily: fontSans, fontWeight: 800, fontSize: 14,
         }}>{initialsOf(me.display_name)}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -617,7 +617,7 @@ function MyPositionCard({ me, totalPlayers, countryRank, unranked }) {
             }}>{me.display_name}</span>
             <span style={{
               padding: '2px 8px', borderRadius: 999,
-              background: C.warm, color: '#0C211A',
+              background: C.warm, color: '#092C25',
               fontSize: 10, fontWeight: 800, letterSpacing: '0.08em',
             }}>TOI</span>
           </div>

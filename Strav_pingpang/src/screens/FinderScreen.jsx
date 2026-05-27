@@ -8,9 +8,11 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
 import { C, fontDisplay, fontSans, kicker, inputStyle } from '../theme';
 import Card from '../components/Card';
+import AddTableSheet from '../components/AddTableSheet';
 import { useSharing } from '../lib/sharing';
 import { useLiveLocation } from '../lib/liveLocation';
 import { FRIEND_POSITIONS } from '../lib/friendsPositions';
+import { listCommunityTables } from '../lib/communityTables';
 
 // Liste des amis (dupliquée ici depuis TopBar pour éviter import circulaire)
 const FRIENDS_FOR_MAP = [
@@ -34,7 +36,7 @@ function friendDivIcon(color, online) {
         box-shadow: 0 3px 8px rgba(0,0,0,0.5);"></div>
       ${online ? `<div style="position: absolute; bottom: -1px; right: -1px;
         width: 12px; height: 12px; border-radius: 50%;
-        background: #3DD16B; border: 2px solid #0C211A;"></div>` : ''}
+        background: #3DD16B; border: 2px solid #092C25;"></div>` : ''}
     </div>`,
     iconSize: [38, 38],
     iconAnchor: [19, 19],
@@ -157,12 +159,24 @@ function MapController({ center, zoom }) {
 const tableIcon = L.divIcon({
   className: 'pp-table-pin',
   html: `<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="8" cy="8" r="7" fill="#EFE5C8" stroke="#0C211A" stroke-width="1.4"/>
-    <circle cx="8" cy="8" r="2.4" fill="#0C211A"/>
+    <circle cx="8" cy="8" r="7" fill="#EFE5C8" stroke="#092C25" stroke-width="1.4"/>
+    <circle cx="8" cy="8" r="2.4" fill="#092C25"/>
   </svg>`,
   iconSize: [16, 16],
   iconAnchor: [8, 8],
   popupAnchor: [0, -8],
+});
+
+// Icone "table communautaire" : anneau mint pour distinguer des tables CSV
+const tableIconCommunity = L.divIcon({
+  className: 'pp-table-pin-community',
+  html: `<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="10" cy="10" r="8.5" fill="#9BC9AE" stroke="#092C25" stroke-width="1.6"/>
+    <circle cx="10" cy="10" r="3" fill="#092C25"/>
+  </svg>`,
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
+  popupAnchor: [0, -10],
 });
 
 // Style commun aux clusters (clubs + tables) — palette de l'app
@@ -176,7 +190,7 @@ function makeClusterIcon(count) {
   return L.divIcon({
     html: `<div style="
       width:${size}px;height:${size}px;border-radius:50%;
-      background:${bg};color:#0C211A;
+      background:${bg};color:#092C25;
       display:flex;align-items:center;justify-content:center;
       font-family:Inter,system-ui,sans-serif;font-weight:800;
       font-size:${size > 50 ? 14 : 13}px;letter-spacing:0.02em;
@@ -243,13 +257,20 @@ function TablesClusterLayer({ tables }) {
       iconCreateFunction: (cluster) => makeClusterIcon(cluster.getChildCount()),
     });
     const markers = tables.map(t => {
-      const m = L.marker([t.lat, t.lon], { icon: tableIcon });
+      const m = L.marker([t.lat, t.lon], { icon: t.community ? tableIconCommunity : tableIcon });
       const namePart = t.name ? `<strong>${t.name}</strong><br>` : '';
       const typePart = t.type ? `${t.type}${t.indoor === 'yes' ? ' &middot; indoor' : ''}<br>` : '';
       const gm = t.gmaps || `https://www.google.com/maps/search/?api=1&query=${t.lat},${t.lon}`;
+      const photoPart = t.community && t.photo
+        ? `<img src="${t.photo}" alt="" style="width:100%;max-width:200px;border-radius:8px;margin:4px 0;display:block" />`
+        : '';
+      const badge = t.community
+        ? `<div style="margin-top:4px;font-size:11px;color:#3b7a55;font-weight:700">● ajoutée par la communauté</div>`
+        : '';
       m.bindPopup(`<div style="font-family:sans-serif;font-size:13px">
-        ${namePart}<strong>${t.nb} table${t.nb > 1 ? 's' : ''}</strong><br>
+        ${namePart}${photoPart}<strong>${t.nb} table${t.nb > 1 ? 's' : ''}</strong><br>
         ${typePart}<a href="${gm}" target="_blank" rel="noopener noreferrer">Ouvrir dans Google Maps</a>
+        ${badge}
       </div>`);
       return m;
     });
@@ -264,6 +285,8 @@ export default function FinderScreen() {
   const [mode, setMode] = useState('clubs'); // 'clubs' | 'tables'
   const [clubs, setClubs] = useState([]);
   const [tables, setTables] = useState([]); // [[lat, lon, n, type, indoor], ...]
+  const [communityTables, setCommunityTables] = useState([]); // tables ajoutées via photo
+  const [addOpen, setAddOpen] = useState(false); // panneau "Ajouter une table"
   const [tablesStatus, setTablesStatus] = useState('');
   const [selectedClub, setSelectedClub] = useState(null);
   const [query, setQuery] = useState('');
@@ -340,16 +363,30 @@ export default function FinderScreen() {
       .catch(() => setTablesStatus('Impossible de charger les tables'));
   }, [mode, tablesLoaded]);
 
+  // Charge les tables communautaires (Supabase) au premier passage en mode 'tables'
+  const [communityLoaded, setCommunityLoaded] = useState(false);
+  useEffect(() => {
+    if (mode !== 'tables' || communityLoaded) return;
+    setCommunityLoaded(true);
+    listCommunityTables().then(setCommunityTables).catch(() => {});
+  }, [mode, communityLoaded]);
+
+  // Toutes les tables (CSV monde + communautaires) pour la carte et l'anti-doublon
+  const allTables = useMemo(
+    () => [...tables, ...communityTables],
+    [tables, communityTables],
+  );
+
   // Tables filtrees par pays (bbox)
   const tablesFiltered = useMemo(() => {
-    if (!selectedCountry) return tables;
+    if (!selectedCountry) return allTables;
     const bbox = COUNTRY_BBOX[selectedCountry];
-    if (!bbox) return tables;
-    return tables.filter(t =>
+    if (!bbox) return allTables;
+    return allTables.filter(t =>
       t.lon >= bbox.lon[0] && t.lon <= bbox.lon[1] &&
       t.lat >= bbox.lat[0] && t.lat <= bbox.lat[1]
     );
-  }, [tables, selectedCountry]);
+  }, [allTables, selectedCountry]);
 
   // Liste des pays distincts presents dans le CSV
   const countries = useMemo(() => {
@@ -479,7 +516,7 @@ export default function FinderScreen() {
           <button onClick={() => setShowFriends(v => !v)} aria-label="Afficher mes amis" style={{
             all: 'unset', cursor: 'pointer',
             width: 42, height: 24, borderRadius: 999,
-            background: showFriends ? '#3DD16B' : 'rgba(184,220,197,0.20)',
+            background: showFriends ? '#3DD16B' : 'rgba(245,246,243,0.20)',
             border: `1px solid ${showFriends ? 'rgba(61,209,107,0.5)' : C.border}`,
             position: 'relative', transition: 'background .2s ease',
             flexShrink: 0,
@@ -636,7 +673,7 @@ export default function FinderScreen() {
           }}>
             {mode === 'clubs'
               ? `${clubsGeoloc.length}/${clubsByCountry.length} clubs localises sur la carte`
-              : (tablesStatus || `${tablesFiltered.length}${tables.length !== tablesFiltered.length ? `/${tables.length}` : ''} tables sur la carte`)}
+              : (tablesStatus || `${tablesFiltered.length}${allTables.length !== tablesFiltered.length ? `/${allTables.length}` : ''} tables sur la carte`)}
           </div>
         </Card>
       </div>
@@ -673,6 +710,24 @@ export default function FinderScreen() {
           placeholder="Chercher un club"
           style={inputStyle}
         />
+      )}
+
+      {mode === 'tables' && (
+        <button
+          onClick={() => setAddOpen(true)}
+          style={{
+            all: 'unset', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            padding: '14px', borderRadius: 12,
+            background: C.mint, color: '#092C25',
+            fontFamily: fontSans, fontWeight: 800, fontSize: 12.5, letterSpacing: '0.1em',
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          AJOUTER UNE TABLE PUBLIQUE
+        </button>
       )}
 
       {countries.length > 0 && (
@@ -763,6 +818,14 @@ export default function FinderScreen() {
         )}
       </div>
       )}
+
+      <AddTableSheet
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        userPos={userPos}
+        existingTables={allTables}
+        onAdded={(row) => setCommunityTables(prev => [row, ...prev])}
+      />
     </div>
   );
 }

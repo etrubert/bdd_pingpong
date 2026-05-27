@@ -12,7 +12,7 @@ import { useUI } from './uiContext';
 import { useLoginStreak, currentSeason, daysUntilSeasonEnd } from '../lib/loginStreak';
 import { buildStreakBoard, STREAK_REWARDS } from '../lib/streakBoard';
 
-const ACCENT = { gold: C.warm, silver: 'rgba(184,220,197,0.85)', bronze: '#D9A06B' };
+const ACCENT = { gold: C.streak, silver: 'rgba(245,246,243,0.65)', bronze: '#D9A06B' };
 
 // Icone SVG inline par type de récompense, suffisamment générique pour passer
 // dans tous les navigateurs (pas de dépendance webfont supplémentaire).
@@ -44,7 +44,7 @@ function RewardIcon({ kind, color }) {
 }
 
 function RewardRow({ reward, unlocked }) {
-  const color = ACCENT[reward.color] || C.warm;
+  const color = ACCENT[reward.color] || C.streak;
   const { showToast } = useUI();
   return (
     <div style={{
@@ -65,7 +65,7 @@ function RewardRow({ reward, unlocked }) {
         <div style={{
           position: 'absolute', bottom: -3, right: -3,
           width: 18, height: 18, borderRadius: '50%',
-          background: color, color: '#0C211A',
+          background: color, color: '#092C25',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontFamily: fontSans, fontWeight: 800, fontSize: 10,
         }}>{reward.rank}</div>
@@ -87,7 +87,7 @@ function RewardRow({ reward, unlocked }) {
           style={{
             all: 'unset', cursor: 'pointer', flexShrink: 0,
             padding: '6px 10px', borderRadius: 8,
-            background: color, color: '#0C211A',
+            background: color, color: '#092C25',
             fontFamily: fontSans, fontWeight: 800, fontSize: 10.5, letterSpacing: '0.04em',
           }}
         >{reward.code}</button>
@@ -104,11 +104,11 @@ function StreakSheet({ board, myRank }) {
       {/* Bandeau saison */}
       <div style={{
         padding: '12px 14px', borderRadius: 14, marginBottom: 16,
-        background: 'rgba(232,201,155,0.10)', border: '1px solid rgba(232,201,155,0.35)',
+        background: C.streakSoft, border: '1px solid rgba(230,73,73,0.40)',
       }}>
-        <div style={{ ...kicker, color: C.warm, fontSize: 10.5 }}>SAISON {season.label}</div>
+        <div style={{ ...kicker, color: C.streak, fontSize: 10.5 }}>SAISON {season.label}</div>
         <div style={{ fontSize: 13.5, color: C.ink, marginTop: 4 }}>
-          Plus que <strong style={{ color: C.warm }}>{daysLeft} jours</strong> avant la remise des codes promo aux 3 meilleurs streaks.
+          Plus que <strong style={{ color: C.streak }}>{daysLeft} jours</strong> avant la remise des codes promo aux 3 meilleurs streaks.
         </div>
       </div>
 
@@ -134,13 +134,13 @@ function StreakSheet({ board, myRank }) {
             <div key={p.id} style={{
               display: 'flex', alignItems: 'center', gap: 12,
               padding: '11px 14px', borderRadius: 12,
-              background: p.isMe ? 'rgba(232,201,155,0.10)' : 'rgba(8,22,17,0.45)',
-              border: `1px solid ${p.isMe ? 'rgba(232,201,155,0.40)' : C.border}`,
+              background: p.isMe ? C.streakSoft : 'rgba(8,22,17,0.45)',
+              border: `1px solid ${p.isMe ? C.streakBd : C.border}`,
             }}>
               <div style={{
                 width: 24, textAlign: 'center',
                 fontFamily: fontDisplay, fontWeight: 800, fontSize: 18,
-                color: isPodium ? C.warm : C.inkDim,
+                color: isPodium ? C.streak : C.inkDim,
               }}>{p.rank}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
@@ -150,14 +150,14 @@ function StreakSheet({ board, myRank }) {
                   <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
                   {p.isMe && <span style={{
                     flexShrink: 0, padding: '2px 8px', borderRadius: 999,
-                    background: C.warm, color: '#0C211A', fontSize: 10, fontWeight: 800,
+                    background: C.streak, color: '#092C25', fontSize: 10, fontWeight: 800,
                   }}>TOI</span>}
                 </div>
               </div>
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 5,
                 fontFamily: fontSans, fontWeight: 800, fontSize: 15,
-                color: isPodium ? C.warm : C.ink,
+                color: isPodium ? C.streak : C.ink,
               }}>🔥 {p.streak}</div>
             </div>
           );
@@ -187,7 +187,7 @@ function StreakPodium({ players }) {
 function StreakPodiumSpot({ p, rank, size, crown }) {
   if (!p) return <div />;
   const isGold = rank === 1;
-  const accent = isGold ? C.warm : 'rgba(184,220,197,0.55)';
+  const accent = isGold ? C.streak : 'rgba(245,246,243,0.55)';
   const initials = (p.name || '?').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
@@ -195,18 +195,18 @@ function StreakPodiumSpot({ p, rank, size, crown }) {
       <div style={{ position: 'relative' }}>
         <div style={{
           width: size, height: size, borderRadius: '50%',
-          background: 'radial-gradient(60% 60% at 35% 30%, #2A4D3E 0%, #143226 70%, #0C211A 100%)',
+          background: 'radial-gradient(60% 60% at 35% 30%, #2A4D3E 0%, #124638 70%, #092C25 100%)',
           border: `2px solid ${accent}`,
-          boxShadow: isGold ? '0 0 26px rgba(232,201,155,0.40)' : 'none',
+          boxShadow: isGold ? '0 0 26px rgba(230,73,73,0.40)' : 'none',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: C.ink, fontFamily: fontSans, fontWeight: 800, fontSize: size * 0.30,
         }}>{initials}</div>
         <div style={{
           position: 'absolute', bottom: -4, right: -4,
           width: 20, height: 20, borderRadius: '50%',
-          background: isGold ? C.warm : C.card,
+          background: isGold ? C.streak : C.card,
           border: isGold ? 'none' : `1px solid ${C.border}`,
-          color: isGold ? '#0C211A' : C.ink,
+          color: isGold ? '#092C25' : C.ink,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontFamily: fontSans, fontWeight: 800, fontSize: 10,
         }}>{rank}</div>
@@ -219,10 +219,10 @@ function StreakPodiumSpot({ p, rank, size, crown }) {
         <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
         {p.isMe && <span style={{
           flexShrink: 0, padding: '1px 5px', borderRadius: 999,
-          background: C.warm, color: '#0C211A', fontSize: 8, fontWeight: 800,
+          background: C.streak, color: '#092C25', fontSize: 8, fontWeight: 800,
         }}>TOI</span>}
       </div>
-      <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: isGold ? 22 : 18, color: isGold ? C.warm : C.ink }}>
+      <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: isGold ? 22 : 18, color: isGold ? C.streak : C.ink }}>
         🔥 {p.streak}
       </div>
     </div>
@@ -245,15 +245,15 @@ export default function StreakCard({ displayName }) {
     >
       <div style={{
         padding: 18, borderRadius: 22,
-        background: 'linear-gradient(180deg, rgba(232,201,155,0.10) 0%, rgba(20,50,38,0) 70%), linear-gradient(180deg, #193E2F 0%, #143226 100%)',
-        border: '1px solid rgba(232,201,155,0.35)',
+        background: 'linear-gradient(180deg, rgba(230,73,73,0.10) 0%, rgba(20,50,38,0) 70%), linear-gradient(180deg, #0E3A30 0%, #124638 100%)',
+        border: '1px solid rgba(230,73,73,0.40)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ ...kicker, color: C.warm }}>STREAK DE CONNEXION</div>
+          <div style={{ ...kicker, color: C.streak }}>STREAK DE CONNEXION</div>
           <span style={{
             fontFamily: fontSans, fontWeight: 800, fontSize: 10,
-            color: C.warm, background: 'rgba(232,201,155,0.16)',
-            border: '1px solid rgba(232,201,155,0.40)',
+            color: C.streak, background: C.streakSoft,
+            border: '1px solid rgba(230,73,73,0.40)',
             padding: '3px 9px', borderRadius: 999, letterSpacing: '0.06em',
           }}>{myRank != null ? `#${myRank}` : '—'}</span>
         </div>
@@ -270,7 +270,7 @@ export default function StreakCard({ displayName }) {
 
         <div style={{
           marginTop: 12, fontFamily: fontSans, fontSize: 12.5, lineHeight: 1.45,
-          color: inPodium ? C.warm : C.inkDim,
+          color: inPodium ? C.streak : C.inkDim,
         }}>
           {inPodium
             ? `Tu es sur le podium ! Garde ta place : codes promo dans ${daysLeft} j.`

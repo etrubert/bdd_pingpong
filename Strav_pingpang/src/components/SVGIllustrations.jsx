@@ -4,8 +4,8 @@ export function PaddleSVG() {
       <defs>
         <radialGradient id="pg" cx="50%" cy="40%" r="55%">
           <stop offset="0%" stopColor="#2a5b48" />
-          <stop offset="60%" stopColor="#143226" />
-          <stop offset="100%" stopColor="#0C211A" />
+          <stop offset="60%" stopColor="#124638" />
+          <stop offset="100%" stopColor="#092C25" />
         </radialGradient>
         <pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse">
           <circle cx="3" cy="3" r="0.7" fill="#000" opacity="0.3" />

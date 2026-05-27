@@ -18,8 +18,8 @@ import { selectRows } from '../lib/supabaseClient';
 const tableIcon = L.divIcon({
   className: 'pp-table-pin',
   html: `<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="8" cy="8" r="7" fill="#EFE5C8" stroke="#0C211A" stroke-width="1.4"/>
-    <circle cx="8" cy="8" r="2.4" fill="#0C211A"/>
+    <circle cx="8" cy="8" r="7" fill="#EFE5C8" stroke="#092C25" stroke-width="1.4"/>
+    <circle cx="8" cy="8" r="2.4" fill="#092C25"/>
   </svg>`,
   iconSize: [16, 16],
   iconAnchor: [8, 8],
@@ -65,7 +65,7 @@ function TableClusterLayer({ tables, onPick }) {
         return L.divIcon({
           html: `<div style="
             width:${size}px;height:${size}px;border-radius:50%;
-            background:${bg};color:#0C211A;
+            background:${bg};color:#092C25;
             display:flex;align-items:center;justify-content:center;
             font-family:Inter,system-ui,sans-serif;font-weight:800;
             font-size:${size > 50 ? 14 : 13}px;
@@ -250,7 +250,7 @@ function FriendAvatar({ color, online, size = 56 }) {
         <div style={{
           position: 'absolute', right: 1, bottom: 1,
           width: 12, height: 12, borderRadius: '50%',
-          background: '#3DD16B', border: '2px solid #143226',
+          background: '#3DD16B', border: '2px solid #124638',
         }} />
       )}
     </div>
@@ -601,7 +601,7 @@ function ChallengeView({ friends: friendsProp }) {
       {friends.length === 0 && (
         <div style={{
           padding: '14px 16px', borderRadius: 12,
-          background: 'rgba(184,220,197,0.06)', border: `1px solid ${C.border}`,
+          background: 'rgba(245,246,243,0.06)', border: `1px solid ${C.border}`,
           fontFamily: fontSans, fontSize: 13, color: C.inkDim, lineHeight: 1.5,
         }}>
           Tu n'as pas encore d'amis. Utilise la recherche pour trouver des joueurs.
@@ -1123,7 +1123,7 @@ function NewChallengeView({ opponent }) {
                 padding: '12px 4px', borderRadius: 12,
                 border: `1px solid ${active ? C.warm : C.border}`,
                 background: active ? C.warm : 'rgba(8,22,17,0.45)',
-                color: active ? '#0C211A' : C.ink,
+                color: active ? '#092C25' : C.ink,
                 fontFamily: fontSans,
               }}>
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.10em', opacity: 0.8 }}>{d.label}</div>
@@ -1146,7 +1146,7 @@ function NewChallengeView({ opponent }) {
                 padding: '8px 16px', borderRadius: 999,
                 border: `1px solid ${active ? C.warm : C.border}`,
                 background: active ? C.warm : 'rgba(8,22,17,0.45)',
-                color: active ? '#0C211A' : C.ink,
+                color: active ? '#092C25' : C.ink,
                 fontFamily: fontSans, fontWeight: 700, fontSize: 13,
               }}>{h}</button>
             );
@@ -1244,7 +1244,7 @@ function NewChallengeView({ opponent }) {
       <button onClick={submit} style={{
         all: 'unset', cursor: 'pointer', textAlign: 'center',
         padding: '17px', borderRadius: 14,
-        background: C.warm, color: '#0C211A',
+        background: C.warm, color: '#092C25',
         fontFamily: fontSans, fontWeight: 800, fontSize: 14,
         letterSpacing: '0.18em',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
@@ -1386,7 +1386,7 @@ function ChatView({ contact, onBack, backLabel = 'Messages' }) {
               padding: '10px 14px',
               borderRadius: 16,
               background: mine ? C.warm : C.card,
-              color: mine ? '#0C211A' : C.ink,
+              color: mine ? '#092C25' : C.ink,
               border: mine ? 'none' : `1px solid ${C.border}`,
               borderBottomRightRadius: mine ? 4 : 16,
               borderBottomLeftRadius: mine ? 16 : 4,
@@ -1396,7 +1396,7 @@ function ChatView({ contact, onBack, backLabel = 'Messages' }) {
                 <div style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 4,
                   fontSize: 11, fontWeight: 800, letterSpacing: '0.14em',
-                  color: mine ? '#0C211A' : C.warm,
+                  color: mine ? '#092C25' : C.warm,
                 }}><SwordsIcon size={12} />DEFI</div>
               )}
               <div>{m.text}</div>
@@ -1431,7 +1431,7 @@ function ChatView({ contact, onBack, backLabel = 'Messages' }) {
           all: 'unset', cursor: draft.trim() ? 'pointer' : 'not-allowed',
           width: 38, height: 38, borderRadius: '50%',
           background: draft.trim() ? C.warm : 'rgba(232,201,155,0.25)',
-          color: '#0C211A',
+          color: '#092C25',
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -1488,13 +1488,13 @@ function GroupAvatars({ colors, extra }) {
         position: 'absolute', bottom: 0, right: 0,
         width: 40, height: 40, borderRadius: '50%',
         background: `radial-gradient(60% 60% at 35% 30%, ${b[0]} 0%, ${b[1]} 60%, ${b[2]} 100%)`,
-        border: '2px solid #143226',
+        border: '2px solid #124638',
       }} />
       {extra > 0 && (
         <div style={{
           position: 'absolute', top: -2, right: -4,
           minWidth: 22, height: 18, padding: '0 5px',
-          borderRadius: 999, background: C.warm, color: '#0C211A',
+          borderRadius: 999, background: C.warm, color: '#092C25',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontFamily: fontSans, fontWeight: 800, fontSize: 10,
         }}>+{extra}</div>
@@ -1800,7 +1800,7 @@ function IncomingChallengeCard({ c, onAccept, onDecline, onModify }) {
       {/* NOUVEAU badge */}
       <div style={{
         position: 'absolute', top: 0, right: 0,
-        background: C.warm, color: '#0C211A',
+        background: C.warm, color: '#092C25',
         padding: '5px 12px', borderRadius: '0 18px 0 14px',
         fontFamily: fontSans, fontWeight: 800, fontSize: 11, letterSpacing: '0.08em',
       }}>NOUVEAU · {c.when}</div>
@@ -1855,14 +1855,14 @@ function IncomingChallengeCard({ c, onAccept, onDecline, onModify }) {
         <button onClick={accept} style={{
           all: 'unset', cursor: 'pointer', flex: 2, textAlign: 'center',
           padding: '12px', borderRadius: 12,
-          background: '#3DD16B', color: '#0C211A',
+          background: '#3DD16B', color: '#092C25',
           fontFamily: fontSans, fontWeight: 800, fontSize: 14,
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}>{Icon.check(16)} Accepter</button>
         <button onClick={modify} style={{
           all: 'unset', cursor: 'pointer', flex: 1.4, textAlign: 'center',
           padding: '12px', borderRadius: 12,
-          background: 'rgba(242,247,242,0.10)', color: C.ink,
+          background: 'rgba(245,246,243,0.10)', color: C.ink,
           border: `1px solid ${C.borderHi}`,
           fontFamily: fontSans, fontWeight: 700, fontSize: 14,
         }}>Modifier</button>
@@ -1926,9 +1926,9 @@ function OutgoingChallengeRow({ c, onAcceptCounter, onProposeNew, onDiscuss }) {
   const isAccepted = c.status === 'accepted';
 
   const cornerBadge = (() => {
-    if (isAccepted) return { label: 'ACCEPTÉ ✓', bg: 'rgba(61,209,107,0.92)', color: '#0C211A' };
-    if (isRefused) return { label: 'REFUSÉ',     bg: 'rgba(232,155,139,0.92)', color: '#0C211A' };
-    if (isCounter) return { label: 'CONTRE-PROPOSITION', bg: C.warm, color: '#0C211A' };
+    if (isAccepted) return { label: 'ACCEPTÉ ✓', bg: 'rgba(61,209,107,0.92)', color: '#092C25' };
+    if (isRefused) return { label: 'REFUSÉ',     bg: 'rgba(232,155,139,0.92)', color: '#092C25' };
+    if (isCounter) return { label: 'CONTRE-PROPOSITION', bg: C.warm, color: '#092C25' };
     return null;
   })();
 
@@ -1996,7 +1996,7 @@ function OutgoingChallengeRow({ c, onAcceptCounter, onProposeNew, onDiscuss }) {
         {c.status === 'sent' && (
           <StatusPill
             color={C.inkDim}
-            bg="rgba(184,220,197,0.06)"
+            bg="rgba(245,246,243,0.06)"
             border={C.border}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -2082,7 +2082,7 @@ function OutgoingChallengeRow({ c, onAcceptCounter, onProposeNew, onDiscuss }) {
               <button onClick={onAcceptCounter} style={{
                 all: 'unset', cursor: 'pointer', flex: 1.4, textAlign: 'center',
                 padding: '11px', borderRadius: 12,
-                background: C.warm, color: '#0C211A',
+                background: C.warm, color: '#092C25',
                 fontFamily: fontSans, fontWeight: 800, fontSize: 13,
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}>{Icon.check(14)} Accepter {c.counter.them.split('·')[0].trim()}</button>
@@ -2224,7 +2224,7 @@ function AcceptedView({ challenge: c }) {
           }}>
             <div style={{
               width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-              background: 'rgba(184,220,197,0.10)', border: `1px solid ${C.border}`,
+              background: 'rgba(245,246,243,0.10)', border: `1px solid ${C.border}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: C.mint,
             }}><ChatIcon size={18} /></div>
@@ -2240,7 +2240,7 @@ function AcceptedView({ challenge: c }) {
       <button onClick={onSeeMatches} style={{
         all: 'unset', cursor: 'pointer', textAlign: 'center',
         padding: '17px', borderRadius: 14,
-        background: C.warm, color: '#0C211A',
+        background: C.warm, color: '#092C25',
         fontFamily: fontSans, fontWeight: 800, fontSize: 14, letterSpacing: '0.18em',
       }}>VOIR DANS MES MATCHS</button>
     </div>
@@ -2255,7 +2255,7 @@ function RefuseModalView({ challenge: c, onCancel, onConfirm }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 18, paddingTop: 40 }}>
       <div style={{
-        width: 44, height: 4, borderRadius: 99, background: 'rgba(242,247,242,0.25)', margin: '0 auto 12px',
+        width: 44, height: 4, borderRadius: 99, background: 'rgba(245,246,243,0.25)', margin: '0 auto 12px',
       }} />
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
@@ -2327,7 +2327,7 @@ function AcceptedChallengeCard({ c, ageMin = 0, onAgenda, onMessage, onMore }) {
     }}>
       <div style={{
         position: 'absolute', top: 0, right: 0,
-        background: C.warm, color: '#0C211A',
+        background: C.warm, color: '#092C25',
         padding: '5px 12px', borderRadius: '0 18px 0 14px',
         fontFamily: fontSans, fontWeight: 800, fontSize: 11, letterSpacing: '0.08em',
       }}>ACCEPTÉ · {ageLabel}</div>
@@ -2360,21 +2360,21 @@ function AcceptedChallengeCard({ c, ageMin = 0, onAgenda, onMessage, onMore }) {
         <button onClick={onAgenda} style={{
           all: 'unset', cursor: 'pointer', flex: 1, textAlign: 'center',
           padding: '11px', borderRadius: 12,
-          background: 'rgba(242,247,242,0.06)', border: `1px solid ${C.borderHi}`,
+          background: 'rgba(245,246,243,0.06)', border: `1px solid ${C.borderHi}`,
           color: C.ink, fontFamily: fontSans, fontWeight: 700, fontSize: 13,
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}>{Icon.calendar(14)} Agenda</button>
         <button onClick={onMessage} style={{
           all: 'unset', cursor: 'pointer', flex: 1, textAlign: 'center',
           padding: '11px', borderRadius: 12,
-          background: 'rgba(242,247,242,0.06)', border: `1px solid ${C.borderHi}`,
+          background: 'rgba(245,246,243,0.06)', border: `1px solid ${C.borderHi}`,
           color: C.ink, fontFamily: fontSans, fontWeight: 700, fontSize: 13,
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}><ChatIcon size={14} /> Message</button>
         <button onClick={onMore} aria-label="Plus d'options" style={{
           all: 'unset', cursor: 'pointer',
           width: 44, padding: '11px 0', textAlign: 'center', borderRadius: 12,
-          background: 'rgba(242,247,242,0.06)', border: `1px solid ${C.borderHi}`,
+          background: 'rgba(245,246,243,0.06)', border: `1px solid ${C.borderHi}`,
           color: C.inkDim, fontFamily: fontSans, fontWeight: 800, fontSize: 18,
           lineHeight: 1,
         }}>⋯</button>
@@ -2507,7 +2507,7 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
           <span style={{
             fontFamily: fontSans, fontWeight: 800, fontSize: 11,
             color: aTraiterEmpty ? C.inkDim : C.warm,
-            background: aTraiterEmpty ? 'rgba(184,220,197,0.06)' : 'rgba(232,201,155,0.14)',
+            background: aTraiterEmpty ? 'rgba(245,246,243,0.06)' : 'rgba(232,201,155,0.14)',
             border: `1px solid ${aTraiterEmpty ? C.border : 'rgba(232,201,155,0.32)'}`,
             padding: '2px 8px', borderRadius: 999, letterSpacing: '0.04em',
           }}>{incoming.length}</span>
@@ -2811,7 +2811,7 @@ export function MessagesView({ embedded = false, initialTab = 'tous', hideTabs =
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,
           padding: '10px 14px', borderRadius: 12,
-          background: meOnline ? 'rgba(61,209,107,0.08)' : 'rgba(184,220,197,0.04)',
+          background: meOnline ? 'rgba(61,209,107,0.08)' : 'rgba(245,246,243,0.04)',
           border: `1px solid ${meOnline ? 'rgba(61,209,107,0.30)' : C.border}`,
         }}>
           <div style={{
@@ -2834,7 +2834,7 @@ export function MessagesView({ embedded = false, initialTab = 'tous', hideTabs =
             style={{
               all: 'unset', cursor: 'pointer',
               width: 42, height: 24, borderRadius: 999,
-              background: meOnline ? '#3DD16B' : 'rgba(184,220,197,0.20)',
+              background: meOnline ? '#3DD16B' : 'rgba(245,246,243,0.20)',
               border: `1px solid ${meOnline ? 'rgba(61,209,107,0.5)' : C.border}`,
               position: 'relative', transition: 'background .2s ease',
               flexShrink: 0,
@@ -2877,9 +2877,9 @@ export function MessagesView({ embedded = false, initialTab = 'tous', hideTabs =
                       position: 'absolute', top: -2, right: -2,
                       width: 18, height: 18, borderRadius: 4,
                       background: C.warm,
-                      border: '2px solid #143226',
+                      border: '2px solid #124638',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: '#0C211A', fontSize: 14, fontWeight: 800, lineHeight: 1,
+                      color: '#092C25', fontSize: 14, fontWeight: 800, lineHeight: 1,
                     }}>+</div>
                   )}
                 </div>
@@ -2977,7 +2977,7 @@ function ConversationRow({ c }) {
               position: 'absolute', bottom: 0, right: 0,
               width: 36, height: 36, borderRadius: '50%',
               background: `radial-gradient(60% 60% at 35% 30%, ${c.colorB[0]} 0%, ${c.colorB[1]} 60%, ${c.colorB[2]} 100%)`,
-              border: '2px solid #143226',
+              border: '2px solid #124638',
             }} />
           </>
         ) : (
@@ -2991,7 +2991,7 @@ function ConversationRow({ c }) {
               <div style={{
                 position: 'absolute', right: 1, bottom: 1,
                 width: 12, height: 12, borderRadius: '50%',
-                background: '#3DD16B', border: '2px solid #143226',
+                background: '#3DD16B', border: '2px solid #124638',
               }} />
             )}
           </>
@@ -3007,7 +3007,7 @@ function ConversationRow({ c }) {
           {c.isDemande && (
             <span style={{
               fontFamily: fontSans, fontWeight: 800, fontSize: 10,
-              color: C.inkDim, background: 'rgba(184,220,197,0.10)',
+              color: C.inkDim, background: 'rgba(245,246,243,0.10)',
               border: `1px solid ${C.border}`,
               padding: '2px 8px', borderRadius: 999, letterSpacing: '0.14em',
             }}>DEMANDE</span>
@@ -3146,12 +3146,12 @@ function ProfileSheet() {
             background: 'radial-gradient(60% 60% at 35% 30%, #d6b890 0%, #6b4a2e 60%, #1c100a 100%)',
             border: `2px solid ${C.borderHi}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: fontSans, fontWeight: 800, fontSize: 22, color: '#0C211A',
+            fontFamily: fontSans, fontWeight: 800, fontSize: 22, color: '#092C25',
           }}>{initials}</div>
           <div style={{
             position: 'absolute', bottom: 2, right: 2,
             width: 14, height: 14, borderRadius: '50%',
-            background: '#3DD16B', border: '2px solid #143226',
+            background: '#3DD16B', border: '2px solid #124638',
           }} />
         </div>
         <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 26, letterSpacing: '0.04em' }}>
@@ -3336,7 +3336,7 @@ function ProfileTabBtn({ icon, label, count, active, onClick }) {
           position: 'absolute', top: 6, right: 8,
           minWidth: 18, height: 18, borderRadius: 999,
           padding: '0 5px',
-          background: C.warm, color: '#0C211A',
+          background: C.warm, color: '#092C25',
           fontFamily: fontSans, fontSize: 10.5, fontWeight: 800,
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         }}>{count}</span>
@@ -3467,9 +3467,15 @@ export default function TopBar({ topInset = 0 }) {
       }}>
       <div />
       <div style={{
-        fontFamily: fontDisplay, fontWeight: 800, letterSpacing: '0.05em',
-        fontSize: 18, color: C.ink, whiteSpace: 'nowrap', textAlign: 'center',
-      }}>PING PANG PARIS</div>
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        height: '100%',
+      }}>
+        <img
+          src="/logos/PPP_Logo1_White.svg"
+          alt="Ping Pang Paris"
+          style={{ height: 22, width: 'auto', display: 'block' }}
+        />
+      </div>
       <button onClick={() => openSheet({
         title: userName.toUpperCase(),
         body: <ProfileSheet />,
