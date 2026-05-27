@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { C, fontDisplay, fontSans, kicker, iconBtn, btnPrimary, inputStyle } from '../theme';
 import { Icon } from '../icons';
 import { useUI } from '../components/uiContext';
 import Card from '../components/Card';
-import { useMatches } from '../lib/matches';
+import { useMatches, useMatchStats } from '../lib/matches';
 
 // Donnees evolution ELO (Jul -> Auj.)
 const ELO_HISTORY = [
@@ -306,18 +306,41 @@ function MatchDetailSheet({ m }) {
 
 function RecordMatchSheet() {
   const [opp, setOpp] = useState('');
-  const [score, setScore] = useState('11 - 0');
+  const [score, setScore] = useState('3 - 0');
+  const [loc, setLoc] = useState('');
   const { showToast, closeSheet } = useUI();
+  const [, , addMatch] = useMatches();
+
+  const save = () => {
+    const name = (opp || 'Adversaire').trim();
+    const initials = name.split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'AD';
+    const [a, b] = score.split(/[-:]/).map(s => parseInt(s.trim(), 10));
+    const setsA = Number.isFinite(a) ? a : 0;
+    const setsB = Number.isFinite(b) ? b : 0;
+    const win = setsA >= setsB;
+    // Écrit dans le store local partagé → profil, HomeScreen et cette liste
+    // se mettent à jour immédiatement (même source via useMatchStats/useMatches).
+    addMatch({
+      name: name.toUpperCase(), initials,
+      when: "À l'instant", where: loc.trim() || 'Match libre', format: 'BO5',
+      score: `${setsA}-${setsB}`,
+      win, elo: win ? 12 : -8,
+      color: ['#a8c2db', '#3b5a7a', '#0d1a2a'],
+    });
+    closeSheet();
+    showToast(`Match enregistré : ${name} ${setsA}-${setsB}`);
+  };
+
   return (
     <div>
-      <div style={{ ...kicker, marginBottom: 8 }}>OPPONENT</div>
-      <input value={opp} onChange={e => setOpp(e.target.value)} placeholder="e.g. Marc-Andre" style={inputStyle} />
-      <div style={{ ...kicker, marginTop: 16, marginBottom: 8 }}>SCORE</div>
-      <input value={score} onChange={e => setScore(e.target.value)} style={inputStyle} />
-      <div style={{ ...kicker, marginTop: 16, marginBottom: 8 }}>LOCATION</div>
-      <input placeholder="e.g. Canal St-Martin" style={inputStyle} />
-      <button onClick={() => { closeSheet(); showToast(`Match logged: ${opp || 'opponent'} ${score}`); }}
-        style={{ ...btnPrimary, marginTop: 20, width: '100%' }}>SAVE MATCH</button>
+      <div style={{ ...kicker, marginBottom: 8 }}>ADVERSAIRE</div>
+      <input value={opp} onChange={e => setOpp(e.target.value)} placeholder="ex. Marc-André" style={inputStyle} />
+      <div style={{ ...kicker, marginTop: 16, marginBottom: 8 }}>SCORE (SETS)</div>
+      <input value={score} onChange={e => setScore(e.target.value)} placeholder="3 - 1" style={inputStyle} />
+      <div style={{ ...kicker, marginTop: 16, marginBottom: 8 }}>LIEU</div>
+      <input value={loc} onChange={e => setLoc(e.target.value)} placeholder="ex. Canal St-Martin" style={inputStyle} />
+      <button onClick={save}
+        style={{ ...btnPrimary, marginTop: 20, width: '100%' }}>ENREGISTRER LE MATCH</button>
     </div>
   );
 }
@@ -325,15 +348,8 @@ function RecordMatchSheet() {
 export default function MatchesScreen() {
   const { showToast, openSheet } = useUI();
   const [period, setPeriod] = useState('saison');
-  const [matches] = useMatches();
-
-  // Stats varient legerement selon la periode (mock)
-  const stats = useMemo(() => {
-    if (period === 'mois')    return { wins: 12, winRate: 71, avg: 10.6 };
-    if (period === 'semaine') return { wins: 4,  winRate: 80, avg: 10.8 };
-    if (period === 'all')     return { wins: 87, winRate: 65, avg: 10.2 };
-    return { wins: 42, winRate: 68, avg: 10.4 };
-  }, [period]);
+  // Stats réelles dérivées du store local partagé (même source que le profil).
+  const { played, won, winRate, streak, bestStreak, matches } = useMatchStats();
 
   return (
     <div style={{ padding: '24px 18px 130px', display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -347,13 +363,13 @@ export default function MatchesScreen() {
 
       {/* Stats tiles */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-        <StatTile value={stats.wins} label={'TOTAL\nWINS'} />
-        <StatTile value={`${stats.winRate}%`} label="WIN RATE" />
-        <StatTile value={stats.avg} label={'AVG\nSCORE'} />
+        <StatTile value={won} label={'TOTAL\nWINS'} />
+        <StatTile value={winRate != null ? `${winRate}%` : '—'} label="WIN RATE" />
+        <StatTile value={played} label={'MATCHS\nJOUÉS'} />
       </div>
 
       {/* Streak */}
-      <StreakBanner current={5} best={8} since="12 nov" />
+      <StreakBanner current={streak} best={bestStreak} since="cette saison" />
 
       {/* Evolution ELO */}
       <div>

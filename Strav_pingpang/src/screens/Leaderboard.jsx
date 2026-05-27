@@ -4,7 +4,7 @@
 // dorée, stats du joueur en bas. Donnees vues `world_ranking` + Finder.
 // =====================================================================
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { C, fontDisplay, fontSans, kicker } from '../theme';
 import { supabase } from '../lib/supabase';
 import { useWorldRanking, listClubs } from '../lib/worldPlayers';
@@ -154,6 +154,102 @@ function ClubSelector({ clubs, selected, onSelect }) {
   );
 }
 
+// Sélecteur de classement (menu déroulant). Remplace la rangée de pills :
+// un bouton qui affiche le choix courant + un panneau déroulant groupé.
+function ScopeDropdown({ filter, onSelect }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const current = FILTERS.find(f => f.value === filter) || FILTERS[0];
+
+  // Fermeture au clic extérieur / touche Échap
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+
+  // Groupes : pays vs perso (région / club)
+  const groups = [
+    { title: 'GÉNÉRAL', items: FILTERS.filter(f => f.value === 'world') },
+    { title: 'PAYS',    items: FILTERS.filter(f => f.country) },
+    { title: 'PERSO',   items: FILTERS.filter(f => f.value === 'region' || f.value === 'club') },
+  ];
+
+  return (
+    <div ref={ref} style={{ position: 'relative', zIndex: 30 }}>
+      {/* Bouton déclencheur */}
+      <button onClick={() => setOpen(o => !o)} style={{
+        all: 'unset', cursor: 'pointer', boxSizing: 'border-box', width: '100%',
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '13px 16px', borderRadius: 14,
+        background: 'rgba(8,22,17,0.55)',
+        border: `1px solid ${open ? C.warm : C.borderHi}`,
+        transition: 'border-color .15s ease',
+      }}>
+        <span style={{
+          width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(232,201,155,0.16)', border: `1px solid ${C.streakBd || 'rgba(232,201,155,0.4)'}`,
+          fontSize: 17,
+        }}>{current.flag}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ ...kicker, color: C.inkDim, fontSize: 9.5 }}>CLASSEMENT</div>
+          <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 19, color: C.ink, letterSpacing: '0.02em', lineHeight: 1.1, marginTop: 2 }}>
+            {current.label}
+          </div>
+        </div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={C.warm} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+          style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s ease', flexShrink: 0 }}>
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+
+      {/* Panneau déroulant */}
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 8px)', left: 0, right: 0,
+          background: C.card, border: `1px solid ${C.borderHi}`, borderRadius: 16,
+          boxShadow: '0 16px 40px rgba(0,0,0,0.45)', overflow: 'hidden',
+          padding: '6px',
+        }}>
+          {groups.map((g, gi) => g.items.length > 0 && (
+            <div key={g.title}>
+              <div style={{ ...kicker, color: C.inkFaint, fontSize: 9.5, padding: '10px 12px 6px' }}>{g.title}</div>
+              {g.items.map(f => {
+                const active = f.value === filter;
+                return (
+                  <button key={f.value} onClick={() => { onSelect(f.value); setOpen(false); }} style={{
+                    all: 'unset', cursor: 'pointer', boxSizing: 'border-box', width: '100%',
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '11px 12px', borderRadius: 10,
+                    background: active ? 'rgba(232,201,155,0.14)' : 'transparent',
+                  }}>
+                    <span style={{ fontSize: 18, width: 22, textAlign: 'center' }}>{f.flag}</span>
+                    <span style={{ flex: 1, fontFamily: fontSans, fontWeight: active ? 800 : 600, fontSize: 14.5, color: active ? C.warm : C.ink }}>
+                      {f.label}
+                    </span>
+                    {active && (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.warm} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                    )}
+                  </button>
+                );
+              })}
+              {gi < groups.length - 1 && g.items.length > 0 && (
+                <div style={{ height: 1, background: C.border, margin: '6px 8px' }} />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Leaderboard({ currentUserId }) {
   const [filter, setFilter] = useState('world');
   const [expanded, setExpanded] = useState(false);
@@ -266,7 +362,7 @@ export default function Leaderboard({ currentUserId }) {
 
   return (
     <div style={{
-      padding: '20px 18px 40px',
+      padding: '20px 18px 130px',
       display: 'flex', flexDirection: 'column', gap: 22,
       color: C.ink, fontFamily: fontSans,
     }}>
@@ -282,29 +378,8 @@ export default function Leaderboard({ currentUserId }) {
         </div>
       </div>
 
-      {/* --- Filter pills --- */}
-      <div style={{
-        display: 'flex', gap: 8, overflowX: 'auto',
-        paddingBottom: 6, marginLeft: -4, paddingLeft: 4,
-        scrollbarWidth: 'none',
-      }}>
-        {FILTERS.map(f => {
-          const active = filter === f.value;
-          return (
-            <button key={f.value} onClick={() => setFilter(f.value)} style={{
-              all: 'unset', cursor: 'pointer', flexShrink: 0,
-              padding: '9px 16px', borderRadius: 999,
-              background: active ? C.warm : 'rgba(8,22,17,0.55)',
-              border: active ? `1px solid ${C.warm}` : `1px solid ${C.border}`,
-              color: active ? '#092C25' : C.ink,
-              fontFamily: fontSans, fontWeight: 700, fontSize: 13,
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-            }}>
-              <span>{f.flag}</span><span>{f.label}</span>
-            </button>
-          );
-        })}
-      </div>
+      {/* --- Sélecteur de classement (menu déroulant) --- */}
+      <ScopeDropdown filter={filter} onSelect={setFilter} />
 
       {/* --- Sélecteur de club (changement 6) --- */}
       {filter === 'club' && (

@@ -142,7 +142,7 @@ export function subscribeToMyEloUpdates(userId, onUpdate) {
 // jusqu'à ce que l'intégration Supabase complète soit branchée.
 // =====================================================================
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 // Matchs de demo par defaut : la section "Last Match" est toujours remplie
 // pour les nouveaux users tant qu'ils n'ont pas saisi leurs propres matchs.
@@ -214,6 +214,40 @@ export function useMatches() {
   const addMatch = (m) => _write([{ ...m, id: m.id || `m-${Date.now()}` }, ..._read()]);
 
   return [matches, setMatches, addMatch];
+}
+
+
+// =====================================================================
+// Stats dérivées du store local de matchs.
+// Source UNIQUE partagée par le profil, MatchesScreen et HomeScreen pour
+// rester cohérents partout, et qui fonctionne hors-ligne (pas de Supabase).
+// =====================================================================
+
+// Les matchs sont stockés du plus récent au plus ancien (addMatch prepend).
+export function computeMatchStats(matches) {
+  const list = Array.isArray(matches) ? matches : [];
+  const played = list.length;
+  const won = list.filter(m => m.win).length;
+  const lost = played - won;
+  const winRate = played > 0 ? Math.round((won / played) * 100) : null;
+  // Série de victoires EN COURS : on compte depuis le match le plus récent
+  // jusqu'à la première défaite.
+  let streak = 0;
+  for (const m of list) { if (m.win) streak += 1; else break; }
+  // Meilleure série de victoires consécutives de l'historique.
+  let bestStreak = 0; let run = 0;
+  for (const m of list) { if (m.win) { run += 1; bestStreak = Math.max(bestStreak, run); } else run = 0; }
+  return { played, won, lost, winRate, streak, bestStreak };
+}
+
+// Hook réactif : se recalcule automatiquement à chaque changement du store.
+export function useMatchStats() {
+  const [matches] = useMatches();
+  return useMemo(() => ({
+    ...computeMatchStats(matches),
+    recent: (matches || []).slice(0, 3),
+    matches: matches || [],
+  }), [matches]);
 }
 
 

@@ -505,12 +505,12 @@ export default function FinderScreen() {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontFamily: fontSans, fontWeight: 700, fontSize: 13, color: C.ink }}>
-              Mes amis sur la carte
+              Amis sur la carte
             </div>
             <div style={{ fontFamily: fontSans, fontSize: 11.5, color: C.inkDim, marginTop: 1 }}>
               {showFriends
-                ? `${FRIENDS_FOR_MAP.filter(f => f.online && FRIEND_POSITIONS[f.full]).length} amis visibles autour de toi`
-                : 'Active pour voir les amis qui partagent leur position'}
+                ? `${FRIENDS_FOR_MAP.filter(f => f.online && FRIEND_POSITIONS[f.full]).length} amis autour de toi`
+                : 'Active pour voir tes amis'}
             </div>
           </div>
           <button onClick={() => setShowFriends(v => !v)} aria-label="Afficher mes amis" style={{
@@ -552,12 +552,12 @@ export default function FinderScreen() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontFamily: fontSans, fontWeight: 700, fontSize: 13.5, color: C.ink }}>
               {geoStatus === 'denied' ? 'Permission refusée' :
-               geoStatus === 'unsupported' ? 'Géolocalisation non supportée' :
-               geoStatus === 'asking' ? 'Localisation en cours...' :
-               'Voir les clubs/tables proches de toi'}
+               geoStatus === 'unsupported' ? 'Géoloc non supportée' :
+               geoStatus === 'asking' ? 'Localisation...' :
+               'Activer ma position'}
             </div>
             <div style={{ fontFamily: fontSans, fontSize: 12, color: C.inkDim, marginTop: 2 }}>
-              {geoError || 'Partage ta position pour recentrer la carte sur ta zone'}
+              {geoError || 'Recentre la carte sur ta zone'}
             </div>
           </div>
           <button
@@ -600,7 +600,7 @@ export default function FinderScreen() {
               {status}
             </div>
           ) : (
-            <div style={{ borderRadius: 16, overflow: 'hidden', height: 360 }}>
+            <div style={{ borderRadius: 16, overflow: 'hidden', height: 360, position: 'relative', zIndex: 0 }}>
               <MapContainer
                 center={PARIS}
                 zoom={DEFAULT_ZOOM}
@@ -672,8 +672,8 @@ export default function FinderScreen() {
             textAlign: 'center',
           }}>
             {mode === 'clubs'
-              ? `${clubsGeoloc.length}/${clubsByCountry.length} clubs localises sur la carte`
-              : (tablesStatus || `${tablesFiltered.length}${allTables.length !== tablesFiltered.length ? `/${allTables.length}` : ''} tables sur la carte`)}
+              ? `${clubsGeoloc.length}/${clubsByCountry.length} clubs`
+              : (tablesStatus || `${tablesFiltered.length}${allTables.length !== tablesFiltered.length ? `/${allTables.length}` : ''} tables`)}
           </div>
         </Card>
       </div>
@@ -726,7 +726,7 @@ export default function FinderScreen() {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
             <path d="M12 5v14M5 12h14" />
           </svg>
-          AJOUTER UNE TABLE PUBLIQUE
+          AJOUTER UNE TABLE
         </button>
       )}
 
@@ -799,7 +799,7 @@ export default function FinderScreen() {
                   letterSpacing: '0.04em',
                 }}>{club.club_nom}</div>
                 <div style={{ marginTop: 4, fontFamily: fontSans, fontSize: 12, color: C.inkDim }}>
-                  {club.pays}{!hasCoords && ' · (non geolocalise)'}
+                  {club.pays}{!hasCoords && ' · non localisé'}
                 </div>
               </Card>
             </button>
@@ -813,7 +813,7 @@ export default function FinderScreen() {
             fontSize: 13,
             color: C.inkDim,
           }}>
-            Aucun club ne correspond
+            Aucun résultat
           </div>
         )}
       </div>

@@ -14,9 +14,10 @@ export default function BottomNav({ tab, onTab }) {
       paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
       paddingTop: 10,
       paddingLeft: 4, paddingRight: 4,
-      background: 'linear-gradient(to top, #081610 70%, rgba(8,22,17,0.0))',
+      background: '#081610',
       display: 'flex',
       borderTop: `1px solid ${C.border}`,
+      boxShadow: '0 -8px 24px rgba(0,0,0,0.45)',
       zIndex: 4,
     }}>
       {items.map(it => {
