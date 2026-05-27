@@ -8,6 +8,8 @@ import { useAcceptedChallenges, useIncomingChallenges } from '../lib/challenges'
 import { useMatches } from '../lib/matches';
 import { useAuth } from '../lib/auth';
 import StreakCard from '../components/StreakCard';
+import { MERCH_CATEGORIES, useMerchCatalog } from '../lib/merchCatalog';
+import MerchScreen from './MerchScreen';
 
 function StatRow({ label, value, valueFont = fontSans }) {
   return (
@@ -19,6 +21,109 @@ function StatRow({ label, value, valueFont = fontSans }) {
         color: C.ink, letterSpacing: valueFont === fontDisplay ? '0.02em' : '0',
       }}>{value}</div>
     </div>
+  );
+}
+
+function MerchPreviewCard({ category, products, onOpen, wide = false }) {
+  const product = products.find(item => item.isAvailable && item.main_image_url) || products.find(item => item.main_image_url);
+  const count = products.length;
+
+  return (
+    <button onClick={() => onOpen(category.id)} style={{
+      all: 'unset', cursor: 'pointer', display: 'block', minWidth: 0,
+      gridColumn: wide ? '1 / -1' : 'auto',
+    }}>
+      <Card style={{
+        position: 'relative',
+        minHeight: wide ? 112 : 124,
+        padding: 16,
+        overflow: 'hidden',
+        borderRadius: 14,
+        background: `radial-gradient(80% 80% at 86% 10%, ${category.accent}22 0%, rgba(20,50,38,0) 58%), linear-gradient(180deg, #193E2F 0%, #143226 100%)`,
+        display: 'flex',
+        alignItems: 'flex-end',
+      }}>
+        <div style={{
+          position: 'absolute', top: 12, right: 12,
+          width: wide ? 58 : 36, height: wide ? 58 : 36,
+          borderRadius: wide ? 16 : 12,
+          overflow: 'hidden',
+          background: `${category.accent}33`,
+          border: `1px solid ${category.accent}66`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {product ? (
+            <img src={product.main_image_url} alt="" loading="lazy"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            <span style={{
+              width: wide ? 28 : 18, height: wide ? 34 : 22,
+              borderRadius: '45% 45% 6px 6px',
+              background: category.accent,
+              display: 'block',
+            }} />
+          )}
+        </div>
+
+        <div style={{ position: 'relative', zIndex: 1, minWidth: 0 }}>
+          <div style={{
+            fontFamily: fontSans, fontWeight: 900, fontSize: 12,
+            color: C.ink, letterSpacing: '0.04em',
+          }}>{category.label}</div>
+          <div style={{
+            fontFamily: fontSans, fontSize: 11,
+            color: C.inkDim, marginTop: 3,
+          }}>{count || '...'} {count > 1 ? 'pièces' : 'pièce'}</div>
+          {wide && (
+            <div style={{
+              fontFamily: fontSans, fontSize: 10.5,
+              color: C.inkDim, marginTop: 8,
+              maxWidth: 185, lineHeight: 1.35,
+            }}>{category.description}</div>
+          )}
+        </div>
+      </Card>
+    </button>
+  );
+}
+
+function HomeBoutiquePreview() {
+  const { byCategory } = useMerchCatalog();
+  const { openSheet } = useUI();
+  const openMerchPopup = (categoryId = 'apparel') => {
+    openSheet({
+      title: 'BOUTIQUE',
+      closeAll: true,
+      body: <MerchScreen initialCategory={categoryId} standalone />,
+    });
+  };
+
+  return (
+    <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+        <div style={{
+          fontFamily: fontDisplay, fontWeight: 800, fontSize: 26,
+          color: C.ink, letterSpacing: '0.08em',
+        }}>BOUTIQUE</div>
+        <button onClick={() => openMerchPopup('apparel')} style={{
+          all: 'unset', cursor: 'pointer',
+          fontFamily: fontSans, fontWeight: 800, fontSize: 10.5,
+          color: C.warm,
+        }}>Voir tout →</button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        {MERCH_CATEGORIES.map((category, index) => (
+          <MerchPreviewCard
+            key={category.id}
+            category={category}
+            products={byCategory[category.id] || []}
+            onOpen={() => openMerchPopup(category.id)}
+            wide={index === 2}
+          />
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -396,6 +501,8 @@ export default function HomeScreen({ onNav }) {
         </div>
       </Card>
       </button>
+
+      <HomeBoutiquePreview />
     </div>
   );
 }

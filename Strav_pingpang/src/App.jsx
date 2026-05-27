@@ -8,10 +8,8 @@ import HomeScreen from './screens/HomeScreen';
 import TrainScreen from './screens/TrainScreen';
 import MatchesScreen from './screens/MatchesScreen';
 import FinderScreen from './screens/FinderScreen';
-import MerchScreen from './screens/MerchScreen';
 import ChatScreen from './screens/ChatScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
-import PlaceholderScreen from './screens/PlaceholderScreen';
 import Leaderboard from './screens/Leaderboard';
 import LocationConsent from './components/LocationConsent';
 import { useAuth } from './lib/auth';
@@ -50,14 +48,15 @@ export default function App() {
 
   const screen = useMemo(() => {
     switch (tab) {
-      case 'home':        return <HomeScreen onNav={setTab} />;
+      case 'home':
+        return <HomeScreen onNav={setTab} />;
       case 'train':       return <TrainScreen />;
       case 'matches':     return <MatchesScreen />;
       case 'leaderboard': return <Leaderboard currentUserId={userId} />;
       case 'finder':      return <FinderScreen />;
       case 'chat':        return <ChatScreen />;
-      case 'merch':       return <MerchScreen />;
-      default:            return <HomeScreen onNav={setTab} />;
+      default:
+        return <HomeScreen onNav={setTab} />;
     }
   }, [tab, userId]);
 
