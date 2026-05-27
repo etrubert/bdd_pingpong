@@ -37,8 +37,15 @@ const FED_STRENGTH = {
 
 const ELO_BASE = 1400;     // plancher : dernier joueur d'une fédération
 const ELO_SPREAD = 1000;   // amplitude au-dessus du plancher pour le #1 national
-const ITTF_ELO_TOP = 3000; // ELO du #1 mondial ITTF
-const ITTF_ELO_BOTTOM = 2500; // ELO du #1000 mondial ITTF
+
+// ITTF a DEUX classements indépendants : Men's Singles (MS) et Women's
+// Singles (WS). On les sépare en deux strates ELO pour que le ranking
+// mondial corresponde au classement officiel ITTF (MS au top, WS ensuite,
+// scraped non-ITTF en bas).
+const ITTF_MS_TOP = 3000;     // ELO du #1 MS (WANG Chuqin) — top mondial
+const ITTF_MS_BOTTOM = 2500;  // ELO du #1000 MS
+const ITTF_WS_TOP = 2499;     // ELO du #1 WS (SUN Yingsha) — juste sous MS
+const ITTF_WS_BOTTOM = 2000;  // ELO du #1000 WS
 
 // ITTF utilise des codes pays 3-lettres ; on les convertit en 2-lettres
 // pour les drapeaux et les filtres existants.
@@ -113,13 +120,16 @@ function capitalize(s = '') {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
 }
 
-// ITTF rank → world ELO (décroissance log entre 3000 au #1 et 2500 au #1000).
-// Garantit que les top ITTF sont AU-DESSUS de tout joueur normalisé par
-// percentile (max 2400 = #1 chinois).
-function eloFromIttfRank(rank) {
-  if (!rank || rank < 1) return ITTF_ELO_BOTTOM;
+// ITTF rank → world ELO. Décroissance log dans la strate correspondant au
+// sexe (MS = 3000-2500, WS = 2499-2000). Le résultat : le classement mondial
+// affiche d'abord le top MS officiel (Lebrun #4, #12) puis les WS, puis les
+// non-ITTF — exactement comme le site officiel ITTF.
+function eloFromIttfRank(rank, sex = 'M') {
+  if (!rank || rank < 1) return sex === 'F' ? ITTF_WS_BOTTOM : ITTF_MS_BOTTOM;
   const r = Math.min(rank, 1000);
-  return Math.round(ITTF_ELO_TOP - (ITTF_ELO_TOP - ITTF_ELO_BOTTOM) * Math.log10(r) / 3);
+  const top = sex === 'F' ? ITTF_WS_TOP : ITTF_MS_TOP;
+  const bottom = sex === 'F' ? ITTF_WS_BOTTOM : ITTF_MS_BOTTOM;
+  return Math.round(top - (top - bottom) * Math.log10(r) / 3);
 }
 
 // ---- Chargement classement ITTF (top mondial officiel) ----
@@ -195,7 +205,7 @@ function normalizeCountry({ country, label, rows }, ittfIndex) {
     let effectiveCountry = country;
     let effectiveCountryLabel = label;
     if (ittfMatch) {
-      worldElo = eloFromIttfRank(ittfMatch.ittf_rank);
+      worldElo = eloFromIttfRank(ittfMatch.ittf_rank, ittfMatch.sex);
       world_rank_ittf = ittfMatch.ittf_rank;
       // ITTF formate mieux les noms internationaux (WANG Chuqin vs Chuqin WANG)
       displayName = ittfMatch.name_raw || fullName;
@@ -245,8 +255,8 @@ function ittfStandalone(ittf, matchedKeys) {
       country: p.country,
       country_label: p.country_label,
       club: null,
-      current_elo: eloFromIttfRank(p.ittf_rank),
-      peak_elo: eloFromIttfRank(p.ittf_rank),
+      current_elo: eloFromIttfRank(p.ittf_rank, p.sex),
+      peak_elo: eloFromIttfRank(p.ittf_rank, p.sex),
       points_ittf: p.points_ittf,
       fed_elo: p.points_ittf,
       national_rank: null,
@@ -258,6 +268,23 @@ function ittfStandalone(ittf, matchedKeys) {
       sex: p.sex,
       source: 'ittf',
     }));
+}
+
+// Dédoublonne les joueurs par (nameKey, sex). Garde l'entrée la plus
+// pertinente : ITTF-matchée > non-matchée, puis ELO le plus haut.
+// Certains joueurs apparaissent plusieurs fois dans un même CSV (ex: WEN
+// Ruibo joue à la fois en Super League et en Major League chinoises) ou
+// dans plusieurs fédés (joueurs internationaux en clubs étrangers).
+function dedupePlayers(players) {
+  const best = new Map();
+  for (const p of players) {
+    const key = `${nameKey(p.display_name)}|${p.sex || ''}`;
+    const prev = best.get(key);
+    if (!prev) { best.set(key, p); continue; }
+    const score = (q) => (q.ittf_rank ? 1e6 - q.ittf_rank : 0) + (q.current_elo ?? 0);
+    if (score(p) > score(prev)) best.set(key, p);
+  }
+  return Array.from(best.values());
 }
 
 // Charge + normalise les 6 CSV de fédérations en parallèle.
@@ -278,9 +305,9 @@ export async function loadScrapedWorldPlayers() {
       }
     })
   );
-  const fedPlayers = fedResults.flat();
+  const fedPlayers = dedupePlayers(fedResults.flat());
 
-  // Joueurs ITTF déjà matchés (pour éviter doublons)
+  // Joueurs ITTF déjà matchés (pour éviter doublons avec ittfStandalone)
   const matchedKeys = new Set();
   for (const p of fedPlayers) {
     if (p.ittf_rank) matchedKeys.add(nameKey(p.display_name));
