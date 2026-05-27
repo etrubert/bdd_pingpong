@@ -55,7 +55,7 @@ async function authFetch(path, options = {}) {
   };
   const response = await fetch(url, { ...options, headers });
   const text = await response.text();
-  let body = null;
+  let body;
   try { body = text ? JSON.parse(text) : null; } catch { body = text; }
   if (!response.ok) {
     const msg = body?.error_description || body?.msg || body?.message || `HTTP ${response.status}`;

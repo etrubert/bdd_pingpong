@@ -7,6 +7,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { C, fontDisplay, fontSans, kicker } from '../theme';
 import { supabase } from '../lib/supabase';
+import { useWorldRanking, listClubs } from '../lib/worldPlayers';
 
 // ----- Filtres disponibles (gardent toute la logique précédente) -----
 const FILTERS = [
@@ -95,22 +96,74 @@ function variationOf(player) {
 
 // =====================================================================
 
+// ---------- Sélecteur de club (changement 6) ----------
+function ClubSelector({ clubs, selected, onSelect }) {
+  const [q, setQ] = useState('');
+  const filtered = useMemo(() => {
+    const n = q.trim().toLowerCase();
+    const base = n ? clubs.filter(c => c.name.toLowerCase().includes(n)) : clubs;
+    return base.slice(0, 40);
+  }, [clubs, q]);
+
+  return (
+    <div style={{
+      padding: 14, borderRadius: 16,
+      background: 'rgba(8,22,17,0.45)', border: `1px solid ${C.border}`,
+    }}>
+      <div style={{ ...kicker, color: C.warm, marginBottom: 10 }}>CHOISIR UN CLUB</div>
+      <input
+        value={q}
+        onChange={e => setQ(e.target.value)}
+        placeholder="Rechercher un club…"
+        style={{
+          width: '100%', boxSizing: 'border-box', padding: '11px 14px',
+          borderRadius: 10, background: 'rgba(8,22,17,0.6)',
+          border: `1px solid ${C.border}`, color: C.ink,
+          fontFamily: fontSans, fontSize: 13.5, outline: 'none', marginBottom: 10,
+        }}
+      />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 230, overflowY: 'auto' }}>
+        {filtered.map(c => {
+          const active = selected === c.name;
+          return (
+            <button key={c.name} onClick={() => onSelect(c.name)} style={{
+              all: 'unset', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '10px 12px', borderRadius: 10,
+              background: active ? 'rgba(232,201,155,0.12)' : 'rgba(8,22,17,0.5)',
+              border: `1px solid ${active ? 'rgba(232,201,155,0.45)' : C.border}`,
+            }}>
+              <span style={{
+                fontFamily: fontSans, fontWeight: 700, fontSize: 13, color: active ? C.warm : C.ink,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, minWidth: 0,
+              }}>{countryFlag(c.country)} {c.name}</span>
+              <span style={{
+                flexShrink: 0, marginLeft: 10,
+                fontFamily: fontSans, fontSize: 11.5, color: C.inkDim,
+              }}>{c.count} {c.count > 1 ? 'joueurs' : 'joueur'}</span>
+            </button>
+          );
+        })}
+        {filtered.length === 0 && (
+          <div style={{ padding: '14px 0', textAlign: 'center', fontFamily: fontSans, fontSize: 12.5, color: C.inkDim }}>
+            Aucun club ne correspond
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Leaderboard({ currentUserId }) {
   const [filter, setFilter] = useState('world');
   const [expanded, setExpanded] = useState(false);
   const [rows, setRows] = useState([]);
   const [me, setMe] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [totalPlayers, setTotalPlayers] = useState(0);
   const [nearbyClubNames, setNearbyClubNames] = useState(null);
   const [myProfileClub, setMyProfileClub] = useState(null);
   const [myCountryRank, setMyCountryRank] = useState(null);
-
-  // Total joueurs (pour le sous-titre + percentile)
-  useEffect(() => {
-    supabase.from('world_ranking').select('id', { count: 'exact', head: true })
-      .then(({ count }) => { if (count != null) setTotalPlayers(count); });
-  }, []);
+  const [selectedClub, setSelectedClub] = useState(null); // club choisi pour le filtre "club" (ch.6)
 
   // Profil utilisateur (club + country rank + fallback ELO si pas encore dans le ranking)
   const [myProfile, setMyProfile] = useState(null);
@@ -147,52 +200,49 @@ export default function Leaderboard({ currentUserId }) {
     return () => { cancelled = true; };
   }, [filter, nearbyClubNames]);
 
+  // Classement mondial unifié (CSV scrapés normalisés + joueurs app Supabase)
+  const { ranking: worldRanking, loading: worldLoading } = useWorldRanking();
+  const totalPlayers = worldRanking.length;
+  const clubs = useMemo(() => listClubs(worldRanking), [worldRanking]); // ch.6
+
   useEffect(() => { setExpanded(false); }, [filter]);
 
-  // Fetch ranking selon le filtre
+  // Filtrage + ré-attribution du rang selon le filtre actif.
+  // On range sur le classement mondial complet déjà trié par ELO.
   useEffect(() => {
     let cancelled = false;
     async function run() {
       setLoading(true);
+      if (worldLoading) return;
       try {
-        const limit = expanded ? FULL_LIMIT : TOP_N;
         const filterDef = FILTERS.find(f => f.value === filter);
-        let q;
+        let pool = worldRanking;
 
         if (filterDef?.country) {
-          q = supabase.from('world_ranking').select('*').eq('country', filterDef.country).limit(limit);
+          pool = worldRanking.filter(p => p.country === filterDef.country);
         } else if (filter === 'region') {
           if (nearbyClubNames === null) return;
-          if (nearbyClubNames.length === 0) {
-            if (!cancelled) { setRows([]); setLoading(false); }
-            return;
-          }
-          q = supabase.from('world_ranking').select('*').in('club', nearbyClubNames).limit(limit);
+          const set = new Set(nearbyClubNames);
+          pool = worldRanking.filter(p => p.club && set.has(p.club));
         } else if (filter === 'club') {
-          if (!myProfileClub) {
-            if (!cancelled) { setRows([]); setLoading(false); }
-            return;
-          }
-          q = supabase.from('world_ranking').select('*').eq('club', myProfileClub).limit(limit);
-        } else {
-          q = supabase.from('world_ranking').select('*').limit(limit);
+          const club = selectedClub || myProfileClub;
+          if (!club) { if (!cancelled) { setRows([]); setLoading(false); } return; }
+          pool = worldRanking.filter(p => p.club === club);
         }
 
-        const { data, error } = await q;
-        if (error) throw error;
+        // Rang local au filtre (1..n) tout en gardant l'ELO mondial
+        const limit = expanded ? FULL_LIMIT : TOP_N;
+        const ranked = pool.map((p, i) => ({ ...p, world_rank: p.world_rank, local_rank: i + 1 }));
         if (cancelled) return;
-        setRows(data || []);
+        setRows(ranked.slice(0, limit));
 
+        // Ma position : on cherche le user courant dans le classement complet
         if (currentUserId) {
-          const inList = (data || []).find(r => r.id === currentUserId);
-          if (inList) setMe(inList);
-          else {
-            const { data: myData } = await supabase.from('world_ranking').select('*').eq('id', currentUserId).maybeSingle();
-            if (!cancelled) setMe(myData || null);
-          }
+          const mine = worldRanking.find(p => p.id === currentUserId);
+          setMe(mine || null);
         }
       } catch (err) {
-        console.error('Leaderboard fetch error:', err);
+        console.error('Leaderboard filter error:', err);
         if (!cancelled) setRows([]);
       } finally {
         if (!cancelled) setLoading(false);
@@ -200,7 +250,7 @@ export default function Leaderboard({ currentUserId }) {
     }
     run();
     return () => { cancelled = true; };
-  }, [filter, expanded, currentUserId, nearbyClubNames, myProfileClub]);
+  }, [filter, expanded, currentUserId, nearbyClubNames, myProfileClub, selectedClub, worldRanking, worldLoading]);
 
   const top3 = useMemo(() => rows.slice(0, 3), [rows]);
   const rest = useMemo(() => rows.slice(3), [rows]);
@@ -208,9 +258,9 @@ export default function Leaderboard({ currentUserId }) {
 
   const emptyMessage = filter === 'region' && nearbyClubNames?.length === 0
     ? 'Aucun club Finder dans ton rayon (50 km). Active la géolocalisation dans Finder.'
-    : filter === 'club' && !myProfileClub
-      ? 'Tu n\'as pas renseigné de club dans ton profil.'
-      : rows.length === 0 && !loading
+    : filter === 'club' && !selectedClub && !myProfileClub
+      ? 'Choisis un club ci-dessus pour voir son classement.'
+      : rows.length === 0 && !loading && !(filter === 'club' && !selectedClub && !myProfileClub)
         ? 'Aucun joueur pour ce filtre.'
         : null;
 
@@ -255,6 +305,15 @@ export default function Leaderboard({ currentUserId }) {
           );
         })}
       </div>
+
+      {/* --- Sélecteur de club (changement 6) --- */}
+      {filter === 'club' && (
+        <ClubSelector
+          clubs={clubs}
+          selected={selectedClub}
+          onSelect={setSelectedClub}
+        />
+      )}
 
       {emptyMessage && (
         <div style={{
@@ -451,7 +510,7 @@ function RankRow({ player, isCurrentUser }) {
         width: 28, textAlign: 'center',
         fontFamily: fontDisplay, fontWeight: 800, fontSize: 22,
         color: C.warm, letterSpacing: '0.02em',
-      }}>{player.world_rank}</div>
+      }}>{player.local_rank ?? player.world_rank}</div>
 
       <div style={{
         width: 42, height: 42, borderRadius: '50%', flexShrink: 0,

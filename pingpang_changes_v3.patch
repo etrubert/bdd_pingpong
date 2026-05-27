@@ -1,0 +1,697 @@
+diff --git a/Strav_pingpang/src/App.jsx b/Strav_pingpang/src/App.jsx
+index 59e4905..77ce5d3 100644
+--- a/Strav_pingpang/src/App.jsx
++++ b/Strav_pingpang/src/App.jsx
+@@ -8,6 +8,7 @@ import HomeScreen from './screens/HomeScreen';
+ import TrainScreen from './screens/TrainScreen';
+ import MatchesScreen from './screens/MatchesScreen';
+ import FinderScreen from './screens/FinderScreen';
++import MerchScreen from './screens/MerchScreen';
+ import ChatScreen from './screens/ChatScreen';
+ import OnboardingScreen from './screens/OnboardingScreen';
+ import PlaceholderScreen from './screens/PlaceholderScreen';
+@@ -55,6 +56,7 @@ export default function App() {
+       case 'leaderboard': return <Leaderboard currentUserId={userId} />;
+       case 'finder':      return <FinderScreen />;
+       case 'chat':        return <ChatScreen />;
++      case 'merch':       return <MerchScreen />;
+       default:            return <HomeScreen onNav={setTab} />;
+     }
+   }, [tab, userId]);
+diff --git a/Strav_pingpang/src/components/BottomNav.jsx b/Strav_pingpang/src/components/BottomNav.jsx
+index 9112001..35a460a 100644
+--- a/Strav_pingpang/src/components/BottomNav.jsx
++++ b/Strav_pingpang/src/components/BottomNav.jsx
+@@ -7,6 +7,7 @@ export default function BottomNav({ tab, onTab }) {
+     { id: 'train',   label: 'TRAIN',   icon: Icon.brain },
+     { id: 'finder',  label: 'FINDER',  icon: Icon.map },
+     { id: 'leaderboard', label: 'RANKING', icon: Icon.trend },
++    { id: 'merch',   label: 'MERCH',   icon: Icon.bag },
+   ];
+   return (
+     <div style={{
+diff --git a/Strav_pingpang/src/components/StreakCard.jsx b/Strav_pingpang/src/components/StreakCard.jsx
+index 8c1ca09..d7fd3bb 100644
+--- a/Strav_pingpang/src/components/StreakCard.jsx
++++ b/Strav_pingpang/src/components/StreakCard.jsx
+@@ -14,28 +14,68 @@ import { buildStreakBoard, STREAK_REWARDS } from '../lib/streakBoard';
+ 
+ const ACCENT = { gold: C.warm, silver: 'rgba(184,220,197,0.85)', bronze: '#D9A06B' };
+ 
++// Icone SVG inline par type de récompense, suffisamment générique pour passer
++// dans tous les navigateurs (pas de dépendance webfont supplémentaire).
++function RewardIcon({ kind, color }) {
++  if (kind === 'article') {
++    // Sac shopping
++    return (
++      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
++        <path d="M6 7h12l-1 13H7L6 7z" /><path d="M9 7V5a3 3 0 0 1 6 0v2" />
++      </svg>
++    );
++  }
++  if (kind === 'giftcard') {
++    // Cadeau
++    return (
++      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
++        <rect x="3" y="8" width="18" height="13" rx="1" /><path d="M12 8v13M3 12h18" />
++        <path d="M12 8s-2-4-5-4a3 3 0 0 0 0 6h5M12 8s2-4 5-4a3 3 0 0 1 0 6h-5" />
++      </svg>
++    );
++  }
++  // promo : ticket
++  return (
++    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
++      <path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V9z" />
++      <path d="M9 8v8" strokeDasharray="2 2" />
++    </svg>
++  );
++}
++
+ function RewardRow({ reward, unlocked }) {
+   const color = ACCENT[reward.color] || C.warm;
+   const { showToast } = useUI();
+   return (
+     <div style={{
+       display: 'flex', alignItems: 'center', gap: 12,
+-      padding: '12px 14px', borderRadius: 14,
++      padding: '14px 14px', borderRadius: 14,
+       background: 'rgba(8,22,17,0.45)',
+       border: `1px solid ${unlocked ? color : C.border}`,
+     }}>
+-      <div style={{
+-        width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+-        background: color, color: '#0C211A',
+-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+-        fontFamily: fontSans, fontWeight: 800, fontSize: 13,
+-      }}>{reward.rank}</div>
+-      <div style={{ flex: 1 }}>
+-        <div style={{ fontFamily: fontSans, fontWeight: 700, fontSize: 14, color: C.ink }}>
+-          {reward.label} · {reward.discount} boutique
++      <div style={{ position: 'relative', flexShrink: 0 }}>
++        <div style={{
++          width: 38, height: 38, borderRadius: '50%',
++          background: 'rgba(8,22,17,0.6)',
++          border: `1.5px solid ${color}`,
++          display: 'flex', alignItems: 'center', justifyContent: 'center',
++        }}>
++          <RewardIcon kind={reward.kind} color={color} />
++        </div>
++        <div style={{
++          position: 'absolute', bottom: -3, right: -3,
++          width: 18, height: 18, borderRadius: '50%',
++          background: color, color: '#0C211A',
++          display: 'flex', alignItems: 'center', justifyContent: 'center',
++          fontFamily: fontSans, fontWeight: 800, fontSize: 10,
++        }}>{reward.rank}</div>
++      </div>
++      <div style={{ flex: 1, minWidth: 0 }}>
++        <div style={{ fontFamily: fontSans, fontWeight: 700, fontSize: 13.5, color: C.ink }}>
++          {reward.title}
+         </div>
+-        <div style={{ fontFamily: fontSans, fontSize: 11.5, color: C.inkDim, marginTop: 1 }}>
+-          {unlocked ? 'Code débloqué — tape pour copier' : 'Réservé au podium de fin de saison'}
++        <div style={{ fontFamily: fontSans, fontSize: 11.5, color: C.inkDim, marginTop: 2 }}>
++          {unlocked ? 'Récompense débloquée — tape pour copier le code' : reward.detail}
+         </div>
+       </div>
+       {unlocked && (
+@@ -45,10 +85,10 @@ function RewardRow({ reward, unlocked }) {
+             showToast(`Code ${reward.code} copié \u2713`);
+           }}
+           style={{
+-            all: 'unset', cursor: 'pointer',
+-            padding: '6px 12px', borderRadius: 8,
++            all: 'unset', cursor: 'pointer', flexShrink: 0,
++            padding: '6px 10px', borderRadius: 8,
+             background: color, color: '#0C211A',
+-            fontFamily: fontSans, fontWeight: 800, fontSize: 11, letterSpacing: '0.04em',
++            fontFamily: fontSans, fontWeight: 800, fontSize: 10.5, letterSpacing: '0.04em',
+           }}
+         >{reward.code}</button>
+       )}
+diff --git a/Strav_pingpang/src/lib/streakBoard.js b/Strav_pingpang/src/lib/streakBoard.js
+index 860977e..3ab0174 100644
+--- a/Strav_pingpang/src/lib/streakBoard.js
++++ b/Strav_pingpang/src/lib/streakBoard.js
+@@ -8,11 +8,30 @@
+ // `login_streak_ranking` triée par current_login_streak DESC.
+ // =====================================================================
+ 
+-// Récompenses du top 3 (tous les 3 mois). Codes mockés pour la démo.
++// Récompenses du top 3 (en fin de saison trimestrielle). Codes mockés pour la démo.
++// Chaque récompense a un type (kind) différent : article, carte cadeau, code promo.
+ export const STREAK_REWARDS = [
+-  { rank: 1, label: '1er', discount: '-30%', code: 'STREAK30-PP', color: 'gold' },
+-  { rank: 2, label: '2e',  discount: '-20%', code: 'STREAK20-PP', color: 'silver' },
+-  { rank: 3, label: '3e',  discount: '-15%', code: 'STREAK15-PP', color: 'bronze' },
++  {
++    rank: 1, label: '1er', color: 'gold',
++    kind: 'article',
++    title: 'Un article de la boutique',
++    detail: 'À choisir parmi le catalogue Ping Pang Paris',
++    code: 'TOP1-STREAK-PP',
++  },
++  {
++    rank: 2, label: '2e', color: 'silver',
++    kind: 'giftcard',
++    title: 'Carte cadeau 50\u00A0€',
++    detail: 'Valable sur toute la boutique',
++    code: 'GIFT50-STREAK-PP',
++  },
++  {
++    rank: 3, label: '3e', color: 'bronze',
++    kind: 'promo',
++    title: '\u201120 % sur ta prochaine commande',
++    detail: 'Code unique à usage personnel',
++    code: 'TOP3-20-PP',
++  },
+ ];
+ 
+ // Classement mock (en prod : Supabase). L'utilisateur courant est injecté
+diff --git a/Strav_pingpang/src/screens/HomeScreen.jsx b/Strav_pingpang/src/screens/HomeScreen.jsx
+index 35fd1e4..d232752 100644
+--- a/Strav_pingpang/src/screens/HomeScreen.jsx
++++ b/Strav_pingpang/src/screens/HomeScreen.jsx
+@@ -136,39 +136,147 @@ export default function HomeScreen({ onNav }) {
+         </div>
+       </div>
+ 
+-      {/* Last match + Daily goal */}
+-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
++      {/* Last match + Daily goal — design enrichi (changement 4) */}
++      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
++        {/* LAST MATCH : avatar adverse, score, delta ELO, h2h, lieu, format */}
+         <button onClick={() => onNav('matches')} style={{ all: 'unset', cursor: 'pointer' }}>
+-        <Card style={{ padding: 18 }}>
+-          <div style={kicker}>LAST MATCH</div>
++        <Card style={{
++          padding: 14,
++          background: lastMatch
++            ? (lastMatch.win
++                ? 'linear-gradient(180deg, rgba(184,220,197,0.10) 0%, rgba(20,50,38,0) 70%), linear-gradient(180deg, #193E2F 0%, #143226 100%)'
++                : 'linear-gradient(180deg, rgba(232,155,139,0.10) 0%, rgba(20,50,38,0) 70%), linear-gradient(180deg, #193E2F 0%, #143226 100%)')
++            : undefined,
++          border: lastMatch
++            ? `1px solid ${lastMatch.win ? 'rgba(184,220,197,0.30)' : 'rgba(232,155,139,0.30)'}`
++            : undefined,
++        }}>
++          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
++            <div style={kicker}>LAST MATCH</div>
++            {lastMatch && (
++              <span style={{
++                fontFamily: fontSans, fontWeight: 800, fontSize: 9.5,
++                color: lastMatch.win ? '#0C211A' : '#fff',
++                background: lastMatch.win ? C.mint : C.loss,
++                padding: '2px 7px', borderRadius: 999, letterSpacing: '0.08em',
++              }}>{lastMatch.win ? 'WIN' : 'LOSS'}</span>
++            )}
++          </div>
++
+           {lastMatch ? (
+             <>
+-              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, color: C.ink, fontFamily: fontSans, fontWeight: 700, fontSize: 18 }}>
+-                <span style={{ color: lastMatch.win ? C.mint : C.loss }}>{Icon.history(16)}</span>
+-                {lastMatch.score} {lastMatch.win ? 'WIN' : 'LOSS'}
++              {/* Adversaire : avatar coloré + initiales */}
++              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
++                <div style={{
++                  width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
++                  background: `radial-gradient(60% 60% at 35% 30%, ${lastMatch.color?.[0] || C.mint} 0%, ${lastMatch.color?.[1] || C.mintDeep} 70%, #0C211A 100%)`,
++                  border: `1.5px solid ${C.borderHi}`,
++                  display: 'flex', alignItems: 'center', justifyContent: 'center',
++                  color: '#0C211A', fontFamily: fontSans, fontWeight: 800, fontSize: 11,
++                }}>{lastMatch.initials || (lastMatch.name || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</div>
++                <div style={{ flex: 1, minWidth: 0 }}>
++                  <div style={{
++                    fontFamily: fontSans, fontWeight: 700, fontSize: 12.5, color: C.ink,
++                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
++                  }}>{(lastMatch.name || '').replace('.', '').split(' ').map(w => w[0] + w.slice(1).toLowerCase()).join(' ')}</div>
++                  <div style={{ fontFamily: fontSans, fontSize: 10.5, color: C.inkDim, marginTop: 1 }}>
++                    {lastMatch.when || 'récemment'}{lastMatch.format ? ` · ${lastMatch.format}` : ''}
++                  </div>
++                </div>
+               </div>
+-              <div style={{ marginTop: 6, color: C.inkDim, fontFamily: fontSans, fontSize: 13 }}>
+-                vs. {lastMatch.name
+-                  .replace('.', '')
+-                  .split(' ')
+-                  .map(w => w[0] + w.slice(1).toLowerCase())
+-                  .join(' ')}
++
++              {/* Score + delta ELO */}
++              <div style={{
++                display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
++                marginTop: 12, paddingTop: 10, borderTop: `1px solid ${C.border}`,
++              }}>
++                <div style={{
++                  fontFamily: fontDisplay, fontWeight: 800, fontSize: 26,
++                  color: C.ink, letterSpacing: '0.01em',
++                }}>{lastMatch.score}</div>
++                {Number.isFinite(lastMatch.elo) && (
++                  <div style={{
++                    fontFamily: fontSans, fontWeight: 800, fontSize: 13,
++                    color: lastMatch.elo >= 0 ? C.mint : C.loss,
++                  }}>{lastMatch.elo >= 0 ? '+' : ''}{lastMatch.elo} ELO</div>
++                )}
++              </div>
++
++              {/* H2H si dispo, sinon lieu */}
++              <div style={{
++                marginTop: 8, fontFamily: fontSans, fontSize: 10.5, color: C.inkDim,
++                display: 'flex', alignItems: 'center', gap: 6,
++              }}>
++                {lastMatch.h2h
++                  ? <>H2H {lastMatch.h2h.record} · {lastMatch.h2h.winRate}% win</>
++                  : (lastMatch.where && <><span style={{ color: C.warm }}>{Icon.pin(11)}</span> {lastMatch.where}</>)}
+               </div>
+             </>
+           ) : (
+-            <div style={{ marginTop: 12, color: C.inkDim, fontFamily: fontSans, fontSize: 13 }}>
+-              Aucun match récent
++            <div style={{ marginTop: 14, color: C.inkDim, fontFamily: fontSans, fontSize: 12.5, lineHeight: 1.45 }}>
++              Aucun match récent. Lance ton premier match pour faire évoluer ton ELO.
+             </div>
+           )}
+         </Card>
+         </button>
+-        <button onClick={() => showToast(`Daily goal: ${dailyGoalPct}% \u2014 ${dailyGoalPct === 0 ? 'commence !' : 'keep going!'}`)} style={{ all: 'unset', cursor: 'pointer' }}>
+-        <Card style={{ padding: 18 }}>
+-          <div style={kicker}>DAILY GOAL</div>
+-          <div style={{ height: 6, background: 'rgba(184,220,197,0.18)', borderRadius: 99, marginTop: 18, overflow: 'hidden' }}>
+-            <div style={{ width: `${dailyGoalPct}%`, height: '100%', background: `linear-gradient(90deg, ${C.mintDeep}, ${C.mint})`, borderRadius: 99 }} />
++
++        {/* DAILY GOAL : stats profil + progression jour */}
++        <button onClick={() => showToast(`Daily goal: ${dailyGoalPct}%`)} style={{ all: 'unset', cursor: 'pointer' }}>
++        <Card style={{ padding: 14 }}>
++          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
++            <div style={kicker}>STATS JOUEUR</div>
++            <span style={{
++              fontFamily: fontSans, fontWeight: 800, fontSize: 9.5,
++              color: C.warm, background: 'rgba(232,201,155,0.12)',
++              border: '1px solid rgba(232,201,155,0.35)',
++              padding: '2px 7px', borderRadius: 999, letterSpacing: '0.08em',
++            }}>{profile?.player_type === 'competition' ? 'CLUB' : 'AMATEUR'}</span>
++          </div>
++
++          {/* Grand chiffre : ELO actuel */}
++          <div style={{ marginTop: 10, display: 'flex', alignItems: 'baseline', gap: 6 }}>
++            <div style={{
++              fontFamily: fontDisplay, fontWeight: 800, fontSize: 32, color: C.ink, lineHeight: 1,
++            }}>{hasMatches ? elo : '—'}</div>
++            <div style={{ fontFamily: fontSans, fontSize: 10.5, color: C.inkDim }}>ELO</div>
++          </div>
++
++          {/* Win rate + matchs joués en deux mini-stats */}
++          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
++            <div>
++              <div style={{ fontFamily: fontSans, fontSize: 9.5, color: C.inkDim, letterSpacing: '0.10em', fontWeight: 700 }}>WIN RATE</div>
++              <div style={{ fontFamily: fontSans, fontWeight: 800, fontSize: 14, color: C.ink, marginTop: 2 }}>
++                {hasMatches ? `${Math.round(((profile?.matches_won ?? 0) / matchesPlayed) * 100)}%` : '—'}
++              </div>
++            </div>
++            <div>
++              <div style={{ fontFamily: fontSans, fontSize: 9.5, color: C.inkDim, letterSpacing: '0.10em', fontWeight: 700 }}>MATCHS</div>
++              <div style={{ fontFamily: fontSans, fontWeight: 800, fontSize: 14, color: C.ink, marginTop: 2 }}>
++                {matchesPlayed}
++              </div>
++            </div>
++          </div>
++
++          {/* Mini barre objectif quotidien */}
++          <div style={{ marginTop: 12 }}>
++            <div style={{
++              display: 'flex', justifyContent: 'space-between',
++              fontFamily: fontSans, fontSize: 9.5, color: C.inkDim,
++              letterSpacing: '0.08em', fontWeight: 700,
++            }}>
++              <span>OBJECTIF DU JOUR</span>
++              <span style={{ color: dailyGoalPct >= 100 ? C.mint : C.inkDim }}>{dailyGoalPct}%</span>
++            </div>
++            <div style={{
++              height: 5, background: 'rgba(184,220,197,0.18)',
++              borderRadius: 99, marginTop: 6, overflow: 'hidden',
++            }}>
++              <div style={{
++                width: `${Math.min(100, dailyGoalPct)}%`, height: '100%',
++                background: `linear-gradient(90deg, ${C.mintDeep}, ${C.mint})`, borderRadius: 99,
++              }} />
++            </div>
+           </div>
+-          <div style={{ marginTop: 10, color: C.ink, fontFamily: fontSans, fontWeight: 700, fontSize: 14, letterSpacing: '0.06em' }}>{dailyGoalPct}% COMPLETE</div>
+         </Card>
+         </button>
+       </div>
+diff --git a/Strav_pingpang/src/screens/MerchScreen.jsx b/Strav_pingpang/src/screens/MerchScreen.jsx
+index 2afc3ce..6911f8c 100644
+--- a/Strav_pingpang/src/screens/MerchScreen.jsx
++++ b/Strav_pingpang/src/screens/MerchScreen.jsx
+@@ -1,43 +1,23 @@
+-import { useEffect, useMemo, useState } from 'react';
+-import { C, fontDisplay, fontSans, kicker, btnPrimary } from '../theme';
+-import Card from '../components/Card';
+-
+-const PRODUCT_LIMIT = 10;
+-
+-// Hook partagé : charge le catalogue produits depuis le CSV public.
+-// Utilisé par MerchScreen (boutique pleine page) ET HomeScreen (aperçu en bas).
+-export function useMerchProducts(limit = PRODUCT_LIMIT) {
+-  const [products, setProducts] = useState([]);
+-  const [status, setStatus] = useState('Chargement…');
++// =====================================================================
++// PING PANG PARIS — Boutique (version simple : images + prix)
++// Charge le catalogue depuis /data/pingpang_data.csv et affiche une grille
++// d'articles avec leur image et leur prix. Tap → ouverture du produit sur
++// pingpang.paris dans un nouvel onglet.
++// =====================================================================
+ 
+-  useEffect(() => {
+-    let cancelled = false;
+-    fetch('/data/pingpang_data.csv')
+-      .then(r => {
+-        if (!r.ok) throw new Error('CSV introuvable');
+-        return r.text();
+-      })
+-      .then(text => {
+-        if (cancelled) return;
+-        const parsed = parseProductsCsv(text);
+-        setProducts(parsed.slice(0, limit));
+-        setStatus(parsed.length === 0 ? 'Aucun produit' : '');
+-      })
+-      .catch(() => { if (!cancelled) setStatus('Impossible de charger les produits'); });
+-    return () => { cancelled = true; };
+-  }, [limit]);
++import { useEffect, useState } from 'react';
++import { C, fontDisplay, fontSans, kicker } from '../theme';
++import Card from '../components/Card';
+ 
+-  return { products, status };
+-}
++const PRODUCT_LIMIT = 20;
+ 
+-// Multi-line aware CSV parser: handles quoted fields containing commas AND newlines.
++// Parser CSV multi-ligne (gère les guillemets et retours à la ligne dans les cellules).
+ function parseCsv(csvText) {
+   const rows = [];
+   let row = [];
+   let cell = '';
+   let quoted = false;
+-  const text = csvText.replace(/^﻿/, '');
+-
++  const text = csvText.replace(/^\uFEFF/, '');
+   for (let i = 0; i < text.length; i += 1) {
+     const ch = text[i];
+     const next = text[i + 1];
+@@ -57,39 +37,34 @@ function parseCsv(csvText) {
+   return rows.filter(r => r.length > 1 || (r.length === 1 && r[0].length > 0));
+ }
+ 
+-export function parseProductsCsv(csvText) {
++function parseProducts(csvText) {
+   const rows = parseCsv(csvText);
+   if (rows.length === 0) return [];
+   const headers = rows.shift().map(h => h.trim());
+-  return rows.map(cells => {
+-    return headers.reduce((obj, header, idx) => {
+-      obj[header] = (cells[idx] || '').trim();
+-      return obj;
+-    }, {});
+-  }).filter(r => r.type === 'product' && r.title);
+-}
+-
+-function splitPipe(s) {
+-  return s ? s.split('|').map(x => x.trim()).filter(Boolean) : [];
++  return rows.map(cells => headers.reduce((obj, h, i) => {
++    obj[h] = (cells[i] || '').trim();
++    return obj;
++  }, {})).filter(r => r.type === 'product' && r.title);
+ }
+ 
+ function formatPrice(min, max) {
+   const a = parseFloat(min);
+   const b = parseFloat(max);
+   if (!Number.isFinite(a)) return '';
+-  const fmt = n => (n % 1 === 0 ? `${n}€` : `${n.toFixed(2)}€`);
++  const fmt = n => (n % 1 === 0 ? `${n}\u00A0€` : `${n.toFixed(2)}\u00A0€`);
+   if (!Number.isFinite(b) || a === b) return fmt(a);
+   return `${fmt(a)} – ${fmt(b)}`;
+ }
+ 
+-export function ProductCard({ product, onClick }) {
++function ProductTile({ product }) {
++  const openProduct = () => {
++    if (product.url) window.open(product.url, '_blank', 'noopener,noreferrer');
++  };
+   return (
+-    <button
+-      onClick={onClick}
+-      style={{
+-        all: 'unset', cursor: 'pointer', display: 'block', width: '100%',
+-      }}
+-    >
++    <button onClick={openProduct} style={{
++      all: 'unset', cursor: product.url ? 'pointer' : 'default',
++      display: 'block', width: '100%',
++    }}>
+       <Card style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+         <div style={{
+           width: '100%', aspectRatio: '1 / 1', borderRadius: 14,
+@@ -97,12 +72,8 @@ export function ProductCard({ product, onClick }) {
+           display: 'flex', alignItems: 'center', justifyContent: 'center',
+         }}>
+           {product.main_image_url ? (
+-            <img
+-              src={product.main_image_url}
+-              alt={product.title}
+-              loading="lazy"
+-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+-            />
++            <img src={product.main_image_url} alt={product.title} loading="lazy"
++              style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+           ) : (
+             <span style={{ color: C.inkFaint, fontSize: 11 }}>NO IMAGE</span>
+           )}
+@@ -122,193 +93,35 @@ export function ProductCard({ product, onClick }) {
+   );
+ }
+ 
+-export function ProductDetail({ product, onBack }) {
+-  const [imgIdx, setImgIdx] = useState(0);
+-  const images = useMemo(() => splitPipe(product.image_urls), [product]);
+-  const colors = useMemo(() => splitPipe(product.colors), [product]);
+-  const sizes = useMemo(() => splitPipe(product.sizes), [product]);
+-  const hero = images[imgIdx] || product.main_image_url;
+-  const desc = product.description_text || product.meta_description || '';
+-
+-  return (
+-    <div style={{ padding: '14px 18px 140px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+-      <button
+-        onClick={onBack}
+-        style={{
+-          all: 'unset', cursor: 'pointer',
+-          fontFamily: fontSans, fontSize: 12, fontWeight: 700,
+-          letterSpacing: '0.14em', color: C.mint,
+-        }}
+-      >← MERCH</button>
+-
+-      <div style={{
+-        width: '100%', aspectRatio: '1 / 1', borderRadius: 18, overflow: 'hidden',
+-        background: '#10251d',
+-      }}>
+-        {hero && (
+-          <img src={hero} alt={product.title}
+-            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+-        )}
+-      </div>
+-
+-      {images.length > 1 && (
+-        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+-          {images.map((src, i) => (
+-            <button
+-              key={src}
+-              onClick={() => setImgIdx(i)}
+-              style={{
+-                all: 'unset', cursor: 'pointer',
+-                width: 56, height: 56, flexShrink: 0,
+-                borderRadius: 10, overflow: 'hidden',
+-                border: `2px solid ${i === imgIdx ? C.cream : 'transparent'}`,
+-              }}
+-            >
+-              <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+-            </button>
+-          ))}
+-        </div>
+-      )}
+-
+-      <div>
+-        <div style={kicker}>{product.product_type || 'PRODUIT'}</div>
+-        <div style={{
+-          fontFamily: fontDisplay, fontWeight: 800, fontSize: 32, lineHeight: 1.05,
+-          color: C.ink, marginTop: 6,
+-        }}>{product.title}</div>
+-        <div style={{
+-          fontFamily: fontSans, fontWeight: 700, fontSize: 22,
+-          color: C.cream, marginTop: 8, letterSpacing: '0.02em',
+-        }}>{formatPrice(product.price_min, product.price_max)}</div>
+-      </div>
+-
+-      {desc && (
+-        <Card>
+-          <div style={kicker}>DESCRIPTION</div>
+-          <div style={{
+-            marginTop: 10, fontFamily: fontSans, fontSize: 13.5, lineHeight: 1.55,
+-            color: C.inkDim,
+-          }}>{desc}</div>
+-        </Card>
+-      )}
+-
+-      {(colors.length > 0 || sizes.length > 0) && (
+-        <Card style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+-          {colors.length > 0 && (
+-            <div>
+-              <div style={kicker}>COULEURS</div>
+-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+-                {colors.map(col => (
+-                  <span key={col} style={{
+-                    padding: '6px 12px', borderRadius: 999,
+-                    border: `1px solid ${C.border}`, background: 'rgba(8,22,17,0.45)',
+-                    fontFamily: fontSans, fontSize: 11, fontWeight: 700,
+-                    color: C.ink, letterSpacing: '0.06em',
+-                  }}>{col}</span>
+-                ))}
+-              </div>
+-            </div>
+-          )}
+-          {sizes.length > 0 && (
+-            <div>
+-              <div style={kicker}>TAILLES</div>
+-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+-                {sizes.map(s => (
+-                  <span key={s} style={{
+-                    padding: '6px 12px', borderRadius: 8,
+-                    border: `1px solid ${C.border}`, background: 'rgba(8,22,17,0.45)',
+-                    fontFamily: fontSans, fontSize: 11, fontWeight: 700,
+-                    color: C.ink, letterSpacing: '0.06em', minWidth: 24, textAlign: 'center',
+-                  }}>{s}</span>
+-                ))}
+-              </div>
+-            </div>
+-          )}
+-        </Card>
+-      )}
+-
+-      <a
+-        href={product.url}
+-        target="_blank"
+-        rel="noopener noreferrer"
+-        style={{ ...btnPrimary, textAlign: 'center', textDecoration: 'none', display: 'block', padding: '15px' }}
+-      >
+-        ACHETER SUR PINGPANG.PARIS →
+-      </a>
+-    </div>
+-  );
+-}
+-
+-// =====================================================================
+-// Section boutique pour le HomeScreen : titre + grille produits.
+-// Au clic sur un produit, on remonte l'info au parent (App) qui bascule
+-// sur l'onglet MERCH avec le produit pré-ouvert.
+-// =====================================================================
+-export function MerchHomeSection({ onOpenProduct, onSeeAll }) {
+-  const { products, status } = useMerchProducts(6);
+-
+-  return (
+-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+-        <div>
+-          <div style={kicker}>BOUTIQUE</div>
+-          <div style={{
+-            fontFamily: fontDisplay, fontWeight: 800, fontSize: 34, lineHeight: 0.95,
+-            color: C.ink, letterSpacing: '0.02em', marginTop: 4,
+-          }}>PING PANG SHOP</div>
+-        </div>
+-        <button onClick={onSeeAll} style={{
+-          all: 'unset', cursor: 'pointer',
+-          fontFamily: fontSans, fontWeight: 700, fontSize: 12,
+-          letterSpacing: '0.10em', color: C.mint,
+-        }}>TOUT VOIR →</button>
+-      </div>
+-
+-      {status ? (
+-        <div style={{
+-          padding: '30px 16px', textAlign: 'center',
+-          fontFamily: fontSans, fontSize: 13, color: C.inkDim,
+-        }}>{status}</div>
+-      ) : (
+-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+-          {products.map(p => (
+-            <ProductCard key={p.id || p.handle} product={p} onClick={() => onOpenProduct(p)} />
+-          ))}
+-        </div>
+-      )}
+-    </div>
+-  );
+-}
+-
+-export default function MerchScreen({ initialProduct = null, onConsumeInitial }) {
+-  const { products, status } = useMerchProducts();
+-  const [selected, setSelected] = useState(initialProduct);
++export default function MerchScreen() {
++  const [products, setProducts] = useState([]);
++  const [status, setStatus] = useState('Chargement…');
+ 
+-  // Si Home a demandé l'ouverture d'un produit précis, on l'affiche puis on
+-  // prévient le parent pour qu'il réinitialise (évite la réouverture au retour).
+   useEffect(() => {
+-    if (initialProduct) {
+-      setSelected(initialProduct);
+-      onConsumeInitial?.();
+-    }
+-    // eslint-disable-next-line react-hooks/exhaustive-deps
+-  }, [initialProduct]);
+-
+-  if (selected) {
+-    return <ProductDetail product={selected} onBack={() => setSelected(null)} />;
+-  }
++    let cancelled = false;
++    fetch('/data/pingpang_data.csv')
++      .then(r => { if (!r.ok) throw new Error('CSV introuvable'); return r.text(); })
++      .then(text => {
++        if (cancelled) return;
++        const parsed = parseProducts(text);
++        setProducts(parsed.slice(0, PRODUCT_LIMIT));
++        setStatus(parsed.length === 0 ? 'Aucun produit' : '');
++      })
++      .catch(() => { if (!cancelled) setStatus('Impossible de charger les produits'); });
++    return () => { cancelled = true; };
++  }, []);
+ 
+   return (
+     <div style={{ padding: '20px 18px 130px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+       <div>
+-        <div style={kicker}>MERCH</div>
++        <div style={kicker}>BOUTIQUE</div>
+         <div style={{
+           fontFamily: fontDisplay, fontWeight: 800, fontSize: 50, lineHeight: 0.95,
+           color: C.ink, letterSpacing: '0.02em', marginTop: 6,
+         }}>SHOP</div>
+         <div style={{
+           fontFamily: fontSans, fontSize: 13, color: C.inkDim, marginTop: 8, lineHeight: 1.5,
+-        }}>Pièces Ping Pang Paris — apparel et accessoires.</div>
++        }}>Articles Ping Pang Paris — appuie sur un article pour l'acheter.</div>
+       </div>
+ 
+       {status ? (
+@@ -317,11 +130,9 @@ export default function MerchScreen({ initialProduct = null, onConsumeInitial })
+           fontFamily: fontSans, fontSize: 13, color: C.inkDim,
+         }}>{status}</div>
+       ) : (
+-        <div style={{
+-          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
+-        }}>
++        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+           {products.map(p => (
+-            <ProductCard key={p.id || p.handle} product={p} onClick={() => setSelected(p)} />
++            <ProductTile key={p.id || p.handle || p.title} product={p} />
+           ))}
+         </div>
+       )}

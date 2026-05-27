@@ -7,6 +7,9 @@ import { PaddleSVG } from '../components/SVGIllustrations';
 import { useAcceptedChallenges, useIncomingChallenges } from '../lib/challenges';
 import { useMatches } from '../lib/matches';
 import { useAuth } from '../lib/auth';
+import StreakCard from '../components/StreakCard';
+import { MERCH_CATEGORIES, useMerchCatalog } from '../lib/merchCatalog';
+import MerchScreen from './MerchScreen';
 
 function StatRow({ label, value, valueFont = fontSans }) {
   return (
@@ -18,6 +21,109 @@ function StatRow({ label, value, valueFont = fontSans }) {
         color: C.ink, letterSpacing: valueFont === fontDisplay ? '0.02em' : '0',
       }}>{value}</div>
     </div>
+  );
+}
+
+function MerchPreviewCard({ category, products, onOpen, wide = false }) {
+  const product = products.find(item => item.isAvailable && item.main_image_url) || products.find(item => item.main_image_url);
+  const count = products.length;
+
+  return (
+    <button onClick={() => onOpen(category.id)} style={{
+      all: 'unset', cursor: 'pointer', display: 'block', minWidth: 0,
+      gridColumn: wide ? '1 / -1' : 'auto',
+    }}>
+      <Card style={{
+        position: 'relative',
+        minHeight: wide ? 112 : 124,
+        padding: 16,
+        overflow: 'hidden',
+        borderRadius: 14,
+        background: `radial-gradient(80% 80% at 86% 10%, ${category.accent}22 0%, rgba(20,50,38,0) 58%), linear-gradient(180deg, #193E2F 0%, #143226 100%)`,
+        display: 'flex',
+        alignItems: 'flex-end',
+      }}>
+        <div style={{
+          position: 'absolute', top: 12, right: 12,
+          width: wide ? 58 : 36, height: wide ? 58 : 36,
+          borderRadius: wide ? 16 : 12,
+          overflow: 'hidden',
+          background: `${category.accent}33`,
+          border: `1px solid ${category.accent}66`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {product ? (
+            <img src={product.main_image_url} alt="" loading="lazy"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            <span style={{
+              width: wide ? 28 : 18, height: wide ? 34 : 22,
+              borderRadius: '45% 45% 6px 6px',
+              background: category.accent,
+              display: 'block',
+            }} />
+          )}
+        </div>
+
+        <div style={{ position: 'relative', zIndex: 1, minWidth: 0 }}>
+          <div style={{
+            fontFamily: fontSans, fontWeight: 900, fontSize: 12,
+            color: C.ink, letterSpacing: '0.04em',
+          }}>{category.label}</div>
+          <div style={{
+            fontFamily: fontSans, fontSize: 11,
+            color: C.inkDim, marginTop: 3,
+          }}>{count || '...'} {count > 1 ? 'pièces' : 'pièce'}</div>
+          {wide && (
+            <div style={{
+              fontFamily: fontSans, fontSize: 10.5,
+              color: C.inkDim, marginTop: 8,
+              maxWidth: 185, lineHeight: 1.35,
+            }}>{category.description}</div>
+          )}
+        </div>
+      </Card>
+    </button>
+  );
+}
+
+function HomeBoutiquePreview() {
+  const { byCategory } = useMerchCatalog();
+  const { openSheet } = useUI();
+  const openMerchPopup = (categoryId = 'apparel') => {
+    openSheet({
+      title: 'BOUTIQUE',
+      closeAll: true,
+      body: <MerchScreen initialCategory={categoryId} standalone />,
+    });
+  };
+
+  return (
+    <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+        <div style={{
+          fontFamily: fontDisplay, fontWeight: 800, fontSize: 26,
+          color: C.ink, letterSpacing: '0.08em',
+        }}>BOUTIQUE</div>
+        <button onClick={() => openMerchPopup('apparel')} style={{
+          all: 'unset', cursor: 'pointer',
+          fontFamily: fontSans, fontWeight: 800, fontSize: 10.5,
+          color: C.warm,
+        }}>Voir tout →</button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        {MERCH_CATEGORIES.map((category, index) => (
+          <MerchPreviewCard
+            key={category.id}
+            category={category}
+            products={byCategory[category.id] || []}
+            onOpen={() => openMerchPopup(category.id)}
+            wide={index === 2}
+          />
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -99,6 +205,9 @@ export default function HomeScreen({ onNav }) {
       </Card>
       </button>
 
+      {/* Streak de connexion (changement 2) — incite au retour quotidien */}
+      <StreakCard displayName={firstName} />
+
       {/* Quote + CTA */}
       <div style={{
         position: 'relative', borderRadius: 22, overflow: 'hidden',
@@ -132,39 +241,147 @@ export default function HomeScreen({ onNav }) {
         </div>
       </div>
 
-      {/* Last match + Daily goal */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      {/* Last match + Daily goal — design enrichi (changement 4) */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        {/* LAST MATCH : avatar adverse, score, delta ELO, h2h, lieu, format */}
         <button onClick={() => onNav('matches')} style={{ all: 'unset', cursor: 'pointer' }}>
-        <Card style={{ padding: 18 }}>
-          <div style={kicker}>LAST MATCH</div>
+        <Card style={{
+          padding: 14,
+          background: lastMatch
+            ? (lastMatch.win
+                ? 'linear-gradient(180deg, rgba(184,220,197,0.10) 0%, rgba(20,50,38,0) 70%), linear-gradient(180deg, #193E2F 0%, #143226 100%)'
+                : 'linear-gradient(180deg, rgba(232,155,139,0.10) 0%, rgba(20,50,38,0) 70%), linear-gradient(180deg, #193E2F 0%, #143226 100%)')
+            : undefined,
+          border: lastMatch
+            ? `1px solid ${lastMatch.win ? 'rgba(184,220,197,0.30)' : 'rgba(232,155,139,0.30)'}`
+            : undefined,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={kicker}>LAST MATCH</div>
+            {lastMatch && (
+              <span style={{
+                fontFamily: fontSans, fontWeight: 800, fontSize: 9.5,
+                color: lastMatch.win ? '#0C211A' : '#fff',
+                background: lastMatch.win ? C.mint : C.loss,
+                padding: '2px 7px', borderRadius: 999, letterSpacing: '0.08em',
+              }}>{lastMatch.win ? 'WIN' : 'LOSS'}</span>
+            )}
+          </div>
+
           {lastMatch ? (
             <>
-              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, color: C.ink, fontFamily: fontSans, fontWeight: 700, fontSize: 18 }}>
-                <span style={{ color: lastMatch.win ? C.mint : C.loss }}>{Icon.history(16)}</span>
-                {lastMatch.score} {lastMatch.win ? 'WIN' : 'LOSS'}
+              {/* Adversaire : avatar coloré + initiales */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                  background: `radial-gradient(60% 60% at 35% 30%, ${lastMatch.color?.[0] || C.mint} 0%, ${lastMatch.color?.[1] || C.mintDeep} 70%, #0C211A 100%)`,
+                  border: `1.5px solid ${C.borderHi}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#0C211A', fontFamily: fontSans, fontWeight: 800, fontSize: 11,
+                }}>{lastMatch.initials || (lastMatch.name || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontFamily: fontSans, fontWeight: 700, fontSize: 12.5, color: C.ink,
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>{(lastMatch.name || '').replace('.', '').split(' ').map(w => w[0] + w.slice(1).toLowerCase()).join(' ')}</div>
+                  <div style={{ fontFamily: fontSans, fontSize: 10.5, color: C.inkDim, marginTop: 1 }}>
+                    {lastMatch.when || 'récemment'}{lastMatch.format ? ` · ${lastMatch.format}` : ''}
+                  </div>
+                </div>
               </div>
-              <div style={{ marginTop: 6, color: C.inkDim, fontFamily: fontSans, fontSize: 13 }}>
-                vs. {lastMatch.name
-                  .replace('.', '')
-                  .split(' ')
-                  .map(w => w[0] + w.slice(1).toLowerCase())
-                  .join(' ')}
+
+              {/* Score + delta ELO */}
+              <div style={{
+                display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+                marginTop: 12, paddingTop: 10, borderTop: `1px solid ${C.border}`,
+              }}>
+                <div style={{
+                  fontFamily: fontDisplay, fontWeight: 800, fontSize: 26,
+                  color: C.ink, letterSpacing: '0.01em',
+                }}>{lastMatch.score}</div>
+                {Number.isFinite(lastMatch.elo) && (
+                  <div style={{
+                    fontFamily: fontSans, fontWeight: 800, fontSize: 13,
+                    color: lastMatch.elo >= 0 ? C.mint : C.loss,
+                  }}>{lastMatch.elo >= 0 ? '+' : ''}{lastMatch.elo} ELO</div>
+                )}
+              </div>
+
+              {/* H2H si dispo, sinon lieu */}
+              <div style={{
+                marginTop: 8, fontFamily: fontSans, fontSize: 10.5, color: C.inkDim,
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                {lastMatch.h2h
+                  ? <>H2H {lastMatch.h2h.record} · {lastMatch.h2h.winRate}% win</>
+                  : (lastMatch.where && <><span style={{ color: C.warm }}>{Icon.pin(11)}</span> {lastMatch.where}</>)}
               </div>
             </>
           ) : (
-            <div style={{ marginTop: 12, color: C.inkDim, fontFamily: fontSans, fontSize: 13 }}>
-              Aucun match récent
+            <div style={{ marginTop: 14, color: C.inkDim, fontFamily: fontSans, fontSize: 12.5, lineHeight: 1.45 }}>
+              Aucun match récent. Lance ton premier match pour faire évoluer ton ELO.
             </div>
           )}
         </Card>
         </button>
-        <button onClick={() => showToast(`Daily goal: ${dailyGoalPct}% \u2014 ${dailyGoalPct === 0 ? 'commence !' : 'keep going!'}`)} style={{ all: 'unset', cursor: 'pointer' }}>
-        <Card style={{ padding: 18 }}>
-          <div style={kicker}>DAILY GOAL</div>
-          <div style={{ height: 6, background: 'rgba(184,220,197,0.18)', borderRadius: 99, marginTop: 18, overflow: 'hidden' }}>
-            <div style={{ width: `${dailyGoalPct}%`, height: '100%', background: `linear-gradient(90deg, ${C.mintDeep}, ${C.mint})`, borderRadius: 99 }} />
+
+        {/* DAILY GOAL : stats profil + progression jour */}
+        <button onClick={() => showToast(`Daily goal: ${dailyGoalPct}%`)} style={{ all: 'unset', cursor: 'pointer' }}>
+        <Card style={{ padding: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={kicker}>STATS JOUEUR</div>
+            <span style={{
+              fontFamily: fontSans, fontWeight: 800, fontSize: 9.5,
+              color: C.warm, background: 'rgba(232,201,155,0.12)',
+              border: '1px solid rgba(232,201,155,0.35)',
+              padding: '2px 7px', borderRadius: 999, letterSpacing: '0.08em',
+            }}>{profile?.player_type === 'competition' ? 'CLUB' : 'AMATEUR'}</span>
           </div>
-          <div style={{ marginTop: 10, color: C.ink, fontFamily: fontSans, fontWeight: 700, fontSize: 14, letterSpacing: '0.06em' }}>{dailyGoalPct}% COMPLETE</div>
+
+          {/* Grand chiffre : ELO actuel */}
+          <div style={{ marginTop: 10, display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <div style={{
+              fontFamily: fontDisplay, fontWeight: 800, fontSize: 32, color: C.ink, lineHeight: 1,
+            }}>{hasMatches ? elo : '—'}</div>
+            <div style={{ fontFamily: fontSans, fontSize: 10.5, color: C.inkDim }}>ELO</div>
+          </div>
+
+          {/* Win rate + matchs joués en deux mini-stats */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
+            <div>
+              <div style={{ fontFamily: fontSans, fontSize: 9.5, color: C.inkDim, letterSpacing: '0.10em', fontWeight: 700 }}>WIN RATE</div>
+              <div style={{ fontFamily: fontSans, fontWeight: 800, fontSize: 14, color: C.ink, marginTop: 2 }}>
+                {hasMatches ? `${Math.round(((profile?.matches_won ?? 0) / matchesPlayed) * 100)}%` : '—'}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontFamily: fontSans, fontSize: 9.5, color: C.inkDim, letterSpacing: '0.10em', fontWeight: 700 }}>MATCHS</div>
+              <div style={{ fontFamily: fontSans, fontWeight: 800, fontSize: 14, color: C.ink, marginTop: 2 }}>
+                {matchesPlayed}
+              </div>
+            </div>
+          </div>
+
+          {/* Mini barre objectif quotidien */}
+          <div style={{ marginTop: 12 }}>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between',
+              fontFamily: fontSans, fontSize: 9.5, color: C.inkDim,
+              letterSpacing: '0.08em', fontWeight: 700,
+            }}>
+              <span>OBJECTIF DU JOUR</span>
+              <span style={{ color: dailyGoalPct >= 100 ? C.mint : C.inkDim }}>{dailyGoalPct}%</span>
+            </div>
+            <div style={{
+              height: 5, background: 'rgba(184,220,197,0.18)',
+              borderRadius: 99, marginTop: 6, overflow: 'hidden',
+            }}>
+              <div style={{
+                width: `${Math.min(100, dailyGoalPct)}%`, height: '100%',
+                background: `linear-gradient(90deg, ${C.mintDeep}, ${C.mint})`, borderRadius: 99,
+              }} />
+            </div>
+          </div>
         </Card>
         </button>
       </div>
@@ -284,6 +501,8 @@ export default function HomeScreen({ onNav }) {
         </div>
       </Card>
       </button>
+
+      <HomeBoutiquePreview />
     </div>
   );
 }

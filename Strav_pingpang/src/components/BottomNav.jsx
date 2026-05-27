@@ -7,7 +7,6 @@ export default function BottomNav({ tab, onTab }) {
     { id: 'train',   label: 'TRAIN',   icon: Icon.brain },
     { id: 'finder',  label: 'FINDER',  icon: Icon.map },
     { id: 'leaderboard', label: 'RANKING', icon: Icon.trend },
-    { id: 'merch',   label: 'MERCH',   icon: Icon.bag },
   ];
   return (
     <div style={{
