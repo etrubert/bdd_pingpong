@@ -116,7 +116,7 @@ function StepConnexion({ onSignedUp, onSignedIn, currentSession, onContinueAsCur
         if (!result?.session) {
           try { await signIn({ email, password }); }
           catch (e) {
-            throw new Error(e.message || 'Compte créé mais connexion impossible (confirmation email requise ?)');
+            throw new Error(e.message || 'Compte créé. Vérifie ta boîte mail pour confirmer ton adresse.');
           }
         }
         await onSignedUp({ email });
@@ -203,8 +203,8 @@ function StepConnexion({ onSignedUp, onSignedIn, currentSession, onContinueAsCur
       </div>
 
       <div style={{ display: 'flex', gap: 10 }}>
-        <GhostBtn onClick={() => setError('Google OAuth — bientôt')}><GoogleIcon /> Google</GhostBtn>
-        <GhostBtn onClick={() => setError('Apple OAuth — bientôt')}><AppleIcon /> Apple</GhostBtn>
+        <GhostBtn onClick={() => setError('Connexion Google — bientôt disponible')}><GoogleIcon /> Google</GhostBtn>
+        <GhostBtn onClick={() => setError('Connexion Apple — bientôt disponible')}><AppleIcon /> Apple</GhostBtn>
       </div>
     </div>
   );
@@ -280,9 +280,9 @@ function StepIdentity({ onNext, onBack, initial, currentEmail, onSignOut }) {
 function StepPlayerType({ onNext, initial }) {
   const [type, setType] = useState(initial.playerType || 'club');
   const options = [
-    { id: 'fun',      title: 'Juste pour le fun',           sub: 'Quelques parties entre amis, au bar, en vacances. Pas de prise de tête.' },
-    { id: 'progress', title: 'Régulièrement, je progresse', sub: 'Je joue souvent, je veux suivre mon niveau et trouver des partenaires de mon calibre.' },
-    { id: 'club',     title: 'En club / compétition',       sub: "J'ai une licence, un classement officiel, je fais du championnat." },
+    { id: 'fun',      title: 'Juste pour le fun',           sub: 'Entre amis, sans prise de tête.' },
+    { id: 'progress', title: 'Régulièrement, je progresse', sub: 'Suivre mon niveau et trouver des partenaires.' },
+    { id: 'club',     title: 'En club / compétition',       sub: 'Avec licence et classement officiel.' },
   ];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -497,7 +497,7 @@ function StepClub({ onFinish, initial }) {
         ) : (
           <div style={{
             marginTop: 6, fontFamily: fontSans, fontSize: 12, color: C.inkDim,
-          }}>Sans licence, on te fera passer la calibration ELO juste après.</div>
+          }}>Sans licence, un court test de niveau suivra.</div>
         )}
       </div>
 
@@ -547,7 +547,7 @@ function StepClub({ onFinish, initial }) {
 
       <div style={{ marginTop: 12 }}>
         <PrimaryBtn onClick={handleSubmit} disabled={submitting}>
-          {submitting ? '...' : (hasLicense ? "LET'S PLAY" : 'Suivant')}
+          {submitting ? '...' : (hasLicense ? "C'EST PARTI" : 'Suivant')}
         </PrimaryBtn>
       </div>
     </div>

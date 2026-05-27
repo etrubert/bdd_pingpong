@@ -183,65 +183,75 @@ function ScopeDropdown({ filter, onSelect }) {
       {/* Bouton déclencheur */}
       <button onClick={() => setOpen(o => !o)} style={{
         all: 'unset', cursor: 'pointer', boxSizing: 'border-box', width: '100%',
-        display: 'flex', alignItems: 'center', gap: 12,
-        padding: '13px 16px', borderRadius: 14,
-        background: 'rgba(8,22,17,0.55)',
+        display: 'flex', alignItems: 'center', gap: 14,
+        padding: '12px 14px', borderRadius: 16,
+        background: 'linear-gradient(180deg, rgba(245,246,243,0.05) 0%, rgba(8,22,17,0.45) 100%)',
         border: `1px solid ${open ? C.warm : C.borderHi}`,
-        transition: 'border-color .15s ease',
+        boxShadow: open ? `0 0 0 3px rgba(232,201,155,0.12)` : 'none',
+        transition: 'border-color .15s ease, box-shadow .15s ease',
       }}>
         <span style={{
-          width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+          width: 42, height: 42, borderRadius: 13, flexShrink: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(232,201,155,0.16)', border: `1px solid ${C.streakBd || 'rgba(232,201,155,0.4)'}`,
-          fontSize: 17,
+          background: 'rgba(232,201,155,0.12)', border: `1px solid rgba(232,201,155,0.32)`,
+          fontSize: 20, lineHeight: 1,
         }}>{current.flag}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ ...kicker, color: C.inkDim, fontSize: 9.5 }}>CLASSEMENT</div>
-          <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 19, color: C.ink, letterSpacing: '0.02em', lineHeight: 1.1, marginTop: 2 }}>
-            {current.label}
-          </div>
+          <div style={{ ...kicker, color: C.inkFaint, fontSize: 9.5 }}>CLASSEMENT</div>
+          <div style={{
+            fontFamily: fontDisplay, fontWeight: 800, fontSize: 21, color: C.ink,
+            letterSpacing: '0.02em', lineHeight: 1.05, marginTop: 3,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>{current.label}</div>
         </div>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={C.warm} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
-          style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s ease', flexShrink: 0 }}>
-          <path d="M6 9l6 6 6-6" />
-        </svg>
+        <span style={{
+          width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(245,246,243,0.06)', border: `1px solid ${C.border}`,
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.warm} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+            style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s ease' }}>
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </span>
       </button>
 
       {/* Panneau déroulant */}
       {open && (
         <div style={{
           position: 'absolute', top: 'calc(100% + 8px)', left: 0, right: 0,
-          background: C.card, border: `1px solid ${C.borderHi}`, borderRadius: 16,
-          boxShadow: '0 16px 40px rgba(0,0,0,0.45)', overflow: 'hidden',
-          padding: '6px',
+          background: C.cardHi, border: `1px solid ${C.borderHi}`, borderRadius: 16,
+          boxShadow: '0 16px 40px rgba(0,0,0,0.5)', overflow: 'hidden',
+          padding: 8,
         }}>
           {groups.map((g, gi) => g.items.length > 0 && (
-            <div key={g.title}>
-              <div style={{ ...kicker, color: C.inkFaint, fontSize: 9.5, padding: '10px 12px 6px' }}>{g.title}</div>
+            <div key={g.title} style={{ marginTop: gi === 0 ? 0 : 6 }}>
+              <div style={{ ...kicker, color: C.inkFaint, fontSize: 9, padding: '8px 10px 4px' }}>{g.title}</div>
               {g.items.map(f => {
                 const active = f.value === filter;
                 return (
                   <button key={f.value} onClick={() => { onSelect(f.value); setOpen(false); }} style={{
                     all: 'unset', cursor: 'pointer', boxSizing: 'border-box', width: '100%',
                     display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '11px 12px', borderRadius: 10,
+                    padding: '11px 10px', borderRadius: 11,
                     background: active ? 'rgba(232,201,155,0.14)' : 'transparent',
                   }}>
-                    <span style={{ fontSize: 18, width: 22, textAlign: 'center' }}>{f.flag}</span>
+                    <span style={{
+                      width: 28, height: 28, borderRadius: 9, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'rgba(245,246,243,0.05)', fontSize: 16, lineHeight: 1,
+                    }}>{f.flag}</span>
                     <span style={{ flex: 1, fontFamily: fontSans, fontWeight: active ? 800 : 600, fontSize: 14.5, color: active ? C.warm : C.ink }}>
                       {f.label}
                     </span>
                     {active && (
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.warm} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.warm} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                         <path d="M20 6L9 17l-5-5" />
                       </svg>
                     )}
                   </button>
                 );
               })}
-              {gi < groups.length - 1 && g.items.length > 0 && (
-                <div style={{ height: 1, background: C.border, margin: '6px 8px' }} />
-              )}
             </div>
           ))}
         </div>
@@ -368,11 +378,11 @@ export default function Leaderboard({ currentUserId }) {
     }}>
       {/* --- Header --- */}
       <div>
-        <div style={{ ...kicker, color: C.warm }}>CLASSEMENT MONDIAL</div>
+        <div style={{ ...kicker, color: C.warm }}>PING PANG PARIS</div>
         <div style={{
           fontFamily: fontDisplay, fontWeight: 800, fontSize: 44, lineHeight: 1,
           color: C.ink, marginTop: 6, letterSpacing: '0.02em',
-        }}>LEADERBOARD</div>
+        }}>CLASSEMENT</div>
         <div style={{ fontFamily: fontSans, fontSize: 13, color: C.inkDim, marginTop: 6 }}>
           {totalPlayers.toLocaleString('fr-FR')} joueurs · saison en cours
         </div>
@@ -729,7 +739,7 @@ function StatBoxes({ me, totalPlayers, countryRank }) {
         label={(<span>RANG {countryFlag(me.country)}</span>)}
         value={countryRank != null ? `#${countryRank}` : '—'}
       />
-      <StatBox label="STREAK" value={(<span>🔥 {streak}</span>)} accent={streak >= 5 ? C.loss : undefined} />
+      <StatBox label="SÉRIE" value={(<span>🔥 {streak}</span>)} accent={streak >= 5 ? C.loss : undefined} />
     </div>
   );
 }

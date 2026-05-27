@@ -133,12 +133,12 @@ function SessionSheet() {
   return (
     <div style={{ fontFamily: fontSans, color: C.ink }}>
       <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 4 }}>LE MARAIS PING</div>
-      <div style={{ color: C.inkDim, fontSize: 13, marginBottom: 16 }}>Tomorrow &bull; 18:30 &ndash; 20:30</div>
+      <div style={{ color: C.inkDim, fontSize: 13, marginBottom: 16 }}>Demain &bull; 18:30 &ndash; 20:30</div>
       {[
         ['Coach','Vincent M.'],
-        ['Tables','2 reserved'],
-        ['Partners','Marc-Andre, Sofia'],
-        ['Focus','Backhand counter-loop'],
+        ['Tables','2 r\u00e9serv\u00e9es'],
+        ['Partenaires','Marc-Andr\u00e9, Sofia'],
+        ['Objectif','Revers en contre-attaque'],
       ].map(([k,v]) => (
         <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: `1px solid ${C.border}` }}>
           <span style={{ ...kicker }}>{k.toUpperCase()}</span>
@@ -146,8 +146,8 @@ function SessionSheet() {
         </div>
       ))}
       <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
-        <button onClick={() => { closeSheet(); showToast('Session confirmed \u2713'); }} style={btnPrimary}>CONFIRM</button>
-        <button onClick={() => { closeSheet(); showToast('Reschedule sent to club'); }} style={btnGhost}>RESCHEDULE</button>
+        <button onClick={() => { closeSheet(); showToast('S\u00e9ance confirm\u00e9e \u2713'); }} style={btnPrimary}>CONFIRMER</button>
+        <button onClick={() => { closeSheet(); showToast('Demande de report envoy\u00e9e au club'); }} style={btnGhost}>REPROGRAMMER</button>
       </div>
     </div>
   );
@@ -187,15 +187,15 @@ export default function HomeScreen({ onNav }) {
       <button onClick={() => openSheet({ title: displayName, body: <ProfileSheet /> })}
         style={{ all: 'unset', cursor: 'pointer', display: 'block' }}>
       <Card style={{ padding: '16px 18px' }}>
-        <div style={kicker}>ACTIVE PLAYER</div>
+        <div style={kicker}>JOUEUR</div>
         <div style={{
           fontFamily: fontDisplay, fontWeight: 800, fontSize: 42, lineHeight: 0.95,
           color: C.mint, letterSpacing: '0.01em', marginTop: 4, marginBottom: 14,
         }}>{firstName}</div>
 
-        <StatRow label="ELO RATING" value={eloDisplay} />
+        <StatRow label="CLASSEMENT ELO" value={eloDisplay} />
         <div style={{ height: 1, background: C.border, margin: '10px 0' }} />
-        <StatRow label="GLOBAL RANK" value={fftt} valueFont={fontDisplay} />
+        <StatRow label="RANG MONDIAL" value={fftt} valueFont={fontDisplay} />
 
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -207,7 +207,7 @@ export default function HomeScreen({ onNav }) {
           fontFamily: fontSans, fontWeight: 700, fontSize: 11, letterSpacing: '0.10em',
         }}>
           <span style={{ width: 6, height: 6, borderRadius: 99, background: C.cream }} />
-          STREAK: {streakDays} {streakDays === 1 ? 'DAY' : 'DAYS'}
+          SÉRIE : {streakDays} {streakDays === 1 ? 'JOUR' : 'JOURS'}
         </div>
       </Card>
       </button>
@@ -236,7 +236,7 @@ export default function HomeScreen({ onNav }) {
             fontFamily: fontSans, fontWeight: 700, fontSize: 14,
             letterSpacing: '0.18em', cursor: 'pointer',
             boxShadow: '0 0 32px rgba(245,246,243,0.35), 0 10px 30px rgba(0,0,0,0.3)',
-          }}>QUICK START TRAINING</button>
+          }}>DÉMARRER L'ENTRAÎNEMENT</button>
         </div>
       </div>
 
@@ -256,14 +256,14 @@ export default function HomeScreen({ onNav }) {
             : undefined,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={kicker}>LAST MATCH</div>
+            <div style={kicker}>DERNIER MATCH</div>
             {lastMatch && (
               <span style={{
                 fontFamily: fontSans, fontWeight: 800, fontSize: 9.5,
                 color: lastMatch.win ? '#092C25' : '#fff',
                 background: lastMatch.win ? C.mint : C.loss,
                 padding: '2px 7px', borderRadius: 999, letterSpacing: '0.08em',
-              }}>{lastMatch.win ? 'WIN' : 'LOSS'}</span>
+              }}>{lastMatch.win ? 'GAGNÉ' : 'PERDU'}</span>
             )}
           </div>
 
@@ -327,7 +327,7 @@ export default function HomeScreen({ onNav }) {
         </button>
 
         {/* DAILY GOAL : stats profil + progression jour */}
-        <button onClick={() => showToast(`Daily goal: ${dailyGoalPct}%`)} style={{ all: 'unset', cursor: 'pointer' }}>
+        <button onClick={() => showToast(`Objectif du jour : ${dailyGoalPct}%`)} style={{ all: 'unset', cursor: 'pointer' }}>
         <Card style={{ padding: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={kicker}>STATS JOUEUR</div>
@@ -350,7 +350,7 @@ export default function HomeScreen({ onNav }) {
           {/* Win rate + matchs joués en deux mini-stats */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
             <div>
-              <div style={{ fontFamily: fontSans, fontSize: 9.5, color: C.inkDim, letterSpacing: '0.10em', fontWeight: 700 }}>WIN RATE</div>
+              <div style={{ fontFamily: fontSans, fontSize: 9.5, color: C.inkDim, letterSpacing: '0.10em', fontWeight: 700 }}>% VICTOIRES</div>
               <div style={{ fontFamily: fontSans, fontWeight: 800, fontSize: 14, color: C.ink, marginTop: 2 }}>
                 {playedCount ? `${winRatePct}%` : '—'}
               </div>
@@ -397,7 +397,7 @@ export default function HomeScreen({ onNav }) {
             border: '1px solid rgba(232,201,155,0.35)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <div style={kicker}>NEXT MATCH</div>
+              <div style={kicker}>PROCHAIN MATCH</div>
               <span style={{
                 fontFamily: fontSans, fontWeight: 800, fontSize: 10,
                 color: C.warm, background: 'rgba(232,201,155,0.18)',
@@ -450,7 +450,7 @@ export default function HomeScreen({ onNav }) {
                 color: '#7DA9F4', background: 'rgba(66,133,244,0.18)',
                 border: '1px solid rgba(66,133,244,0.40)',
                 padding: '3px 9px', borderRadius: 999, letterSpacing: '0.10em',
-              }}>À TRAITER</span>
+              }}>À RÉPONDRE</span>
             </div>
             <div style={{
               marginTop: 4, color: C.ink, fontFamily: fontSans, fontWeight: 700, fontSize: 16,
@@ -478,9 +478,9 @@ export default function HomeScreen({ onNav }) {
           <Card style={{ padding: 18 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ textAlign: 'left' }}>
-                <div style={kicker}>NEXT CLUB SESSION</div>
+                <div style={kicker}>PROCHAINE SÉANCE CLUB</div>
                 <div style={{ marginTop: 8, color: C.ink, fontFamily: fontSans, fontWeight: 700, fontSize: 16, letterSpacing: '0.04em' }}>LE MARAIS PING</div>
-                <div style={{ color: C.inkDim, fontFamily: fontSans, fontSize: 13, marginTop: 2 }}>Tomorrow, 18:30</div>
+                <div style={{ color: C.inkDim, fontFamily: fontSans, fontSize: 13, marginTop: 2 }}>Demain, 18:30</div>
               </div>
               <div style={{ color: C.inkDim }}>{Icon.calendar(26)}</div>
             </div>
