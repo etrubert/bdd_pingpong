@@ -1,4 +1,4 @@
-import { C, fontDisplay, fontSans, fontItalic, kicker, btnPrimary, btnGhost } from '../theme';
+import { C, fontDisplay, fontSans, kicker, btnPrimary, btnGhost } from '../theme';
 import { Icon } from '../icons';
 import { useUI } from '../components/uiContext';
 import { ProfileSheet } from '../components/TopBar';
@@ -165,12 +165,11 @@ export default function HomeScreen({ onNav }) {
   const isClubPlayer = profile?.player_type === 'competition';
   const hasMatches = matchesPlayed > 0;
   const elo = profile?.elo_rating ?? 0;
-  const eloDisplay = hasMatches ? `${elo} (Glicko-2)` : '— (à jouer)';
+  const eloDisplay = hasMatches ? `${elo}` : '—';
   const fftt = profile?.fftt_classification || (isClubPlayer ? '—' : 'Non classé');
-  // Streak / volume / daily goal : zero par defaut tant qu'aucun match
+  // Streak / daily goal : zero par defaut tant qu'aucun match
   const streakDays = hasMatches ? 5 : 0;
   const dailyGoalPct = hasMatches ? 75 : 0;
-  const trainingHours = hasMatches ? 12.4 : 0;
   const nextChallenge = acceptedChallenges[0];        // priorité 1 : défi accepté
   const pendingChallenge = incomingChallenges[0];     // priorité 2 : défi en attente
   const lastMatch = matches[0];                       // match le plus récent
@@ -208,7 +207,7 @@ export default function HomeScreen({ onNav }) {
       {/* Streak de connexion (changement 2) — incite au retour quotidien */}
       <StreakCard displayName={firstName} />
 
-      {/* Quote + CTA */}
+      {/* CTA */}
       <div style={{
         position: 'relative', borderRadius: 22, overflow: 'hidden',
         border: `1px solid ${C.border}`,
@@ -221,15 +220,7 @@ export default function HomeScreen({ onNav }) {
             background: 'radial-gradient(60% 50% at 50% 35%, rgba(184,220,197,0.10) 0%, rgba(20,50,38,0) 70%), linear-gradient(180deg, rgba(20,50,38,0) 40%, rgba(20,50,38,0.85) 90%)',
           }} />
         </div>
-        <div style={{ position: 'relative', padding: '26px 24px 24px' }}>
-          <div style={{
-            fontFamily: fontItalic, fontStyle: 'italic',
-            fontSize: 21, lineHeight: 1.25, color: C.ink,
-            textWrap: 'pretty',
-          }}>
-            &ldquo;Precision is not an accident. It is the result of high-intent training.&rdquo;
-          </div>
-          <div style={{ height: 130 }} />
+        <div style={{ position: 'relative', padding: 14 }}>
           <button onClick={() => onNav('train')} style={{
             width: '100%', padding: '18px 20px', borderRadius: 16,
             background: C.mint, border: 'none',
@@ -319,7 +310,7 @@ export default function HomeScreen({ onNav }) {
             </>
           ) : (
             <div style={{ marginTop: 14, color: C.inkDim, fontFamily: fontSans, fontSize: 12.5, lineHeight: 1.45 }}>
-              Aucun match récent. Lance ton premier match pour faire évoluer ton ELO.
+              Aucun match récent.
             </div>
           )}
         </Card>
@@ -486,21 +477,6 @@ export default function HomeScreen({ onNav }) {
           </Card>
         </button>
       )}
-
-      {/* Training volume */}
-      <button onClick={() => showToast(`Training volume: ${trainingHours}h this week`)}
-        style={{ all: 'unset', cursor: 'pointer', display: 'block' }}>
-      <Card style={{ padding: 18 }}>
-        <div style={kicker}>TRAINING VOLUME</div>
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 6 }}>
-          <div style={{
-            fontFamily: fontDisplay, fontWeight: 800, fontSize: 46,
-            color: C.ink, letterSpacing: '0.01em', lineHeight: 1,
-          }}>{trainingHours}H</div>
-          <div style={{ color: C.cream, fontFamily: fontSans, fontWeight: 700, fontSize: 12, letterSpacing: '0.14em' }}>THIS WEEK</div>
-        </div>
-      </Card>
-      </button>
 
       <HomeBoutiquePreview />
     </div>

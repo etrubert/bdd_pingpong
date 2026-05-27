@@ -5,6 +5,7 @@
 1. Ouvre **SQL Editor** dans ton dashboard Supabase
 2. Colle et execute `01_schema.sql` (cree toutes les tables)
 3. Colle et execute `02_seed.sql` (peuple avec les donnees du mockup)
+4. Colle et execute `04_community_tables.sql` (tables publiques ajoutees par la communaute + bucket photos)
 
 ## Tables creees
 
@@ -66,3 +67,26 @@ limit 10;
 ## RLS (Row Level Security)
 
 Les RLS policies ne sont **pas activees** dans `01_schema.sql` pour permettre des tests rapides. Une fois l'auth en place, decommenter les `enable row level security` en bas du fichier et ajouter des policies (`select`, `insert`, `update`) qui filtrent par `auth.uid()`.
+
+## Tables publiques communautaires (`04_community_tables.sql`)
+
+Permet, depuis le Finder (onglet **TABLES**), d'ajouter une table de ping-pong publique
+non referencee avec une photo.
+
+Le script `04_community_tables.sql` cree tout automatiquement :
+
+- la table `public.community_tables` (lat/lon, nb_tables, indoor, type, photo_url, status...)
+- le **bucket Storage public `table-photos`** + ses policies (lecture publique, upload ouvert)
+- les RLS souples (select des tables non rejetees, insert ouvert via la cle anon)
+
+> Le bucket est cree par le `INSERT INTO storage.buckets` du script. Si ta version de Supabase
+> refuse l'INSERT dans `storage.buckets` depuis le SQL Editor, cree-le a la main :
+> **Storage › New bucket › nom `table-photos` › Public** coche, puis rejoue uniquement la
+> section 3 du script pour les policies.
+
+Verification :
+
+```sql
+select count(*) from public.community_tables;                 -- 0 au depart
+select id, public from storage.buckets where id = 'table-photos';
+```
