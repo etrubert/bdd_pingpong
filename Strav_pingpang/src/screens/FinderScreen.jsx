@@ -9,6 +9,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { C, fontDisplay, fontSans, kicker, inputStyle } from '../theme';
 import Card from '../components/Card';
 import { useSharing } from '../lib/sharing';
+import { useLiveLocation } from '../lib/liveLocation';
 import { FRIEND_POSITIONS } from '../lib/friendsPositions';
 
 // Liste des amis (dupliquée ici depuis TopBar pour éviter import circulaire)
@@ -164,6 +165,69 @@ const tableIcon = L.divIcon({
   popupAnchor: [0, -8],
 });
 
+// Style commun aux clusters (clubs + tables) — palette de l'app
+function makeClusterIcon(count) {
+  let size = 36;
+  let bg = '#9BC9AE';
+  if (count >= 1000)      { size = 60; bg = '#E89B8B'; }
+  else if (count >= 250)  { size = 52; bg = '#E8C99B'; }
+  else if (count >= 50)   { size = 44; bg = '#EFE5C8'; }
+  const label = count >= 1000 ? `${Math.round(count / 100) / 10}k` : String(count);
+  return L.divIcon({
+    html: `<div style="
+      width:${size}px;height:${size}px;border-radius:50%;
+      background:${bg};color:#0C211A;
+      display:flex;align-items:center;justify-content:center;
+      font-family:Inter,system-ui,sans-serif;font-weight:800;
+      font-size:${size > 50 ? 14 : 13}px;letter-spacing:0.02em;
+      border:2px solid rgba(12,33,26,0.85);
+      box-shadow:0 4px 12px rgba(0,0,0,0.35);
+    ">${label}</div>`,
+    className: 'pp-cluster',
+    iconSize: [size, size],
+  });
+}
+
+// Layer cluster pour les clubs FFTT (~3500 points → sans clustering, ça rame).
+// Même look & feel que TablesClusterLayer : popup avec lien Google Maps, click
+// pour sélectionner. markersRef permet d'ouvrir un popup depuis la recherche.
+function ClubsClusterLayer({ clubs, markersRef, onSelect }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!clubs.length) return undefined;
+    const group = L.markerClusterGroup({
+      chunkedLoading: true,
+      chunkInterval: 80,
+      chunkDelay: 16,
+      maxClusterRadius: 60,
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      iconCreateFunction: (cluster) => makeClusterIcon(cluster.getChildCount()),
+    });
+    const markers = clubs.map((club) => {
+      const lat = parseFloat(club.latitude);
+      const lon = parseFloat(club.longitude);
+      const m = L.marker([lat, lon], { icon: googleStylePin });
+      const linkPart = club.url
+        ? `<a href="${club.url}" target="_blank" rel="noopener noreferrer">Voir sur Google Maps</a>`
+        : '';
+      m.bindPopup(`<div style="font-family:sans-serif;font-size:13px">
+        <strong>${club.club_nom}</strong><br>${linkPart}
+      </div>`);
+      m.on('click', () => onSelect && onSelect(club));
+      if (markersRef) markersRef.current[club.club_nom] = m;
+      return m;
+    });
+    group.addLayers(markers);
+    map.addLayer(group);
+    return () => {
+      map.removeLayer(group);
+      if (markersRef) markersRef.current = {};
+    };
+  }, [clubs, map, markersRef, onSelect]);
+  return null;
+}
+
 // Layer Leaflet.markercluster avec style sur-mesure dans le theme de l'app
 function TablesClusterLayer({ tables }) {
   const map = useMap();
@@ -176,28 +240,7 @@ function TablesClusterLayer({ tables }) {
       maxClusterRadius: 60,
       spiderfyOnMaxZoom: true,
       showCoverageOnHover: false,
-      iconCreateFunction: (cluster) => {
-        const count = cluster.getChildCount();
-        let size = 36;
-        let bg = '#9BC9AE';
-        if (count >= 1000)      { size = 60; bg = '#E89B8B'; }
-        else if (count >= 250)  { size = 52; bg = '#E8C99B'; }
-        else if (count >= 50)   { size = 44; bg = '#EFE5C8'; }
-        const label = count >= 1000 ? `${Math.round(count / 100) / 10}k` : String(count);
-        return L.divIcon({
-          html: `<div style="
-            width:${size}px;height:${size}px;border-radius:50%;
-            background:${bg};color:#0C211A;
-            display:flex;align-items:center;justify-content:center;
-            font-family:Inter,system-ui,sans-serif;font-weight:800;
-            font-size:${size > 50 ? 14 : 13}px;letter-spacing:0.02em;
-            border:2px solid rgba(12,33,26,0.85);
-            box-shadow:0 4px 12px rgba(0,0,0,0.35);
-          ">${label}</div>`,
-          className: 'pp-cluster',
-          iconSize: [size, size],
-        });
-      },
+      iconCreateFunction: (cluster) => makeClusterIcon(cluster.getChildCount()),
     });
     const markers = tables.map(t => {
       const m = L.marker([t.lat, t.lon], { icon: tableIcon });
@@ -229,50 +272,21 @@ export default function FinderScreen() {
   const mapCardRef = useRef(null);
   const markersRef = useRef({});
 
-  // === Geolocalisation ===
-  const [userPos, setUserPos] = useState(() => {
-    try {
-      const saved = localStorage.getItem('pp_user_pos');
-      return saved ? JSON.parse(saved) : null;
-    } catch { return null; }
-  });
-  const [geoStatus, setGeoStatus] = useState('idle'); // idle | asking | granted | denied | unsupported
-  const [geoError, setGeoError] = useState('');
+  // === Géolocalisation en direct (changement 3) ===
+  // On consomme le hook partagé : le suivi continu (watchPosition) est géré
+  // globalement, la carte se met à jour en temps réel partout dans l'app.
+  const { pos: userPos, status: geoStatus, error: geoError, grant: requestLocation } = useLiveLocation();
 
   // Partage position + statut en ligne avec les amis (consentement unifié)
   const { sharing, setSharing } = useSharing();
   // Affichage des amis sur la carte : seulement si je partage moi-même
   const [showFriends, setShowFriends] = useState(true);
 
-  // Si on a deja une position dans le localStorage au mount, on marque granted
+  // Quand la position devient active, on active aussi le partage du statut.
   useEffect(() => {
-    if (userPos && geoStatus === 'idle') setGeoStatus('granted');
+    if (geoStatus === 'granted' && !sharing) setSharing(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const requestLocation = () => {
-    if (!('geolocation' in navigator)) {
-      setGeoStatus('unsupported');
-      setGeoError("Ton navigateur ne supporte pas la geolocalisation");
-      return;
-    }
-    setGeoStatus('asking');
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const p = [pos.coords.latitude, pos.coords.longitude];
-        setUserPos(p);
-        setGeoStatus('granted');
-        // En acceptant de partager la position, on active aussi le partage du statut en ligne
-        setSharing(true);
-        try { localStorage.setItem('pp_user_pos', JSON.stringify(p)); } catch {}
-      },
-      (err) => {
-        setGeoStatus('denied');
-        setGeoError(err.code === 1 ? 'Permission refusee' : 'Position introuvable');
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 },
-    );
-  };
+  }, [geoStatus]);
 
   useEffect(() => {
     fetch('/data/maps_clubs.csv')
@@ -591,35 +605,13 @@ export default function FinderScreen() {
                     </Marker>
                   );
                 })}
-                {mode === 'clubs' && clubsGeoloc.map((club) => {
-                  const lat = parseFloat(club.latitude);
-                  const lon = parseFloat(club.longitude);
-                  return (
-                    <Marker
-                      key={club.club_nom}
-                      position={[lat, lon]}
-                      icon={googleStylePin}
-                      ref={(ref) => {
-                        if (ref) markersRef.current[club.club_nom] = ref;
-                      }}
-                      eventHandlers={{
-                        click: () => setSelectedClub(club),
-                      }}
-                    >
-                      <Popup>
-                        <div style={{ fontFamily: 'sans-serif', fontSize: 13 }}>
-                          <strong>{club.club_nom}</strong>
-                          <br />
-                          {club.url && (
-                            <a href={club.url} target="_blank" rel="noopener noreferrer">
-                              Voir sur Google Maps
-                            </a>
-                          )}
-                        </div>
-                      </Popup>
-                    </Marker>
-                  );
-                })}
+                {mode === 'clubs' && (
+                  <ClubsClusterLayer
+                    clubs={clubsGeoloc}
+                    markersRef={markersRef}
+                    onSelect={setSelectedClub}
+                  />
+                )}
                 {mode === 'tables' && <TablesClusterLayer tables={tablesFiltered} />}
               </MapContainer>
             </div>

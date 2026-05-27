@@ -196,4 +196,18 @@ export function useWorldRanking() {
   return { ranking, loading, error };
 }
 
+// Liste des clubs présents dans le classement, triés par nb de joueurs.
+// Sert au filtre "Par club" du Leaderboard (changement 6).
+export function listClubs(ranking) {
+  const map = new Map();
+  for (const p of ranking) {
+    if (!p.club) continue;
+    const entry = map.get(p.club) || { name: p.club, country: p.country, count: 0, topElo: 0 };
+    entry.count += 1;
+    entry.topElo = Math.max(entry.topElo, p.current_elo ?? 0);
+    map.set(p.club, entry);
+  }
+  return Array.from(map.values()).sort((a, b) => b.count - a.count || b.topElo - a.topElo);
+}
+
 export { COUNTRY_FILES, FED_STRENGTH };

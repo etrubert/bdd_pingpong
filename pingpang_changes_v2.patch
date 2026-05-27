@@ -1,0 +1,885 @@
+diff --git a/Strav_pingpang/src/App.jsx b/Strav_pingpang/src/App.jsx
+index ef6fcae..59e4905 100644
+--- a/Strav_pingpang/src/App.jsx
++++ b/Strav_pingpang/src/App.jsx
+@@ -8,11 +8,11 @@ import HomeScreen from './screens/HomeScreen';
+ import TrainScreen from './screens/TrainScreen';
+ import MatchesScreen from './screens/MatchesScreen';
+ import FinderScreen from './screens/FinderScreen';
+-import MerchScreen from './screens/MerchScreen';
+ import ChatScreen from './screens/ChatScreen';
+ import OnboardingScreen from './screens/OnboardingScreen';
+ import PlaceholderScreen from './screens/PlaceholderScreen';
+ import Leaderboard from './screens/Leaderboard';
++import LocationConsent from './components/LocationConsent';
+ import { useAuth } from './lib/auth';
+ 
+ function useViewport() {
+@@ -30,13 +30,9 @@ function useViewport() {
+ 
+ export default function App() {
+   const [tab, setTab] = useState('home');
+-  const [merchProduct, setMerchProduct] = useState(null);
+   const { vw, vh, isMobile } = useViewport();
+   const { isAuthed, profile, userId } = useAuth();
+ 
+-  // Ouvre un produit depuis le Home : on stocke le produit et on bascule sur MERCH.
+-  const openProduct = (p) => { setMerchProduct(p); setTab('merch'); };
+-
+   // À chaque (re)chargement de l'app, on veut TOUJOURS atterrir sur l'écran
+   // de connexion. Ce flag in-memory (non persisté) bascule sur true uniquement
+   // quand l'utilisateur clique explicitement CONTINUER ou termine l'onboarding.
+@@ -53,16 +49,15 @@ export default function App() {
+ 
+   const screen = useMemo(() => {
+     switch (tab) {
+-      case 'home':        return <HomeScreen onNav={setTab} onOpenProduct={openProduct} />;
++      case 'home':        return <HomeScreen onNav={setTab} />;
+       case 'train':       return <TrainScreen />;
+       case 'matches':     return <MatchesScreen />;
+       case 'leaderboard': return <Leaderboard currentUserId={userId} />;
+       case 'finder':      return <FinderScreen />;
+       case 'chat':        return <ChatScreen />;
+-      case 'merch':       return <MerchScreen initialProduct={merchProduct} onConsumeInitial={() => setMerchProduct(null)} />;
+-      default:            return <HomeScreen onNav={setTab} onOpenProduct={openProduct} />;
++      default:            return <HomeScreen onNav={setTab} />;
+     }
+-  }, [tab, userId, merchProduct]);
++  }, [tab, userId]);
+ 
+   const mockTopInset = 0;
+   const scrollRef = useRef(null);
+@@ -90,6 +85,8 @@ export default function App() {
+               {screen}
+             </div>
+             <BottomNav tab={tab} onTab={setTab} />
++            {/* Popup de consentement géoloc (changement 3) — couvre toute l'app */}
++            <LocationConsent />
+           </>
+         )}
+       </div>
+diff --git a/Strav_pingpang/src/components/BottomNav.jsx b/Strav_pingpang/src/components/BottomNav.jsx
+index 35a460a..9112001 100644
+--- a/Strav_pingpang/src/components/BottomNav.jsx
++++ b/Strav_pingpang/src/components/BottomNav.jsx
+@@ -7,7 +7,6 @@ export default function BottomNav({ tab, onTab }) {
+     { id: 'train',   label: 'TRAIN',   icon: Icon.brain },
+     { id: 'finder',  label: 'FINDER',  icon: Icon.map },
+     { id: 'leaderboard', label: 'RANKING', icon: Icon.trend },
+-    { id: 'merch',   label: 'MERCH',   icon: Icon.bag },
+   ];
+   return (
+     <div style={{
+diff --git a/Strav_pingpang/src/components/LocationConsent.jsx b/Strav_pingpang/src/components/LocationConsent.jsx
+new file mode 100644
+index 0000000..4ae308e
+--- /dev/null
++++ b/Strav_pingpang/src/components/LocationConsent.jsx
+@@ -0,0 +1,75 @@
++// =====================================================================
++// PING PANG PARIS — Popup de consentement géolocalisation (changement 3)
++//
++// Modal affiché tant que l'utilisateur n'a pas choisi (consent === null).
++// Explique le suivi en direct style Strava, puis Accepter / Refuser.
++// =====================================================================
++
++import { C, fontDisplay, fontSans } from '../theme';
++import { useLiveLocation } from '../lib/liveLocation';
++
++export default function LocationConsent() {
++  const { consent, status, grant, deny } = useLiveLocation();
++
++  // On n'affiche le popup que si aucun choix n'a encore été fait.
++  if (consent === 'granted' || consent === 'denied') return null;
++  if (status === 'asking') return null; // pendant la demande native, pas de modal
++
++  return (
++    <div style={{
++      position: 'absolute', inset: 0, zIndex: 50,
++      background: 'rgba(6,18,13,0.72)',
++      display: 'flex', alignItems: 'center', justifyContent: 'center',
++      padding: 24,
++    }}>
++      <div style={{
++        width: '100%', maxWidth: 320,
++        background: 'linear-gradient(180deg, #193E2F 0%, #143226 100%)',
++        border: `1px solid ${C.borderHi}`, borderRadius: 22,
++        padding: 24, textAlign: 'center',
++        boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
++      }}>
++        {/* Icône localisation */}
++        <div style={{
++          width: 56, height: 56, borderRadius: '50%', margin: '0 auto 16px',
++          background: 'rgba(66,133,244,0.18)', border: '1px solid rgba(66,133,244,0.45)',
++          display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7DA9F4',
++        }}>
++          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
++            <path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z" />
++            <circle cx="12" cy="9" r="2.5" />
++          </svg>
++        </div>
++
++        <div style={{
++          fontFamily: fontDisplay, fontWeight: 800, fontSize: 24, color: C.ink,
++          letterSpacing: '0.01em', lineHeight: 1.1,
++        }}>SUIVI EN DIRECT</div>
++
++        <div style={{
++          fontFamily: fontSans, fontSize: 13.5, color: C.inkDim, lineHeight: 1.5,
++          marginTop: 12,
++        }}>
++          Active ta position pour que la carte te suive en temps réel, voir les clubs
++          et tables autour de toi, et apparaître auprès de tes amis qui partagent aussi
++          leur position. Tu peux désactiver à tout moment.
++        </div>
++
++        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
++          <button onClick={grant} style={{
++            width: '100%', padding: '14px', borderRadius: 14, border: 'none',
++            background: '#4285F4', color: '#fff',
++            fontFamily: fontSans, fontWeight: 700, fontSize: 13.5, letterSpacing: '0.04em',
++            cursor: 'pointer',
++          }}>Activer ma position</button>
++          <button onClick={deny} style={{
++            width: '100%', padding: '12px', borderRadius: 14,
++            background: 'transparent', border: `1px solid ${C.border}`,
++            color: C.inkDim, fontFamily: fontSans, fontWeight: 700, fontSize: 13,
++            cursor: 'pointer',
++          }}>Plus tard</button>
++        </div>
++      </div>
++    </div>
++  );
++}
+diff --git a/Strav_pingpang/src/components/StreakCard.jsx b/Strav_pingpang/src/components/StreakCard.jsx
+index e0eda7b..8c1ca09 100644
+--- a/Strav_pingpang/src/components/StreakCard.jsx
++++ b/Strav_pingpang/src/components/StreakCard.jsx
+@@ -82,9 +82,14 @@ function StreakSheet({ board, myRank }) {
+ 
+       {/* Classement */}
+       <div style={{ ...kicker, marginBottom: 10 }}>CLASSEMENT STREAK</div>
+-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+-        {board.slice(0, 12).map(p => {
+-          const isPodium = p.rank <= 3;
++
++      {/* Podium top 3 (changement 1) */}
++      {board.length >= 3 && <StreakPodium players={board.slice(0, 3)} />}
++
++      {/* Reste du classement à partir du 4e */}
++      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: board.length >= 3 ? 16 : 0 }}>
++        {board.slice(3, 12).map(p => {
++          const isPodium = false;
+           return (
+             <div key={p.id} style={{
+               display: 'flex', alignItems: 'center', gap: 12,
+@@ -122,6 +127,68 @@ function StreakSheet({ board, myRank }) {
+   );
+ }
+ 
++// Podium top 3 du streak (2e à gauche, 1er surélevé au centre, 3e à droite).
++function StreakPodium({ players }) {
++  const [p2, p1, p3] = [players[1], players[0], players[2]];
++  return (
++    <div style={{
++      padding: '20px 14px 14px', borderRadius: 18,
++      background: 'rgba(8,22,17,0.45)', border: `1px solid ${C.border}`,
++    }}>
++      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.25fr 1fr', alignItems: 'end', gap: 10 }}>
++        <StreakPodiumSpot p={p2} rank={2} size={62} />
++        <StreakPodiumSpot p={p1} rank={1} size={80} crown />
++        <StreakPodiumSpot p={p3} rank={3} size={62} />
++      </div>
++    </div>
++  );
++}
++
++function StreakPodiumSpot({ p, rank, size, crown }) {
++  if (!p) return <div />;
++  const isGold = rank === 1;
++  const accent = isGold ? C.warm : 'rgba(184,220,197,0.55)';
++  const initials = (p.name || '?').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
++  return (
++    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
++      {crown && <div style={{ fontSize: 20, marginBottom: -3 }}>👑</div>}
++      <div style={{ position: 'relative' }}>
++        <div style={{
++          width: size, height: size, borderRadius: '50%',
++          background: 'radial-gradient(60% 60% at 35% 30%, #2A4D3E 0%, #143226 70%, #0C211A 100%)',
++          border: `2px solid ${accent}`,
++          boxShadow: isGold ? '0 0 26px rgba(232,201,155,0.40)' : 'none',
++          display: 'flex', alignItems: 'center', justifyContent: 'center',
++          color: C.ink, fontFamily: fontSans, fontWeight: 800, fontSize: size * 0.30,
++        }}>{initials}</div>
++        <div style={{
++          position: 'absolute', bottom: -4, right: -4,
++          width: 20, height: 20, borderRadius: '50%',
++          background: isGold ? C.warm : C.card,
++          border: isGold ? 'none' : `1px solid ${C.border}`,
++          color: isGold ? '#0C211A' : C.ink,
++          display: 'flex', alignItems: 'center', justifyContent: 'center',
++          fontFamily: fontSans, fontWeight: 800, fontSize: 10,
++        }}>{rank}</div>
++      </div>
++      <div style={{
++        fontFamily: fontSans, fontWeight: 700, fontSize: isGold ? 13 : 12, color: C.ink,
++        textAlign: 'center', lineHeight: 1.15, maxWidth: size + 22,
++        display: 'flex', alignItems: 'center', gap: 4,
++      }}>
++        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
++        {p.isMe && <span style={{
++          flexShrink: 0, padding: '1px 5px', borderRadius: 999,
++          background: C.warm, color: '#0C211A', fontSize: 8, fontWeight: 800,
++        }}>TOI</span>}
++      </div>
++      <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: isGold ? 22 : 18, color: isGold ? C.warm : C.ink }}>
++        🔥 {p.streak}
++      </div>
++    </div>
++  );
++}
++
+ export default function StreakCard({ displayName }) {
+   const { openSheet } = useUI();
+   const { current } = useLoginStreak();
+diff --git a/Strav_pingpang/src/lib/liveLocation.js b/Strav_pingpang/src/lib/liveLocation.js
+new file mode 100644
+index 0000000..0d6a19a
+--- /dev/null
++++ b/Strav_pingpang/src/lib/liveLocation.js
+@@ -0,0 +1,116 @@
++// =====================================================================
++// PING PANG PARIS — Géolocalisation en direct (changement 3)
++//
++// Suivi continu de la position style Strava : une fois le consentement
++// donné, navigator.geolocation.watchPosition() met à jour la position en
++// temps réel tant que l'app est ouverte. La position est partagée via un
++// store global (comme useSharing) pour que TOUTES les vues de l'app
++// (Finder, futur "live map") suivent l'utilisateur, pas seulement Finder.
++//
++// Consentement : l'utilisateur accepte ou refuse via le popup (LocationConsent).
++// L'état est persisté dans localStorage (pp_geo_consent).
++// =====================================================================
++
++import { useEffect, useState } from 'react';
++
++const KEY_CONSENT = 'pp_geo_consent';   // 'granted' | 'denied' | absent
++const KEY_POS = 'pp_user_pos';          // [lat, lon] dernière position connue
++
++// --- Store global (singleton) pour partager position + statut entre vues ---
++let _watchId = null;
++let _state = {
++  consent: readConsent(),
++  status: readConsent() === 'granted' ? 'granted' : 'idle', // idle|asking|granted|denied|unsupported
++  pos: readPos(),
++  error: '',
++};
++let _listeners = [];
++
++function readConsent() {
++  try { return localStorage.getItem(KEY_CONSENT) || null; } catch { return null; }
++}
++function readPos() {
++  try { const r = localStorage.getItem(KEY_POS); return r ? JSON.parse(r) : null; } catch { return null; }
++}
++function notify() { _listeners.forEach(l => l(_state)); }
++function setState(patch) { _state = { ..._state, ...patch }; notify(); }
++
++// Démarre le suivi continu (watchPosition). Idempotent.
++function startWatching() {
++  if (_watchId != null) return;
++  if (!('geolocation' in navigator)) {
++    setState({ status: 'unsupported', error: "Géolocalisation non supportée par ce navigateur" });
++    return;
++  }
++  setState({ status: 'asking', error: '' });
++  _watchId = navigator.geolocation.watchPosition(
++    (pos) => {
++      const p = [pos.coords.latitude, pos.coords.longitude];
++      try { localStorage.setItem(KEY_POS, JSON.stringify(p)); } catch { /* ignore */ }
++      setState({ pos: p, status: 'granted', error: '' });
++    },
++    (err) => {
++      if (err.code === 1) {
++        // Permission refusée → on coupe le suivi et on mémorise le refus
++        stopWatching();
++        try { localStorage.setItem(KEY_CONSENT, 'denied'); } catch { /* ignore */ }
++        setState({ status: 'denied', consent: 'denied', error: 'Permission refusée' });
++      } else {
++        setState({ status: 'granted', error: 'Position momentanément indisponible' });
++      }
++    },
++    { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
++  );
++}
++
++function stopWatching() {
++  if (_watchId != null) {
++    try { navigator.geolocation.clearWatch(_watchId); } catch { /* ignore */ }
++    _watchId = null;
++  }
++}
++
++// Appelé quand l'utilisateur ACCEPTE dans le popup.
++export function grantLocation() {
++  try { localStorage.setItem(KEY_CONSENT, 'granted'); } catch { /* ignore */ }
++  setState({ consent: 'granted' });
++  startWatching();
++}
++
++// Appelé quand l'utilisateur REFUSE dans le popup.
++export function denyLocation() {
++  try { localStorage.setItem(KEY_CONSENT, 'denied'); } catch { /* ignore */ }
++  stopWatching();
++  setState({ consent: 'denied', status: 'denied' });
++}
++
++// Coupe le partage (depuis un toggle), sans marquer un refus définitif.
++export function pauseLocation() {
++  stopWatching();
++  try { localStorage.removeItem(KEY_CONSENT); } catch { /* ignore */ }
++  setState({ consent: null, status: 'idle' });
++}
++
++// Hook : expose l'état live + les actions. Relance le suivi au montage si
++// le consentement a déjà été donné précédemment (suivi persistant).
++export function useLiveLocation() {
++  const [state, setLocalState] = useState(_state);
++
++  useEffect(() => {
++    const onChange = (s) => setLocalState(s);
++    _listeners.push(onChange);
++    // Reprise auto du suivi si déjà consenti et pas encore actif
++    if (_state.consent === 'granted' && _watchId == null) startWatching();
++    return () => { _listeners = _listeners.filter(l => l !== onChange); };
++  }, []);
++
++  return {
++    pos: state.pos,
++    status: state.status,
++    consent: state.consent,
++    error: state.error,
++    grant: grantLocation,
++    deny: denyLocation,
++    pause: pauseLocation,
++  };
++}
+diff --git a/Strav_pingpang/src/lib/worldPlayers.js b/Strav_pingpang/src/lib/worldPlayers.js
+index e9ef66a..ef42e69 100644
+--- a/Strav_pingpang/src/lib/worldPlayers.js
++++ b/Strav_pingpang/src/lib/worldPlayers.js
+@@ -196,4 +196,18 @@ export function useWorldRanking() {
+   return { ranking, loading, error };
+ }
+ 
++// Liste des clubs présents dans le classement, triés par nb de joueurs.
++// Sert au filtre "Par club" du Leaderboard (changement 6).
++export function listClubs(ranking) {
++  const map = new Map();
++  for (const p of ranking) {
++    if (!p.club) continue;
++    const entry = map.get(p.club) || { name: p.club, country: p.country, count: 0, topElo: 0 };
++    entry.count += 1;
++    entry.topElo = Math.max(entry.topElo, p.current_elo ?? 0);
++    map.set(p.club, entry);
++  }
++  return Array.from(map.values()).sort((a, b) => b.count - a.count || b.topElo - a.topElo);
++}
++
+ export { COUNTRY_FILES, FED_STRENGTH };
+diff --git a/Strav_pingpang/src/screens/FinderScreen.jsx b/Strav_pingpang/src/screens/FinderScreen.jsx
+index a99ef56..7969fc7 100644
+--- a/Strav_pingpang/src/screens/FinderScreen.jsx
++++ b/Strav_pingpang/src/screens/FinderScreen.jsx
+@@ -9,6 +9,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+ import { C, fontDisplay, fontSans, kicker, inputStyle } from '../theme';
+ import Card from '../components/Card';
+ import { useSharing } from '../lib/sharing';
++import { useLiveLocation } from '../lib/liveLocation';
+ import { FRIEND_POSITIONS } from '../lib/friendsPositions';
+ 
+ // Liste des amis (dupliquée ici depuis TopBar pour éviter import circulaire)
+@@ -229,50 +230,21 @@ export default function FinderScreen() {
+   const mapCardRef = useRef(null);
+   const markersRef = useRef({});
+ 
+-  // === Geolocalisation ===
+-  const [userPos, setUserPos] = useState(() => {
+-    try {
+-      const saved = localStorage.getItem('pp_user_pos');
+-      return saved ? JSON.parse(saved) : null;
+-    } catch { return null; }
+-  });
+-  const [geoStatus, setGeoStatus] = useState('idle'); // idle | asking | granted | denied | unsupported
+-  const [geoError, setGeoError] = useState('');
++  // === Géolocalisation en direct (changement 3) ===
++  // On consomme le hook partagé : le suivi continu (watchPosition) est géré
++  // globalement, la carte se met à jour en temps réel partout dans l'app.
++  const { pos: userPos, status: geoStatus, error: geoError, grant: requestLocation } = useLiveLocation();
+ 
+   // Partage position + statut en ligne avec les amis (consentement unifié)
+   const { sharing, setSharing } = useSharing();
+   // Affichage des amis sur la carte : seulement si je partage moi-même
+   const [showFriends, setShowFriends] = useState(true);
+ 
+-  // Si on a deja une position dans le localStorage au mount, on marque granted
++  // Quand la position devient active, on active aussi le partage du statut.
+   useEffect(() => {
+-    if (userPos && geoStatus === 'idle') setGeoStatus('granted');
++    if (geoStatus === 'granted' && !sharing) setSharing(true);
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+-  }, []);
+-
+-  const requestLocation = () => {
+-    if (!('geolocation' in navigator)) {
+-      setGeoStatus('unsupported');
+-      setGeoError("Ton navigateur ne supporte pas la geolocalisation");
+-      return;
+-    }
+-    setGeoStatus('asking');
+-    navigator.geolocation.getCurrentPosition(
+-      (pos) => {
+-        const p = [pos.coords.latitude, pos.coords.longitude];
+-        setUserPos(p);
+-        setGeoStatus('granted');
+-        // En acceptant de partager la position, on active aussi le partage du statut en ligne
+-        setSharing(true);
+-        try { localStorage.setItem('pp_user_pos', JSON.stringify(p)); } catch {}
+-      },
+-      (err) => {
+-        setGeoStatus('denied');
+-        setGeoError(err.code === 1 ? 'Permission refusee' : 'Position introuvable');
+-      },
+-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 },
+-    );
+-  };
++  }, [geoStatus]);
+ 
+   useEffect(() => {
+     fetch('/data/maps_clubs.csv')
+diff --git a/Strav_pingpang/src/screens/HomeScreen.jsx b/Strav_pingpang/src/screens/HomeScreen.jsx
+index 8222152..35fd1e4 100644
+--- a/Strav_pingpang/src/screens/HomeScreen.jsx
++++ b/Strav_pingpang/src/screens/HomeScreen.jsx
+@@ -7,7 +7,6 @@ import { PaddleSVG } from '../components/SVGIllustrations';
+ import { useAcceptedChallenges, useIncomingChallenges } from '../lib/challenges';
+ import { useMatches } from '../lib/matches';
+ import { useAuth } from '../lib/auth';
+-import { MerchHomeSection } from './MerchScreen';
+ import StreakCard from '../components/StreakCard';
+ 
+ function StatRow({ label, value, valueFont = fontSans }) {
+@@ -48,7 +47,7 @@ function SessionSheet() {
+   );
+ }
+ 
+-export default function HomeScreen({ onNav, onOpenProduct }) {
++export default function HomeScreen({ onNav }) {
+   const { showToast, openSheet } = useUI();
+   const [acceptedChallenges] = useAcceptedChallenges();
+   const [incomingChallenges] = useIncomingChallenges();
+@@ -289,12 +288,6 @@ export default function HomeScreen({ onNav, onOpenProduct }) {
+         </div>
+       </Card>
+       </button>
+-
+-      {/* Boutique en bas du Home (changement 1) */}
+-      <MerchHomeSection
+-        onOpenProduct={(p) => onOpenProduct?.(p)}
+-        onSeeAll={() => onNav('merch')}
+-      />
+     </div>
+   );
+ }
+diff --git a/Strav_pingpang/src/screens/Leaderboard.jsx b/Strav_pingpang/src/screens/Leaderboard.jsx
+index 0c0034c..fb5fe30 100644
+--- a/Strav_pingpang/src/screens/Leaderboard.jsx
++++ b/Strav_pingpang/src/screens/Leaderboard.jsx
+@@ -7,7 +7,7 @@
+ import { useState, useEffect, useMemo } from 'react';
+ import { C, fontDisplay, fontSans, kicker } from '../theme';
+ import { supabase } from '../lib/supabase';
+-import { useWorldRanking } from '../lib/worldPlayers';
++import { useWorldRanking, listClubs } from '../lib/worldPlayers';
+ 
+ // ----- Filtres disponibles (gardent toute la logique précédente) -----
+ const FILTERS = [
+@@ -96,6 +96,64 @@ function variationOf(player) {
+ 
+ // =====================================================================
+ 
++// ---------- Sélecteur de club (changement 6) ----------
++function ClubSelector({ clubs, selected, onSelect }) {
++  const [q, setQ] = useState('');
++  const filtered = useMemo(() => {
++    const n = q.trim().toLowerCase();
++    const base = n ? clubs.filter(c => c.name.toLowerCase().includes(n)) : clubs;
++    return base.slice(0, 40);
++  }, [clubs, q]);
++
++  return (
++    <div style={{
++      padding: 14, borderRadius: 16,
++      background: 'rgba(8,22,17,0.45)', border: `1px solid ${C.border}`,
++    }}>
++      <div style={{ ...kicker, color: C.warm, marginBottom: 10 }}>CHOISIR UN CLUB</div>
++      <input
++        value={q}
++        onChange={e => setQ(e.target.value)}
++        placeholder="Rechercher un club…"
++        style={{
++          width: '100%', boxSizing: 'border-box', padding: '11px 14px',
++          borderRadius: 10, background: 'rgba(8,22,17,0.6)',
++          border: `1px solid ${C.border}`, color: C.ink,
++          fontFamily: fontSans, fontSize: 13.5, outline: 'none', marginBottom: 10,
++        }}
++      />
++      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 230, overflowY: 'auto' }}>
++        {filtered.map(c => {
++          const active = selected === c.name;
++          return (
++            <button key={c.name} onClick={() => onSelect(c.name)} style={{
++              all: 'unset', cursor: 'pointer',
++              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
++              padding: '10px 12px', borderRadius: 10,
++              background: active ? 'rgba(232,201,155,0.12)' : 'rgba(8,22,17,0.5)',
++              border: `1px solid ${active ? 'rgba(232,201,155,0.45)' : C.border}`,
++            }}>
++              <span style={{
++                fontFamily: fontSans, fontWeight: 700, fontSize: 13, color: active ? C.warm : C.ink,
++                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, minWidth: 0,
++              }}>{countryFlag(c.country)} {c.name}</span>
++              <span style={{
++                flexShrink: 0, marginLeft: 10,
++                fontFamily: fontSans, fontSize: 11.5, color: C.inkDim,
++              }}>{c.count} {c.count > 1 ? 'joueurs' : 'joueur'}</span>
++            </button>
++          );
++        })}
++        {filtered.length === 0 && (
++          <div style={{ padding: '14px 0', textAlign: 'center', fontFamily: fontSans, fontSize: 12.5, color: C.inkDim }}>
++            Aucun club ne correspond
++          </div>
++        )}
++      </div>
++    </div>
++  );
++}
++
+ export default function Leaderboard({ currentUserId }) {
+   const [filter, setFilter] = useState('world');
+   const [expanded, setExpanded] = useState(false);
+@@ -105,6 +163,7 @@ export default function Leaderboard({ currentUserId }) {
+   const [nearbyClubNames, setNearbyClubNames] = useState(null);
+   const [myProfileClub, setMyProfileClub] = useState(null);
+   const [myCountryRank, setMyCountryRank] = useState(null);
++  const [selectedClub, setSelectedClub] = useState(null); // club choisi pour le filtre "club" (ch.6)
+ 
+   // Profil utilisateur (club + country rank + fallback ELO si pas encore dans le ranking)
+   const [myProfile, setMyProfile] = useState(null);
+@@ -144,6 +203,7 @@ export default function Leaderboard({ currentUserId }) {
+   // Classement mondial unifié (CSV scrapés normalisés + joueurs app Supabase)
+   const { ranking: worldRanking, loading: worldLoading } = useWorldRanking();
+   const totalPlayers = worldRanking.length;
++  const clubs = useMemo(() => listClubs(worldRanking), [worldRanking]); // ch.6
+ 
+   useEffect(() => { setExpanded(false); }, [filter]);
+ 
+@@ -165,8 +225,9 @@ export default function Leaderboard({ currentUserId }) {
+           const set = new Set(nearbyClubNames);
+           pool = worldRanking.filter(p => p.club && set.has(p.club));
+         } else if (filter === 'club') {
+-          if (!myProfileClub) { if (!cancelled) { setRows([]); setLoading(false); } return; }
+-          pool = worldRanking.filter(p => p.club === myProfileClub);
++          const club = selectedClub || myProfileClub;
++          if (!club) { if (!cancelled) { setRows([]); setLoading(false); } return; }
++          pool = worldRanking.filter(p => p.club === club);
+         }
+ 
+         // Rang local au filtre (1..n) tout en gardant l'ELO mondial
+@@ -189,7 +250,7 @@ export default function Leaderboard({ currentUserId }) {
+     }
+     run();
+     return () => { cancelled = true; };
+-  }, [filter, expanded, currentUserId, nearbyClubNames, myProfileClub, worldRanking, worldLoading]);
++  }, [filter, expanded, currentUserId, nearbyClubNames, myProfileClub, selectedClub, worldRanking, worldLoading]);
+ 
+   const top3 = useMemo(() => rows.slice(0, 3), [rows]);
+   const rest = useMemo(() => rows.slice(3), [rows]);
+@@ -197,9 +258,9 @@ export default function Leaderboard({ currentUserId }) {
+ 
+   const emptyMessage = filter === 'region' && nearbyClubNames?.length === 0
+     ? 'Aucun club Finder dans ton rayon (50 km). Active la géolocalisation dans Finder.'
+-    : filter === 'club' && !myProfileClub
+-      ? 'Tu n\'as pas renseigné de club dans ton profil.'
+-      : rows.length === 0 && !loading
++    : filter === 'club' && !selectedClub && !myProfileClub
++      ? 'Choisis un club ci-dessus pour voir son classement.'
++      : rows.length === 0 && !loading && !(filter === 'club' && !selectedClub && !myProfileClub)
+         ? 'Aucun joueur pour ce filtre.'
+         : null;
+ 
+@@ -245,6 +306,15 @@ export default function Leaderboard({ currentUserId }) {
+         })}
+       </div>
+ 
++      {/* --- Sélecteur de club (changement 6) --- */}
++      {filter === 'club' && (
++        <ClubSelector
++          clubs={clubs}
++          selected={selectedClub}
++          onSelect={setSelectedClub}
++        />
++      )}
++
+       {emptyMessage && (
+         <div style={{
+           padding: '28px 16px', textAlign: 'center',
+diff --git a/Strav_pingpang/src/screens/TrainScreen.jsx b/Strav_pingpang/src/screens/TrainScreen.jsx
+index 7642932..502e252 100644
+--- a/Strav_pingpang/src/screens/TrainScreen.jsx
++++ b/Strav_pingpang/src/screens/TrainScreen.jsx
+@@ -1,57 +1,10 @@
+-import { useState } from 'react';
+ import { C, fontDisplay, fontSans, kicker } from '../theme';
+ import { Icon } from '../icons';
+ import { useUI } from '../components/uiContext';
+ import Card from '../components/Card';
+ import Chip from '../components/Chip';
+-import { ArenaSVG, TrajectorySVG } from '../components/SVGIllustrations';
+ import { SESSIONS, SESSION_PHASES } from '../lib/sessions';
+ 
+-const DRILLS = {
+-  attacker: { title: '15 MIN POWER TOP-SPIN DRILL', intensity: 'HIGH', total: '15:00 TOTAL', steps: [
+-    { t: 'WARM-UP: SHADOW STROKES', d: '3 minutes of full-range motion without ball contact to align shoulder rotation.' },
+-    { t: 'RHYTHMIC REPETITION', d: '8 minutes: Forehand top-spin against backspin feed. Focus on contact point.' },
+-    { t: 'DYNAMIC TRANSITION', d: '4 minutes: Alternating backhand block and forehand power loop from mid-distance.' },
+-  ]},
+-  defender: { title: '18 MIN BLOCK & COUNTER DRILL', intensity: 'MEDIUM', total: '18:00 TOTAL', steps: [
+-    { t: 'CLOSE-TABLE STANCE', d: '4 minutes of low-bounce returns from feeder. Stay compact and reactive.' },
+-    { t: 'CHOP REPETITION',    d: '8 minutes: Long backhand chop with consistent depth and underspin.' },
+-    { t: 'COUNTER-LOOP STEP',  d: '6 minutes: Switch from defense to mid-distance counter-loop on cue.' },
+-  ]},
+-  blocker:  { title: '12 MIN PUNCH-BLOCK DRILL', intensity: 'MEDIUM', total: '12:00 TOTAL', steps: [
+-    { t: 'PADDLE SET-UP',   d: '3 minutes of half-volley positioning at the table edge.' },
+-    { t: 'BLOCK PLACEMENT', d: '6 minutes: Alternate cross-court and down-the-line blocks against top-spin feed.' },
+-    { t: 'PUNCH FINISH',    d: '3 minutes: Punch-block close to the net to end rallies fast.' },
+-  ]},
+-};
+-
+-function MetricsSheet() {
+-  const m = [
+-    ['Avg. impact angle', '38.4\u00B0'],
+-    ['RPM gain', '+14%'],
+-    ['Top spin consistency', '82%'],
+-    ['Reaction time', '0.31s'],
+-    ['Mid-distance accuracy', '76%'],
+-    ['Stamina index', 'A\u2212'],
+-  ];
+-  return (
+-    <div>
+-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
+-        {m.map(([k,v]) => (
+-          <div key={k} style={{
+-            padding: 14, borderRadius: 14,
+-            background: 'rgba(8,22,17,0.45)',
+-            border: `1px solid ${C.border}`,
+-          }}>
+-            <div style={{ ...kicker, fontSize: 10 }}>{k.toUpperCase()}</div>
+-            <div style={{ marginTop: 6, fontFamily: fontDisplay, fontWeight: 800, fontSize: 24, color: C.ink, letterSpacing: '0.02em' }}>{v}</div>
+-          </div>
+-        ))}
+-      </div>
+-    </div>
+-  );
+-}
+-
+ // =====================================================================
+ // SÉANCES GUIDÉES (changement 3)
+ // Vignette média : affiche une vidéo, une image, ou un placeholder
+@@ -188,176 +141,21 @@ function SessionsLibrary() {
+ }
+ 
+ export default function TrainScreen() {
+-  const { showToast, openSheet } = useUI();
+-  const [style, setStyle] = useState('attacker');
+-  const [focus, setFocus] = useState('');
+-  const [generated, setGenerated] = useState('attacker');
+-  const [done, setDone] = useState({});
+-  const drill = DRILLS[generated];
+-
+-  const toggleStep = (i) => setDone(d => ({ ...d, [`${generated}-${i}`]: !d[`${generated}-${i}`] }));
+-  const isDone = (i) => !!done[`${generated}-${i}`];
+-
+   return (
+     <div style={{ padding: '4px 18px 130px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+-      {/* Hero */}
+-      <div style={{
+-        position: 'relative', borderRadius: 22, overflow: 'hidden',
+-        border: `1px solid ${C.border}`, background: C.card,
+-        padding: '22px 22px 22px',
+-      }}>
+-        <div style={{
+-          display: 'inline-flex', alignItems: 'center',
+-          padding: '7px 16px', borderRadius: 999,
+-          border: `1px solid ${C.borderHi}`,
+-          background: 'rgba(184,220,197,0.05)',
+-          color: C.mint,
+-          fontFamily: fontSans, fontWeight: 700, fontSize: 11, letterSpacing: '0.18em',
+-        }}>TRAINING MODULE</div>
+-
++      {/* En-tete de l'ecran Train */}
++      <div>
++        <div style={kicker}>TRAIN</div>
+         <div style={{
+-          fontFamily: fontDisplay, fontWeight: 800, fontSize: 64, lineHeight: 0.92,
+-          color: C.ink, letterSpacing: '0.005em', marginTop: 14,
+-        }}>IA DRILL<br/>MASTER</div>
+-
++          fontFamily: fontDisplay, fontWeight: 800, fontSize: 50, lineHeight: 0.95,
++          color: C.ink, letterSpacing: '0.02em', marginTop: 6,
++        }}>SÉANCES</div>
+         <div style={{
+-          color: C.inkDim, fontFamily: fontSans, fontSize: 14, lineHeight: 1.45,
+-          marginTop: 12, textWrap: 'pretty',
+-        }}>Precision-engineered drills tailored to your specific mechanical profile. Elevate your ELO through rhythmic repetition.</div>
+-
+-        <div style={{
+-          marginTop: 18, height: 130, borderRadius: 14, overflow: 'hidden',
+-          border: `1px solid ${C.border}`, position: 'relative',
+-        }}>
+-          <ArenaSVG />
+-        </div>
+-      </div>
+-
+-      {/* Player style */}
+-      <Card style={{ padding: 20 }}>
+-        <div style={kicker}>01. PLAYER STYLE</div>
+-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 14 }}>
+-          {['attacker','defender','blocker'].map(opt => (
+-            <label key={opt} onClick={() => setStyle(opt)} style={{
+-              display: 'flex', alignItems: 'center', gap: 14, padding: '10px 4px',
+-              cursor: 'pointer', color: C.ink,
+-              userSelect: 'none',
+-            }}>
+-              <span style={{
+-                width: 22, height: 22, borderRadius: 99,
+-                border: `1.5px solid ${style === opt ? C.mint : 'rgba(242,247,242,0.45)'}`,
+-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+-              }}>
+-                {style === opt && <span style={{ width: 11, height: 11, background: C.mint, borderRadius: 99 }} />}
+-              </span>
+-              <span style={{ fontFamily: fontSans, fontWeight: 700, fontSize: 14, letterSpacing: '0.12em' }}>
+-                {opt.toUpperCase()}
+-              </span>
+-            </label>
+-          ))}
+-        </div>
+-      </Card>
+-
+-      {/* Focus point */}
+-      <Card style={{ padding: 20 }}>
+-        <div style={kicker}>02. FOCUS POINT</div>
+-        <input
+-          value={focus} onChange={e => setFocus(e.target.value)}
+-          placeholder="e.g. Backhand Speed"
+-          style={{
+-            marginTop: 12, width: '100%', boxSizing: 'border-box',
+-            padding: '14px 16px', borderRadius: 12,
+-            background: 'rgba(8,22,17,0.55)',
+-            border: `1px solid ${C.border}`,
+-            color: C.ink, fontFamily: fontSans, fontSize: 14,
+-            outline: 'none',
+-          }}
+-        />
+-        <button onClick={() => { setGenerated(style); setDone({}); showToast(`Drill generated for ${style.toUpperCase()}${focus ? ' \u2014 focus: ' + focus : ''}`); }} style={{
+-          marginTop: 14, width: '100%', padding: '15px 20px', borderRadius: 12,
+-          background: C.mint, border: 'none', color: '#0C211A',
+-          fontFamily: fontSans, fontWeight: 700, fontSize: 13, letterSpacing: '0.18em',
+-          cursor: 'pointer',
+-          boxShadow: '0 6px 20px rgba(184,220,197,0.18)',
+-        }}>GENERATE DRILL</button>
+-      </Card>
+-
+-      {/* Output */}
+-      <Card style={{ padding: 20 }}>
+-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+-          <div style={kicker}>RECOMMENDED OUTPUT</div>
+-          <div style={{ color: C.inkDim }}>{Icon.pin(16)}</div>
+-        </div>
+-        <div style={{
+-          marginTop: 6, fontFamily: fontDisplay, fontWeight: 800, fontSize: 19,
+-          color: C.ink, letterSpacing: '0.02em',
+-        }}>{drill.title}</div>
+-
+-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+-          {drill.steps.map((s, i) => {
+-            const d = isDone(i);
+-            return (
+-            <button key={i} onClick={() => toggleStep(i)} style={{
+-              all: 'unset', cursor: 'pointer',
+-              padding: '14px 16px', borderRadius: 14,
+-              background: d ? 'rgba(184,220,197,0.08)' : 'rgba(8,22,17,0.45)',
+-              border: `1px solid ${d ? C.borderHi : C.border}`,
+-              display: 'flex', gap: 14, alignItems: 'flex-start',
+-              transition: 'all .2s ease',
+-            }}>
+-              <div style={{
+-                fontFamily: fontDisplay, fontWeight: 800, fontSize: 22,
+-                color: C.mint, lineHeight: 1, minWidth: 26, letterSpacing: '0.02em',
+-                opacity: d ? 0.5 : 1,
+-              }}>{String(i+1).padStart(2,'0')}</div>
+-              <div style={{ flex: 1 }}>
+-                <div style={{ fontFamily: fontSans, fontWeight: 700, fontSize: 13.5, color: C.ink, letterSpacing: '0.08em', textDecoration: d ? 'line-through' : 'none', opacity: d ? 0.55 : 1 }}>{s.t}</div>
+-                <div style={{ marginTop: 6, fontFamily: fontSans, fontSize: 12.5, color: C.inkDim, lineHeight: 1.45 }}>{s.d}</div>
+-              </div>
+-              <div style={{
+-                width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+-                border: `1.5px solid ${d ? C.mint : 'rgba(242,247,242,0.35)'}`,
+-                background: d ? C.mint : 'transparent',
+-                color: '#0C211A',
+-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+-              }}>{d && Icon.check(14)}</div>
+-            </button>
+-            );
+-          })}
+-        </div>
+-
+-        <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
+-          <Chip><span style={{ color: C.cream }}>{Icon.clock(13)}</span> {drill.total}</Chip>
+-          <Chip><span style={{ color: C.cream }}>{Icon.trend(13)}</span> INTENSITY: {drill.intensity}</Chip>
+-        </div>
+-      </Card>
+-
+-      {/* Trajectory */}
+-      <div style={{
+-        position: 'relative', borderRadius: 22, overflow: 'hidden',
+-        border: `1px solid ${C.border}`, background: C.card,
+-      }}>
+-        <div style={{ height: 170, position: 'relative', overflow: 'hidden' }}>
+-          <TrajectorySVG />
+-        </div>
+-        <div style={{ padding: '4px 22px 22px' }}>
+-          <div style={{
+-            fontFamily: fontDisplay, fontWeight: 800, fontSize: 28, color: C.ink,
+-            letterSpacing: '0.01em',
+-          }}>TRAJECTORY ANALYSIS</div>
+-          <div style={{ color: C.inkDim, fontFamily: fontSans, fontSize: 13.5, lineHeight: 1.5, marginTop: 8, textWrap: 'pretty' }}>
+-            Our AI analyzes your impact angle to ensure maximum rotation. This specific drill increases your RPM by an average of 14%.
+-          </div>
+-          <button onClick={() => openSheet({ title: 'TRAJECTORY METRICS', body: <MetricsSheet /> })} style={{
+-            marginTop: 16, padding: '12px 20px', borderRadius: 12,
+-            background: 'transparent', border: `1px solid ${C.borderHi}`,
+-            color: C.cream, fontFamily: fontSans, fontWeight: 700, fontSize: 12,
+-            letterSpacing: '0.18em', cursor: 'pointer',
+-          }}>VIEW FULL METRICS</button>
+-        </div>
++          fontFamily: fontSans, fontSize: 13, color: C.inkDim, marginTop: 8, lineHeight: 1.5,
++        }}>Programmes guidés : échauffement, exercices et récupération.</div>
+       </div>
+ 
+-      {/* Séances guidées avec emplacements photos/vidéos (changement 3) */}
++      {/* Séances guidées avec emplacements photos/vidéos */}
+       <SessionsLibrary />
+     </div>
+   );

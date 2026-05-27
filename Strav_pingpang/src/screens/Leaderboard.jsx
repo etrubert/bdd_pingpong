@@ -7,7 +7,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { C, fontDisplay, fontSans, kicker } from '../theme';
 import { supabase } from '../lib/supabase';
-import { useWorldRanking } from '../lib/worldPlayers';
+import { useWorldRanking, listClubs } from '../lib/worldPlayers';
 
 // ----- Filtres disponibles (gardent toute la logique précédente) -----
 const FILTERS = [
@@ -96,6 +96,64 @@ function variationOf(player) {
 
 // =====================================================================
 
+// ---------- Sélecteur de club (changement 6) ----------
+function ClubSelector({ clubs, selected, onSelect }) {
+  const [q, setQ] = useState('');
+  const filtered = useMemo(() => {
+    const n = q.trim().toLowerCase();
+    const base = n ? clubs.filter(c => c.name.toLowerCase().includes(n)) : clubs;
+    return base.slice(0, 40);
+  }, [clubs, q]);
+
+  return (
+    <div style={{
+      padding: 14, borderRadius: 16,
+      background: 'rgba(8,22,17,0.45)', border: `1px solid ${C.border}`,
+    }}>
+      <div style={{ ...kicker, color: C.warm, marginBottom: 10 }}>CHOISIR UN CLUB</div>
+      <input
+        value={q}
+        onChange={e => setQ(e.target.value)}
+        placeholder="Rechercher un club…"
+        style={{
+          width: '100%', boxSizing: 'border-box', padding: '11px 14px',
+          borderRadius: 10, background: 'rgba(8,22,17,0.6)',
+          border: `1px solid ${C.border}`, color: C.ink,
+          fontFamily: fontSans, fontSize: 13.5, outline: 'none', marginBottom: 10,
+        }}
+      />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 230, overflowY: 'auto' }}>
+        {filtered.map(c => {
+          const active = selected === c.name;
+          return (
+            <button key={c.name} onClick={() => onSelect(c.name)} style={{
+              all: 'unset', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '10px 12px', borderRadius: 10,
+              background: active ? 'rgba(232,201,155,0.12)' : 'rgba(8,22,17,0.5)',
+              border: `1px solid ${active ? 'rgba(232,201,155,0.45)' : C.border}`,
+            }}>
+              <span style={{
+                fontFamily: fontSans, fontWeight: 700, fontSize: 13, color: active ? C.warm : C.ink,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, minWidth: 0,
+              }}>{countryFlag(c.country)} {c.name}</span>
+              <span style={{
+                flexShrink: 0, marginLeft: 10,
+                fontFamily: fontSans, fontSize: 11.5, color: C.inkDim,
+              }}>{c.count} {c.count > 1 ? 'joueurs' : 'joueur'}</span>
+            </button>
+          );
+        })}
+        {filtered.length === 0 && (
+          <div style={{ padding: '14px 0', textAlign: 'center', fontFamily: fontSans, fontSize: 12.5, color: C.inkDim }}>
+            Aucun club ne correspond
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Leaderboard({ currentUserId }) {
   const [filter, setFilter] = useState('world');
   const [expanded, setExpanded] = useState(false);
@@ -105,6 +163,7 @@ export default function Leaderboard({ currentUserId }) {
   const [nearbyClubNames, setNearbyClubNames] = useState(null);
   const [myProfileClub, setMyProfileClub] = useState(null);
   const [myCountryRank, setMyCountryRank] = useState(null);
+  const [selectedClub, setSelectedClub] = useState(null); // club choisi pour le filtre "club" (ch.6)
 
   // Profil utilisateur (club + country rank + fallback ELO si pas encore dans le ranking)
   const [myProfile, setMyProfile] = useState(null);
@@ -144,6 +203,7 @@ export default function Leaderboard({ currentUserId }) {
   // Classement mondial unifié (CSV scrapés normalisés + joueurs app Supabase)
   const { ranking: worldRanking, loading: worldLoading } = useWorldRanking();
   const totalPlayers = worldRanking.length;
+  const clubs = useMemo(() => listClubs(worldRanking), [worldRanking]); // ch.6
 
   useEffect(() => { setExpanded(false); }, [filter]);
 
@@ -165,8 +225,9 @@ export default function Leaderboard({ currentUserId }) {
           const set = new Set(nearbyClubNames);
           pool = worldRanking.filter(p => p.club && set.has(p.club));
         } else if (filter === 'club') {
-          if (!myProfileClub) { if (!cancelled) { setRows([]); setLoading(false); } return; }
-          pool = worldRanking.filter(p => p.club === myProfileClub);
+          const club = selectedClub || myProfileClub;
+          if (!club) { if (!cancelled) { setRows([]); setLoading(false); } return; }
+          pool = worldRanking.filter(p => p.club === club);
         }
 
         // Rang local au filtre (1..n) tout en gardant l'ELO mondial
@@ -189,7 +250,7 @@ export default function Leaderboard({ currentUserId }) {
     }
     run();
     return () => { cancelled = true; };
-  }, [filter, expanded, currentUserId, nearbyClubNames, myProfileClub, worldRanking, worldLoading]);
+  }, [filter, expanded, currentUserId, nearbyClubNames, myProfileClub, selectedClub, worldRanking, worldLoading]);
 
   const top3 = useMemo(() => rows.slice(0, 3), [rows]);
   const rest = useMemo(() => rows.slice(3), [rows]);
@@ -197,9 +258,9 @@ export default function Leaderboard({ currentUserId }) {
 
   const emptyMessage = filter === 'region' && nearbyClubNames?.length === 0
     ? 'Aucun club Finder dans ton rayon (50 km). Active la géolocalisation dans Finder.'
-    : filter === 'club' && !myProfileClub
-      ? 'Tu n\'as pas renseigné de club dans ton profil.'
-      : rows.length === 0 && !loading
+    : filter === 'club' && !selectedClub && !myProfileClub
+      ? 'Choisis un club ci-dessus pour voir son classement.'
+      : rows.length === 0 && !loading && !(filter === 'club' && !selectedClub && !myProfileClub)
         ? 'Aucun joueur pour ce filtre.'
         : null;
 
@@ -244,6 +305,15 @@ export default function Leaderboard({ currentUserId }) {
           );
         })}
       </div>
+
+      {/* --- Sélecteur de club (changement 6) --- */}
+      {filter === 'club' && (
+        <ClubSelector
+          clubs={clubs}
+          selected={selectedClub}
+          onSelect={setSelectedClub}
+        />
+      )}
 
       {emptyMessage && (
         <div style={{

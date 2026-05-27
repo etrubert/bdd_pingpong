@@ -13,6 +13,7 @@ import ChatScreen from './screens/ChatScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import PlaceholderScreen from './screens/PlaceholderScreen';
 import Leaderboard from './screens/Leaderboard';
+import LocationConsent from './components/LocationConsent';
 import { useAuth } from './lib/auth';
 
 function useViewport() {
@@ -30,12 +31,8 @@ function useViewport() {
 
 export default function App() {
   const [tab, setTab] = useState('home');
-  const [merchProduct, setMerchProduct] = useState(null);
   const { vw, vh, isMobile } = useViewport();
   const { isAuthed, profile, userId } = useAuth();
-
-  // Ouvre un produit depuis le Home : on stocke le produit et on bascule sur MERCH.
-  const openProduct = (p) => { setMerchProduct(p); setTab('merch'); };
 
   // À chaque (re)chargement de l'app, on veut TOUJOURS atterrir sur l'écran
   // de connexion. Ce flag in-memory (non persisté) bascule sur true uniquement
@@ -53,16 +50,16 @@ export default function App() {
 
   const screen = useMemo(() => {
     switch (tab) {
-      case 'home':        return <HomeScreen onNav={setTab} onOpenProduct={openProduct} />;
+      case 'home':        return <HomeScreen onNav={setTab} />;
       case 'train':       return <TrainScreen />;
       case 'matches':     return <MatchesScreen />;
       case 'leaderboard': return <Leaderboard currentUserId={userId} />;
       case 'finder':      return <FinderScreen />;
       case 'chat':        return <ChatScreen />;
-      case 'merch':       return <MerchScreen initialProduct={merchProduct} onConsumeInitial={() => setMerchProduct(null)} />;
-      default:            return <HomeScreen onNav={setTab} onOpenProduct={openProduct} />;
+      case 'merch':       return <MerchScreen />;
+      default:            return <HomeScreen onNav={setTab} />;
     }
-  }, [tab, userId, merchProduct]);
+  }, [tab, userId]);
 
   const mockTopInset = 0;
   const scrollRef = useRef(null);
@@ -90,6 +87,8 @@ export default function App() {
               {screen}
             </div>
             <BottomNav tab={tab} onTab={setTab} />
+            {/* Popup de consentement géoloc (changement 3) — couvre toute l'app */}
+            <LocationConsent />
           </>
         )}
       </div>

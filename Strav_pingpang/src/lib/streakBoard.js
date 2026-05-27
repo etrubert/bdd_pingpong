@@ -8,11 +8,30 @@
 // `login_streak_ranking` triée par current_login_streak DESC.
 // =====================================================================
 
-// Récompenses du top 3 (tous les 3 mois). Codes mockés pour la démo.
+// Récompenses du top 3 (en fin de saison trimestrielle). Codes mockés pour la démo.
+// Chaque récompense a un type (kind) différent : article, carte cadeau, code promo.
 export const STREAK_REWARDS = [
-  { rank: 1, label: '1er', discount: '-30%', code: 'STREAK30-PP', color: 'gold' },
-  { rank: 2, label: '2e',  discount: '-20%', code: 'STREAK20-PP', color: 'silver' },
-  { rank: 3, label: '3e',  discount: '-15%', code: 'STREAK15-PP', color: 'bronze' },
+  {
+    rank: 1, label: '1er', color: 'gold',
+    kind: 'article',
+    title: 'Un article de la boutique',
+    detail: 'À choisir parmi le catalogue Ping Pang Paris',
+    code: 'TOP1-STREAK-PP',
+  },
+  {
+    rank: 2, label: '2e', color: 'silver',
+    kind: 'giftcard',
+    title: 'Carte cadeau 50\u00A0€',
+    detail: 'Valable sur toute la boutique',
+    code: 'GIFT50-STREAK-PP',
+  },
+  {
+    rank: 3, label: '3e', color: 'bronze',
+    kind: 'promo',
+    title: '\u201120 % sur ta prochaine commande',
+    detail: 'Code unique à usage personnel',
+    code: 'TOP3-20-PP',
+  },
 ];
 
 // Classement mock (en prod : Supabase). L'utilisateur courant est injecté
