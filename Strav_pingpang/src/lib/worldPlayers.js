@@ -1,14 +1,19 @@
 // =====================================================================
-// PING PANG PARIS — Classement mondial unifié (changement 5)
+// PING PANG PARIS — Classement mondial unifié
 //
-// Charge les CSV de joueurs scrapés (6 fédérations), normalise leur niveau
-// sur une échelle ELO mondiale commune via le RANG NATIONAL en percentile
-// (équitable entre pays aux bases de licenciés très différentes), puis
-// fusionne avec les joueurs Supabase de l'app pour produire un seul
-// classement mondial.
+// Trois sources fusionnées :
+//  1) classement_ITTF.csv — rang mondial officiel ITTF (catégories MS/WS),
+//     source de vérité pour le TOP mondial (Lebrun, Wang Chuqin, etc.)
+//  2) 6 CSV de joueurs scrapés des fédérations FR/DE/ES/PT/CN/US —
+//     normalisés par percentile national pour les joueurs hors top ITTF
+//  3) Joueurs Supabase de l'app (ceux qui ont joué au moins 1 match)
 //
-// Les points_elo bruts ne sont PAS comparables entre fédérations
-// (France max ~2023, USA jusqu'à 57757, Chine vide), d'où la normalisation.
+// Logique de fusion :
+//  - Si un joueur scrapé matche un joueur ITTF (par nom normalisé) →
+//    on utilise l'ELO dérivé de son rang ITTF mondial (3000 au #1)
+//  - Les joueurs ITTF non matchés (ex: Wang Chuqin pas dans nos CSV CN)
+//    sont ajoutés comme entrées indépendantes
+//  - Le reste : ELO via normalisation par percentile fédération
 // =====================================================================
 
 import { useEffect, useState } from 'react';
@@ -25,14 +30,29 @@ const COUNTRY_FILES = [
 ];
 
 // Coefficient de force de la fédération sur l'échiquier mondial du TT.
-// Module l'ELO max atteignable par le #1 de chaque pays. La Chine est la
-// nation de référence (meilleure mondiale), les autres en dessous.
+// Sert SEULEMENT aux joueurs hors top ITTF (le top vient du rang ITTF officiel).
 const FED_STRENGTH = {
   CN: 1.00, DE: 0.82, FR: 0.78, PT: 0.74, ES: 0.72, US: 0.68,
 };
 
 const ELO_BASE = 1400;     // plancher : dernier joueur d'une fédération
-const ELO_SPREAD = 1000;   // amplitude max (au-dessus du plancher) pour le #1 chinois
+const ELO_SPREAD = 1000;   // amplitude au-dessus du plancher pour le #1 national
+const ITTF_ELO_TOP = 3000; // ELO du #1 mondial ITTF
+const ITTF_ELO_BOTTOM = 2500; // ELO du #1000 mondial ITTF
+
+// ITTF utilise des codes pays 3-lettres ; on les convertit en 2-lettres
+// pour les drapeaux et les filtres existants.
+const ITTF_TO_ISO = {
+  FRA: 'FR', GER: 'DE', CHN: 'CN', JPN: 'JP', KOR: 'KR', SWE: 'SE',
+  TPE: 'TW', BRA: 'BR', USA: 'US', POR: 'PT', ESP: 'ES', ROU: 'RO',
+  HUN: 'HU', DEN: 'DK', AUT: 'AT', SVK: 'SK', CZE: 'CZ', POL: 'PL',
+  BEL: 'BE', NED: 'NL', ENG: 'GB', CRO: 'HR', SLO: 'SI', SUI: 'CH',
+  EGY: 'EG', NGR: 'NG', IND: 'IN', SGP: 'SG', HKG: 'HK', AUS: 'AU',
+  CAN: 'CA', ARG: 'AR', PUR: 'PR', LUX: 'LU', GRE: 'GR', UKR: 'UA',
+};
+function ittfCountryToIso(code3) {
+  return ITTF_TO_ISO[code3] || code3.slice(0, 2);
+}
 
 // ---- Parser CSV minimal (gère les guillemets et virgules échappées) ----
 function parseCsvLine(line) {
@@ -54,7 +74,7 @@ function parseCsvLine(line) {
 function parsePlayersCsv(text) {
   const lines = text.split(/\r?\n/).filter(Boolean);
   if (lines.length < 2) return [];
-  const headers = parseCsvLine(lines.shift()).map(h => h.replace(/^\uFEFF/, ''));
+  const headers = parseCsvLine(lines.shift()).map(h => h.replace(/^﻿/, ''));
   return lines.map(line => {
     const cells = parseCsvLine(line);
     const row = {};
@@ -72,6 +92,77 @@ function toFloat(v) {
   return Number.isFinite(n) ? n : null;
 }
 
+// Normalise un nom pour matching ITTF ↔ scraped (insensible à la casse,
+// aux accents, à l'ordre prénom/nom et à la ponctuation).
+function normalizeName(s = '') {
+  return s
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')  // strip accents
+    .toUpperCase()
+    .replace(/[^A-Z\s]/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+// Clé pour matching ordre-indépendant : "Felix LEBRUN" et "LEBRUN Felix"
+// produisent la même clé (tokens triés).
+function nameKey(s = '') {
+  return normalizeName(s).split(' ').filter(Boolean).sort().join(' ');
+}
+
+function capitalize(s = '') {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
+}
+
+// ITTF rank → world ELO (décroissance log entre 3000 au #1 et 2500 au #1000).
+// Garantit que les top ITTF sont AU-DESSUS de tout joueur normalisé par
+// percentile (max 2400 = #1 chinois).
+function eloFromIttfRank(rank) {
+  if (!rank || rank < 1) return ITTF_ELO_BOTTOM;
+  const r = Math.min(rank, 1000);
+  return Math.round(ITTF_ELO_TOP - (ITTF_ELO_TOP - ITTF_ELO_BOTTOM) * Math.log10(r) / 3);
+}
+
+// ---- Chargement classement ITTF (top mondial officiel) ----
+async function loadIttfRanking() {
+  try {
+    const res = await fetch('/data/classement_ITTF.csv');
+    if (!res.ok) return [];
+    const text = await res.text();
+    const rows = parsePlayersCsv(text);
+    return rows
+      .filter(r => r.epreuve === 'MS' || r.epreuve === 'WS')  // singles uniquement
+      .map(r => {
+        const rank = toInt(r.rang);
+        if (!rank || rank < 1) return null;
+        const iso = ittfCountryToIso(r.pays_code || '');
+        return {
+          ittf_rank: rank,
+          name_raw: r.joueur || '',
+          name_key: nameKey(r.joueur || ''),
+          country: iso,
+          country_label: r.pays || '',
+          points_ittf: toFloat(r.points),
+          sex: r.epreuve === 'WS' ? 'F' : 'M',
+          evolution: toInt(r.evolution),
+        };
+      })
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+// Index : clé nom (tokens triés) → entrée ITTF.
+// Si doublon (même nom matche MS et WS, peu probable), garde le meilleur rang.
+function buildIttfIndex(ittf) {
+  const idx = new Map();
+  for (const p of ittf) {
+    const prev = idx.get(p.name_key);
+    if (!prev || p.ittf_rank < prev.ittf_rank) idx.set(p.name_key, p);
+  }
+  return idx;
+}
+
 // Clé de tri intra-pays : on classe par rang_national croissant ; à défaut
 // par points_elo décroissant ; à défaut au fond du classement.
 function sortKey(row) {
@@ -82,9 +173,9 @@ function sortKey(row) {
   return [2, 0];
 }
 
-// Normalise une fédération : trie ses joueurs, calcule le percentile (1 = top)
-// et en dérive un ELO mondial = BASE + strength*SPREAD*percentile.
-function normalizeCountry({ country, label, rows }) {
+// Normalise une fédération. Si un joueur matche le classement ITTF,
+// son ELO mondial vient du rang ITTF (pas de la normalisation percentile).
+function normalizeCountry({ country, label, rows }, ittfIndex) {
   const sorted = [...rows].sort((a, b) => {
     const ka = sortKey(a); const kb = sortKey(b);
     return ka[0] - kb[0] || ka[1] - kb[1];
@@ -93,51 +184,109 @@ function normalizeCountry({ country, label, rows }) {
   const strength = FED_STRENGTH[country] ?? 0.7;
 
   return sorted.map((row, i) => {
-    const pct = n > 1 ? 1 - i / (n - 1) : 1; // 1.0 = meilleur du pays
-    const worldElo = Math.round(ELO_BASE + strength * ELO_SPREAD * pct);
     const fullName = `${capitalize(row.prenom)} ${row.nom}`.trim() || row.nom || '—';
+    const key = nameKey(fullName);
+    const ittfMatch = ittfIndex.get(key);
+
+    let worldElo;
+    let world_rank_ittf = null;
+    let displayName = fullName;
+    let pointsIttf = null;
+    let effectiveCountry = country;
+    let effectiveCountryLabel = label;
+    if (ittfMatch) {
+      worldElo = eloFromIttfRank(ittfMatch.ittf_rank);
+      world_rank_ittf = ittfMatch.ittf_rank;
+      // ITTF formate mieux les noms internationaux (WANG Chuqin vs Chuqin WANG)
+      displayName = ittfMatch.name_raw || fullName;
+      pointsIttf = ittfMatch.points_ittf;
+      // ITTF donne la vraie nationalité : Matsushima/Harimoto sont JP même s'ils
+      // figurent dans players_chine.csv (ils jouent en Super League chinoise).
+      effectiveCountry = ittfMatch.country || country;
+      effectiveCountryLabel = ittfMatch.country_label || label;
+    } else {
+      const pct = n > 1 ? 1 - i / (n - 1) : 1;
+      worldElo = Math.round(ELO_BASE + strength * ELO_SPREAD * pct);
+    }
+
     const played = toInt(row.nombre_matchs);
     const won = toInt(row.victoires);
     return {
       id: `scraped:${country}:${row.licence || row.nom + i}`,
-      display_name: fullName,
-      country,
-      country_label: label,
+      display_name: displayName,
+      points_ittf: pointsIttf,
+      country: effectiveCountry,
+      country_label: effectiveCountryLabel,
       club: row.club_nom || null,
       current_elo: worldElo,
       peak_elo: worldElo,
-      fed_elo: toFloat(row.points_elo),          // ELO fédération brut (info)
+      fed_elo: toFloat(row.points_elo),
       national_rank: toInt(row.rang_national),
+      ittf_rank: world_rank_ittf,
       official_class: row.classement_officiel || null,
       matches_played: played ?? 0,
       matches_won: won ?? 0,
       current_streak: 0,
       sex: row.sexo || null,
-      source: 'scraped',
+      source: world_rank_ittf ? 'ittf+scraped' : 'scraped',
     };
   });
 }
 
-function capitalize(s = '') {
-  return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
+// Joueurs ITTF qui n'ont AUCUN match dans les CSV scrapés : on les ajoute
+// comme entrées indépendantes. Ainsi WANG Chuqin (#1 mondial) apparaît au
+// top même s'il n'est pas dans notre players_chine.csv.
+function ittfStandalone(ittf, matchedKeys) {
+  return ittf
+    .filter(p => !matchedKeys.has(p.name_key))
+    .map(p => ({
+      id: `ittf:${p.ittf_rank}:${p.name_key}`,
+      display_name: p.name_raw,
+      country: p.country,
+      country_label: p.country_label,
+      club: null,
+      current_elo: eloFromIttfRank(p.ittf_rank),
+      peak_elo: eloFromIttfRank(p.ittf_rank),
+      points_ittf: p.points_ittf,
+      fed_elo: p.points_ittf,
+      national_rank: null,
+      ittf_rank: p.ittf_rank,
+      official_class: null,
+      matches_played: 0,
+      matches_won: 0,
+      current_streak: 0,
+      sex: p.sex,
+      source: 'ittf',
+    }));
 }
 
-// Charge + normalise les 6 CSV en parallèle.
+// Charge + normalise les 6 CSV de fédérations en parallèle.
 export async function loadScrapedWorldPlayers() {
-  const results = await Promise.all(
+  const ittf = await loadIttfRanking();
+  const ittfIndex = buildIttfIndex(ittf);
+
+  const fedResults = await Promise.all(
     COUNTRY_FILES.map(async ({ country, label, file }) => {
       try {
         const res = await fetch(`/data/${file}`);
         if (!res.ok) return [];
         const text = await res.text();
         const rows = parsePlayersCsv(text);
-        return normalizeCountry({ country, label, rows });
+        return normalizeCountry({ country, label, rows }, ittfIndex);
       } catch {
         return [];
       }
     })
   );
-  return results.flat();
+  const fedPlayers = fedResults.flat();
+
+  // Joueurs ITTF déjà matchés (pour éviter doublons)
+  const matchedKeys = new Set();
+  for (const p of fedPlayers) {
+    if (p.ittf_rank) matchedKeys.add(nameKey(p.display_name));
+  }
+
+  return [...fedPlayers, ...ittfStandalone(ittf, matchedKeys)];
 }
 
 // Récupère les joueurs Supabase de l'app (ceux qui ont joué au moins 1 match)
@@ -161,9 +310,16 @@ export async function loadAppPlayers() {
 }
 
 // Fusionne scrapés + app, trie par ELO mondial décroissant, attribue le rang.
+// Tie-break sur les points ITTF (pour départager MS#4 et WS#4 au même ELO),
+// puis sur le rang ITTF asc (le plus petit gagne), puis stable par display_name.
 export function mergeAndRank(scraped, app) {
   const all = [...app, ...scraped];
-  all.sort((a, b) => (b.current_elo ?? 0) - (a.current_elo ?? 0));
+  all.sort((a, b) =>
+    (b.current_elo ?? 0) - (a.current_elo ?? 0) ||
+    (b.points_ittf ?? -1) - (a.points_ittf ?? -1) ||
+    (a.ittf_rank ?? 9999) - (b.ittf_rank ?? 9999) ||
+    String(a.display_name || '').localeCompare(String(b.display_name || ''))
+  );
   return all.map((p, i) => ({ ...p, world_rank: i + 1 }));
 }
 
@@ -197,7 +353,7 @@ export function useWorldRanking() {
 }
 
 // Liste des clubs présents dans le classement, triés par nb de joueurs.
-// Sert au filtre "Par club" du Leaderboard (changement 6).
+// Sert au filtre "Par club" du Leaderboard.
 export function listClubs(ranking) {
   const map = new Map();
   for (const p of ranking) {
