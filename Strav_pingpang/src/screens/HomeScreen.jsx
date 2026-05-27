@@ -8,6 +8,7 @@ import { useAcceptedChallenges, useIncomingChallenges } from '../lib/challenges'
 import { useMatches } from '../lib/matches';
 import { useAuth } from '../lib/auth';
 import StreakCard from '../components/StreakCard';
+import { useLoginStreak } from '../lib/loginStreak';
 import { MERCH_CATEGORIES, useMerchCatalog } from '../lib/merchCatalog';
 import MerchScreen from './MerchScreen';
 
@@ -17,7 +18,7 @@ function StatRow({ label, value, valueFont = fontSans }) {
       <div style={{ ...kicker }}>{label}</div>
       <div style={{
         fontFamily: valueFont, fontWeight: valueFont === fontDisplay ? 800 : 700,
-        fontSize: valueFont === fontDisplay ? 24 : 22,
+        fontSize: valueFont === fontDisplay ? 19 : 17,
         color: C.ink, letterSpacing: valueFont === fontDisplay ? '0.02em' : '0',
       }}>{value}</div>
     </div>
@@ -165,38 +166,45 @@ export default function HomeScreen({ onNav }) {
   const isClubPlayer = profile?.player_type === 'competition';
   const hasMatches = matchesPlayed > 0;
   const elo = profile?.elo_rating ?? 0;
-  const eloDisplay = hasMatches ? `${elo}` : '—';
+  // ELO RATING : toujours la vraie valeur du profil.
+  const eloDisplay = `${elo}`;
   const fftt = profile?.fftt_classification || (isClubPlayer ? '—' : 'Non classé');
-  // Streak / daily goal : zero par defaut tant qu'aucun match
-  const streakDays = hasMatches ? 5 : 0;
-  const dailyGoalPct = hasMatches ? 75 : 0;
+  // Streak : valeur réelle du hook de connexion, cohérente avec la carte Streak.
+  const { current: streakDays } = useLoginStreak();
+  // Daily goal : basé sur l'activité (profil ou matchs enregistrés)
+  const hasActivity = hasMatches || matches.length > 0;
+  const dailyGoalPct = hasActivity ? 75 : 0;
   const nextChallenge = acceptedChallenges[0];        // priorité 1 : défi accepté
   const pendingChallenge = incomingChallenges[0];     // priorité 2 : défi en attente
   const lastMatch = matches[0];                       // match le plus récent
+  // Stats joueur : on utilise les compteurs du profil, sinon on retombe sur la liste de matchs.
+  const playedCount = hasMatches ? matchesPlayed : matches.length;
+  const wonCount = hasMatches ? (profile?.matches_won ?? 0) : matches.filter(m => m.win).length;
+  const winRatePct = playedCount ? Math.round((wonCount / playedCount) * 100) : 0;
   return (
     <div style={{ padding: '20px 18px 130px', display: 'flex', flexDirection: 'column', gap: 18 }}>
       {/* Active player */}
       <button onClick={() => openSheet({ title: displayName, body: <ProfileSheet /> })}
         style={{ all: 'unset', cursor: 'pointer', display: 'block' }}>
-      <Card style={{ padding: '24px 24px 26px' }}>
+      <Card style={{ padding: '16px 18px' }}>
         <div style={kicker}>ACTIVE PLAYER</div>
         <div style={{
-          fontFamily: fontDisplay, fontWeight: 800, fontSize: 66, lineHeight: 0.95,
-          color: C.mint, letterSpacing: '0.01em', marginTop: 6, marginBottom: 22,
+          fontFamily: fontDisplay, fontWeight: 800, fontSize: 42, lineHeight: 0.95,
+          color: C.mint, letterSpacing: '0.01em', marginTop: 4, marginBottom: 14,
         }}>{firstName}</div>
 
         <StatRow label="ELO RATING" value={eloDisplay} />
-        <div style={{ height: 1, background: C.border, margin: '14px 0' }} />
+        <div style={{ height: 1, background: C.border, margin: '10px 0' }} />
         <StatRow label="GLOBAL RANK" value={fftt} valueFont={fontDisplay} />
 
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
-          marginTop: 18,
-          padding: '8px 16px', borderRadius: 999,
+          marginTop: 12,
+          padding: '6px 14px', borderRadius: 999,
           background: 'rgba(239,229,200,0.12)',
           border: '1px solid rgba(239,229,200,0.32)',
           color: C.cream,
-          fontFamily: fontSans, fontWeight: 700, fontSize: 12, letterSpacing: '0.10em',
+          fontFamily: fontSans, fontWeight: 700, fontSize: 11, letterSpacing: '0.10em',
         }}>
           <span style={{ width: 6, height: 6, borderRadius: 99, background: C.cream }} />
           STREAK: {streakDays} {streakDays === 1 ? 'DAY' : 'DAYS'}
@@ -283,17 +291,19 @@ export default function HomeScreen({ onNav }) {
 
               {/* Score + delta ELO */}
               <div style={{
-                display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+                display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8,
                 marginTop: 12, paddingTop: 10, borderTop: `1px solid ${C.border}`,
               }}>
                 <div style={{
                   fontFamily: fontDisplay, fontWeight: 800, fontSize: 26,
                   color: C.ink, letterSpacing: '0.01em',
+                  whiteSpace: 'nowrap', flexShrink: 0,
                 }}>{lastMatch.score}</div>
                 {Number.isFinite(lastMatch.elo) && (
                   <div style={{
                     fontFamily: fontSans, fontWeight: 800, fontSize: 13,
                     color: lastMatch.elo >= 0 ? C.mint : C.loss,
+                    whiteSpace: 'nowrap',
                   }}>{lastMatch.elo >= 0 ? '+' : ''}{lastMatch.elo} ELO</div>
                 )}
               </div>
@@ -333,7 +343,7 @@ export default function HomeScreen({ onNav }) {
           <div style={{ marginTop: 10, display: 'flex', alignItems: 'baseline', gap: 6 }}>
             <div style={{
               fontFamily: fontDisplay, fontWeight: 800, fontSize: 32, color: C.ink, lineHeight: 1,
-            }}>{hasMatches ? elo : '—'}</div>
+            }}>{elo}</div>
             <div style={{ fontFamily: fontSans, fontSize: 10.5, color: C.inkDim }}>ELO</div>
           </div>
 
@@ -342,13 +352,13 @@ export default function HomeScreen({ onNav }) {
             <div>
               <div style={{ fontFamily: fontSans, fontSize: 9.5, color: C.inkDim, letterSpacing: '0.10em', fontWeight: 700 }}>WIN RATE</div>
               <div style={{ fontFamily: fontSans, fontWeight: 800, fontSize: 14, color: C.ink, marginTop: 2 }}>
-                {hasMatches ? `${Math.round(((profile?.matches_won ?? 0) / matchesPlayed) * 100)}%` : '—'}
+                {playedCount ? `${winRatePct}%` : '—'}
               </div>
             </div>
             <div>
               <div style={{ fontFamily: fontSans, fontSize: 9.5, color: C.inkDim, letterSpacing: '0.10em', fontWeight: 700 }}>MATCHS</div>
               <div style={{ fontFamily: fontSans, fontWeight: 800, fontSize: 14, color: C.ink, marginTop: 2 }}>
-                {matchesPlayed}
+                {playedCount}
               </div>
             </div>
           </div>
