@@ -129,9 +129,9 @@ function StreakSheet({ board, myRank }) {
       {/* Podium top 3 (changement 1) */}
       {board.length >= 3 && <StreakPodium players={board.slice(0, 3)} />}
 
-      {/* Reste du classement à partir du 4e */}
+      {/* Reste du classement à partir du 4e (affiche toute la liste) */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: board.length >= 3 ? 16 : 0 }}>
-        {board.slice(3, 12).map(p => {
+        {board.slice(3).map(p => {
           const isPodium = false;
           return (
             <div key={p.id} style={{

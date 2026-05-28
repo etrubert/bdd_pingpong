@@ -34,25 +34,19 @@ export const STREAK_REWARDS = [
   },
 ];
 
-// Classement mock (en prod : Supabase). L'utilisateur courant est injecté
-// dynamiquement par le composant selon son vrai streak local.
-export const MOCK_STREAK_BOARD = [
-  { id: 's1', name: 'Sophie Leroux',   streak: 47 },
-  { id: 's2', name: 'Théo Rousseau',   streak: 41 },
-  { id: 's3', name: 'Clara Durand',    streak: 38 },
-  { id: 's4', name: 'Marc Leclerc',    streak: 33 },
-  { id: 's5', name: 'Karim Benali',    streak: 29 },
-  { id: 's6', name: 'Julien Bertin',   streak: 24 },
-  { id: 's7', name: 'Inès Fernandez',  streak: 21 },
-  { id: 's8', name: 'Lucas Bernard',   streak: 18 },
-  { id: 's9', name: 'Marie Lemaire',   streak: 14 },
-  { id: 's10', name: 'Thomas Renaud',  streak: 11 },
-];
+// Classement mock massif : 200 joueurs avec streak 1 ou 2.
+// Le joueur courant est forcé à 3 pour être premier.
+const MOCK_COUNT = 200;
+export const MOCK_STREAK_BOARD = Array.from({ length: MOCK_COUNT }, (_, i) => ({
+  id: `s${i + 1}`,
+  name: `Joueur ${String(i + 1).padStart(3, '0')}`,
+  streak: i % 2 === 0 ? 2 : 1,
+}));
 
-// Construit le classement final : insère l'utilisateur courant avec son
-// vrai streak local, trie par streak décroissant, attribue le rang.
+// Construit le classement final : le joueur courant est forcé à 3
+// (donc devant tous les mocks à 1 ou 2), puis tri + rang.
 export function buildStreakBoard(myStreak, myName = 'Toi') {
-  const me = { id: 'me', name: myName, streak: myStreak, isMe: true };
+  const me = { id: 'me', name: myName, streak: 3, isMe: true };
   const board = [...MOCK_STREAK_BOARD, me]
     .sort((a, b) => b.streak - a.streak)
     .map((p, i) => ({ ...p, rank: i + 1 }));
