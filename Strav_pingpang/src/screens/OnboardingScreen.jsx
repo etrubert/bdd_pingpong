@@ -145,7 +145,7 @@ function StepConnexion({ onSignedUp, onSignedIn, currentSession, onContinueAsCur
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
         <div style={{
           width: 70, height: 70, borderRadius: '50%',
-          background: 'radial-gradient(60% 60% at 35% 30%, #d6b890 0%, #6b4a2e 60%, #1c100a 100%)',
+          background: '#FFFFFF',
           border: `1.5px solid ${C.borderHi}`,
           boxShadow: '0 0 32px rgba(232,201,155,0.20)',
         }} />

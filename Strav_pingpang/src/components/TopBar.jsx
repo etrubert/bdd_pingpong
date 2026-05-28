@@ -3187,6 +3187,63 @@ const STYLE_LABEL_FROM_ENUM = {
   inconnu:    'Non défini',
 };
 
+// --- Photo de profil (persistée en localStorage, par utilisateur) ---
+// Stockée en data URL compressée : marche hors-ligne, sans changement de schéma DB.
+function avatarKey(userId) { return `pp_avatar_${userId || 'me'}`; }
+function getStoredAvatar(userId) {
+  try { return localStorage.getItem(avatarKey(userId)) || null; } catch { return null; }
+}
+function setStoredAvatar(userId, dataUrl) {
+  try {
+    if (dataUrl) localStorage.setItem(avatarKey(userId), dataUrl);
+    else localStorage.removeItem(avatarKey(userId));
+  } catch {}
+  // Notifie les autres vues (header, profil…) pour qu'elles se mettent à jour.
+  try { window.dispatchEvent(new Event('pp-avatar-changed')); } catch {}
+}
+// Hook réactif : renvoie la photo de profil et se met à jour quand elle change.
+function useStoredAvatar(userId) {
+  const [url, setUrl] = useState(() => getStoredAvatar(userId));
+  useEffect(() => {
+    const update = () => setUrl(getStoredAvatar(userId));
+    update();
+    window.addEventListener('pp-avatar-changed', update);
+    window.addEventListener('storage', update);
+    return () => {
+      window.removeEventListener('pp-avatar-changed', update);
+      window.removeEventListener('storage', update);
+    };
+  }, [userId]);
+  return url;
+}
+// Recadre en carré ~256px et renvoie une data URL JPEG légère.
+function fileToAvatarDataUrl(file, size = 256, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const side = Math.min(img.width, img.height);
+      const sx = (img.width - side) / 2;
+      const sy = (img.height - side) / 2;
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image illisible')); };
+    img.src = url;
+  });
+}
+
+const CameraIcon = ({ size = 13 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+    <circle cx="12" cy="13" r="4"/>
+  </svg>
+);
+
 function ProfileSheet() {
   const { openSheet, closeSheet } = useUI();
   const { profile, userId } = useAuth();
@@ -3231,6 +3288,25 @@ function ProfileSheet() {
   const doSignOut = async () => {
     await signOut();
     closeSheet();
+  };
+
+  // Photo de profil : sélection d'un fichier → compression → localStorage.
+  const avatarInputRef = useRef(null);
+  const avatarUrl = useStoredAvatar(userId);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const onAvatarFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setAvatarBusy(true);
+    try {
+      const dataUrl = await fileToAvatarDataUrl(file);
+      setStoredAvatar(userId, dataUrl);
+    } catch {
+      // image illisible : on ignore silencieusement
+    } finally {
+      setAvatarBusy(false);
+    }
   };
 
   // Donn\u00e9es d\u00e9riv\u00e9es du profil
@@ -3278,18 +3354,43 @@ function ProfileSheet() {
       {/* === Header avatar + nom + club + 2 badges === */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
         <div style={{ position: 'relative' }}>
-          <div style={{
-            width: 72, height: 72, borderRadius: '50%',
-            background: 'radial-gradient(60% 60% at 35% 30%, #d6b890 0%, #6b4a2e 60%, #1c100a 100%)',
-            border: `2px solid ${C.borderHi}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: fontSans, fontWeight: 800, fontSize: 22, color: '#092C25',
-          }}>{initials}</div>
-          <div style={{
-            position: 'absolute', bottom: 2, right: 2,
-            width: 14, height: 14, borderRadius: '50%',
-            background: '#3DD16B', border: '2px solid #124638',
-          }} />
+          <button
+            onClick={() => avatarInputRef.current?.click()}
+            aria-label="Changer la photo de profil"
+            style={{
+              all: 'unset', cursor: 'pointer',
+              width: 72, height: 72, borderRadius: '50%', overflow: 'hidden',
+              background: '#FFFFFF',
+              border: `2px solid ${C.borderHi}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: fontSans, fontWeight: 800, fontSize: 22, color: '#092C25',
+              opacity: avatarBusy ? 0.6 : 1,
+            }}>
+            {avatarUrl
+              ? <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : initials}
+          </button>
+          {/* Bouton caméra : change la photo */}
+          <button
+            onClick={() => avatarInputRef.current?.click()}
+            aria-label="Changer la photo de profil"
+            style={{
+              all: 'unset', cursor: 'pointer',
+              position: 'absolute', bottom: -2, right: -2,
+              width: 26, height: 26, borderRadius: '50%',
+              background: C.warm, color: '#092C25',
+              border: '2px solid #124638',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+            <CameraIcon size={13} />
+          </button>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            onChange={onAvatarFile}
+            style={{ display: 'none' }}
+          />
         </div>
         <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 26, letterSpacing: '0.04em' }}>
           {userName.toUpperCase()}
@@ -3544,8 +3645,9 @@ export { ProfileSheet };
 
 export default function TopBar({ topInset = 0 }) {
   const { openSheet } = useUI();
-  const { profile } = useAuth();
+  const { profile, userId } = useAuth();
   const { total: notifCount } = useNotifications();
+  const avatarUrl = useStoredAvatar(userId);
   const ref = useRef(null);
   const [hidden, setHidden] = useState(false);
   const userName = profile?.display_name || profile?.email?.split('@')[0] || 'Toi';
@@ -3620,13 +3722,17 @@ export default function TopBar({ topInset = 0 }) {
         position: 'relative',
       }}>
         <div style={{
-          width: 32, height: 32, borderRadius: '50%',
-          background: 'radial-gradient(60% 60% at 35% 30%, #d6b890 0%, #6b4a2e 60%, #1c100a 100%)',
+          width: 32, height: 32, borderRadius: '50%', overflow: 'hidden',
+          background: '#FFFFFF',
           border: `1.5px solid ${C.borderHi}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontFamily: fontSans, fontWeight: 800, fontSize: 13, color: '#fff',
+          fontFamily: fontSans, fontWeight: 800, fontSize: 13, color: '#092C25',
           letterSpacing: 0,
-        }}>{userInitial}</div>
+        }}>
+          {avatarUrl
+            ? <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : userInitial}
+        </div>
         {notifCount > 0 && (
           <span style={{
             position: 'absolute', top: -2, right: -2,
