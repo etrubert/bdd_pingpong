@@ -12,6 +12,7 @@ import ChatScreen from './screens/ChatScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import Leaderboard from './screens/Leaderboard';
 import LocationConsent from './components/LocationConsent';
+import CoachBubble from './components/CoachBubble';
 import { useAuth } from './lib/auth';
 
 function useViewport() {
@@ -86,6 +87,8 @@ export default function App() {
               {screen}
             </div>
             <BottomNav tab={tab} onTab={setTab} />
+            {/* Coach IA flottant : balle ping-pong en bas à droite */}
+            <CoachBubble />
             {/* Popup de consentement géoloc (changement 3) — couvre toute l'app */}
             <LocationConsent />
           </>

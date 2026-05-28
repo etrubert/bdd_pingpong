@@ -1,0 +1,476 @@
+diff --git a/Strav_pingpang/.env.example b/Strav_pingpang/.env.example
+new file mode 100644
+index 0000000..bb3c3af
+--- /dev/null
++++ b/Strav_pingpang/.env.example
+@@ -0,0 +1,35 @@
++# Variables d'environnement Ping Pang Paris
++
++Crée un fichier `.env` à la racine de `Strav_pingpang/` avec :
++
++```
++# Supabase (déjà configuré si tu utilises l'app)
++VITE_SUPABASE_URL=https://ton-projet.supabase.co
++VITE_SUPABASE_ANON_KEY=ton_token_public
++
++# Coach IA Mistral (chatbot ping-pong)
++VITE_MISTRAL_API_KEY=ta_cle_mistral
++```
++
++## Comment obtenir une clé Mistral
++
++1. Va sur https://console.mistral.ai/
++2. Crée un compte (gratuit)
++3. Va dans "API Keys" et génère une clé
++4. Colle-la dans `VITE_MISTRAL_API_KEY`
++
++Le tier gratuit Mistral permet ~1 million de tokens/mois, largement
++suffisant pour un MVP avec quelques dizaines d'utilisateurs.
++
++## Sécurité (important pour la prod)
++
++Avec Vite, les variables `VITE_*` sont **exposées au navigateur**
++(le code JS contient la clé après build). C'est OK pour un MVP, mais
++en production il faut un proxy serveur qui garde la clé secrète.
++
++Solution recommandée pour plus tard :
++- Soit une Supabase Edge Function (`supabase/functions/coach`)
++- Soit un endpoint Vercel/Netlify serverless
++
++Pour l'instant, le MVP utilise la clé côté client. Restreins la clé
++Mistral à un quota faible et révoque-la si elle fuite.
+diff --git a/Strav_pingpang/src/App.jsx b/Strav_pingpang/src/App.jsx
+index 25cbf20..a05f0c6 100644
+--- a/Strav_pingpang/src/App.jsx
++++ b/Strav_pingpang/src/App.jsx
+@@ -12,6 +12,7 @@ import ChatScreen from './screens/ChatScreen';
+ import OnboardingScreen from './screens/OnboardingScreen';
+ import Leaderboard from './screens/Leaderboard';
+ import LocationConsent from './components/LocationConsent';
++import CoachBubble from './components/CoachBubble';
+ import { useAuth } from './lib/auth';
+ 
+ function useViewport() {
+@@ -86,6 +87,8 @@ export default function App() {
+               {screen}
+             </div>
+             <BottomNav tab={tab} onTab={setTab} />
++            {/* Coach IA flottant : balle ping-pong en bas à droite */}
++            <CoachBubble />
+             {/* Popup de consentement géoloc (changement 3) — couvre toute l'app */}
+             <LocationConsent />
+           </>
+diff --git a/Strav_pingpang/src/components/CoachBubble.jsx b/Strav_pingpang/src/components/CoachBubble.jsx
+new file mode 100644
+index 0000000..343b464
+--- /dev/null
++++ b/Strav_pingpang/src/components/CoachBubble.jsx
+@@ -0,0 +1,58 @@
++// =====================================================================
++// PING PANG PARIS — Coach IA : balle flottante (FAB)
++//
++// Affiche une balle de ping-pong en bas à droite, au-dessus de la
++// BottomNav. Au clic, ouvre la fenêtre de chat (CoachChat).
++// =====================================================================
++
++import { useState } from 'react';
++import CoachChat from './CoachChat';
++import { C } from '../theme';
++
++export default function CoachBubble() {
++  const [open, setOpen] = useState(false);
++
++  return (
++    <>
++      <button
++        onClick={() => setOpen(true)}
++        aria-label="Ouvrir Coach Ping"
++        style={{
++          all: 'unset', cursor: 'pointer',
++          position: 'absolute',
++          right: 16,
++          bottom: 94,
++          zIndex: 80,
++          width: 56, height: 56,
++          borderRadius: '50%',
++          background: 'radial-gradient(circle at 35% 30%, #FFFFFF 0%, #F5F6F3 50%, #D8D9D5 100%)',
++          boxShadow: '0 4px 14px rgba(0,0,0,0.40), inset -4px -5px 10px rgba(0,0,0,0.10)',
++          border: `1px solid rgba(0,0,0,0.10)`,
++          display: 'flex', alignItems: 'center', justifyContent: 'center',
++          transition: 'transform 120ms ease',
++        }}
++        onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.95)'; }}
++        onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
++        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
++      >
++        {/* Petit logo coach à l'intérieur de la balle pour distinguer du fond */}
++        <span style={{
++          fontFamily: 'system-ui',
++          fontWeight: 800, fontSize: 22, lineHeight: 1,
++          color: C.streak || '#E64949',
++          textShadow: '0 1px 0 rgba(255,255,255,0.40)',
++          userSelect: 'none',
++        }}>?</span>
++        {/* Petit point d'indication "en ligne" */}
++        <span style={{
++          position: 'absolute', bottom: 3, right: 3,
++          width: 12, height: 12, borderRadius: '50%',
++          background: '#C8E6D2',
++          border: '2px solid #F5F6F3',
++        }} />
++      </button>
++
++      {open && <CoachChat onClose={() => setOpen(false)} />}
++    </>
++  );
++}
+diff --git a/Strav_pingpang/src/components/CoachChat.jsx b/Strav_pingpang/src/components/CoachChat.jsx
+new file mode 100644
+index 0000000..8672b14
+--- /dev/null
++++ b/Strav_pingpang/src/components/CoachChat.jsx
+@@ -0,0 +1,225 @@
++// =====================================================================
++// PING PANG PARIS — Fenêtre de chat du coach IA
++//
++// Modal qui s'ouvre depuis la balle flottante. Affiche les messages,
++// permet d'envoyer un texte, et appelle Mistral pour la réponse.
++// =====================================================================
++
++import { useEffect, useRef, useState } from 'react';
++import { C, fontDisplay, fontSans } from '../theme';
++import { sendToCoach, hasApiKey, WELCOME_MESSAGE } from '../lib/coachAI';
++
++export default function CoachChat({ onClose }) {
++  // Historique : [{ role: 'assistant' | 'user', content }]
++  const [messages, setMessages] = useState([
++    { role: 'assistant', content: WELCOME_MESSAGE },
++  ]);
++  const [input, setInput] = useState('');
++  const [sending, setSending] = useState(false);
++  const [error, setError] = useState('');
++
++  const scrollRef = useRef(null);
++  const apiOk = hasApiKey();
++
++  // Auto-scroll vers le bas quand un nouveau message arrive
++  useEffect(() => {
++    if (scrollRef.current) {
++      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
++    }
++  }, [messages, sending]);
++
++  // Verrouille le scroll de la page derrière + ferme sur ESC
++  useEffect(() => {
++    const prev = document.body.style.overflow;
++    document.body.style.overflow = 'hidden';
++    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
++    window.addEventListener('keydown', onKey);
++    return () => {
++      document.body.style.overflow = prev;
++      window.removeEventListener('keydown', onKey);
++    };
++  }, [onClose]);
++
++  const handleSend = async () => {
++    const text = input.trim();
++    if (!text || sending) return;
++    setError('');
++    const next = [...messages, { role: 'user', content: text }];
++    setMessages(next);
++    setInput('');
++    setSending(true);
++    try {
++      // On n'envoie que le rôle/contenu, sans le message d'accueil statique.
++      const historyForApi = next
++        .filter((m, i) => !(i === 0 && m.role === 'assistant'))
++        .map(m => ({ role: m.role, content: m.content }));
++      const reply = await sendToCoach(historyForApi);
++      setMessages([...next, { role: 'assistant', content: reply }]);
++    } catch (e) {
++      setError(e?.message || 'Erreur inconnue');
++      setMessages(next); // on garde le message utilisateur
++    } finally {
++      setSending(false);
++    }
++  };
++
++  const handleKey = (e) => {
++    if (e.key === 'Enter' && !e.shiftKey) {
++      e.preventDefault();
++      handleSend();
++    }
++  };
++
++  return (
++    <div
++      onClick={onClose}
++      role="dialog" aria-modal="true" aria-label="Coach Ping"
++      style={{
++        position: 'fixed', inset: 0, zIndex: 9998,
++        background: 'rgba(6,30,24,0.78)',
++        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
++      }}
++    >
++      <div
++        onClick={(e) => e.stopPropagation()}
++        style={{
++          width: '100%', maxWidth: 480,
++          height: 'min(86vh, 720px)',
++          background: C.bg,
++          borderRadius: '20px 20px 0 0',
++          boxShadow: '0 -8px 40px rgba(0,0,0,0.5)',
++          display: 'flex', flexDirection: 'column',
++          overflow: 'hidden',
++        }}
++      >
++        {/* Header */}
++        <div style={{
++          padding: '14px 18px', borderBottom: `1px solid ${C.border}`,
++          display: 'flex', alignItems: 'center', gap: 12,
++        }}>
++          <div style={{
++            width: 36, height: 36, borderRadius: '50%',
++            background: '#F5F6F3',
++            display: 'flex', alignItems: 'center', justifyContent: 'center',
++            boxShadow: 'inset -3px -3px 6px rgba(0,0,0,0.10)',
++            fontSize: 18,
++          }}>🏓</div>
++          <div style={{ flex: 1, minWidth: 0 }}>
++            <div style={{
++              fontFamily: fontDisplay, fontWeight: 800, fontSize: 16,
++              color: C.ink, letterSpacing: '0.02em', lineHeight: 1.1,
++            }}>COACH PING</div>
++            <div style={{
++              fontFamily: fontSans, fontSize: 11.5, color: C.inkDim, marginTop: 2,
++            }}>{apiOk ? 'En ligne · IA Mistral' : 'Clé API manquante'}</div>
++          </div>
++          <button
++            onClick={onClose}
++            aria-label="Fermer"
++            style={{
++              all: 'unset', cursor: 'pointer',
++              width: 32, height: 32, borderRadius: '50%',
++              background: 'rgba(245,246,243,0.08)',
++              display: 'flex', alignItems: 'center', justifyContent: 'center',
++              color: C.ink,
++            }}
++          >
++            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
++              <path d="M6 6l12 12M6 18L18 6" />
++            </svg>
++          </button>
++        </div>
++
++        {/* Messages */}
++        <div ref={scrollRef} style={{
++          flex: 1, overflowY: 'auto',
++          padding: '16px 14px',
++          display: 'flex', flexDirection: 'column', gap: 10,
++        }}>
++          {messages.map((m, i) => (
++            <MessageBubble key={i} role={m.role} content={m.content} />
++          ))}
++          {sending && (
++            <MessageBubble role="assistant" content={'…'} pulsing />
++          )}
++          {error && (
++            <div style={{
++              padding: '10px 12px', borderRadius: 10,
++              background: 'rgba(230,73,73,0.10)', border: '1px solid rgba(230,73,73,0.40)',
++              fontFamily: fontSans, fontSize: 12, color: '#E64949',
++            }}>
++              {error}
++            </div>
++          )}
++        </div>
++
++        {/* Input */}
++        <div style={{
++          padding: 12, borderTop: `1px solid ${C.border}`,
++          display: 'flex', gap: 8, alignItems: 'flex-end',
++        }}>
++          <textarea
++            value={input}
++            onChange={(e) => setInput(e.target.value)}
++            onKeyDown={handleKey}
++            placeholder={apiOk ? 'Parle-moi de ton dernier match…' : 'Configure VITE_MISTRAL_API_KEY dans .env'}
++            rows={1}
++            disabled={!apiOk}
++            style={{
++              flex: 1, resize: 'none',
++              padding: '11px 14px', borderRadius: 18,
++              background: 'rgba(8,22,17,0.55)',
++              border: `1px solid ${C.border}`,
++              color: C.ink,
++              fontFamily: fontSans, fontSize: 14,
++              outline: 'none', maxHeight: 100,
++            }}
++          />
++          <button
++            onClick={handleSend}
++            disabled={!input.trim() || sending || !apiOk}
++            aria-label="Envoyer"
++            style={{
++              all: 'unset', cursor: input.trim() && apiOk && !sending ? 'pointer' : 'not-allowed',
++              width: 40, height: 40, borderRadius: '50%',
++              background: input.trim() && apiOk && !sending ? C.mint : 'rgba(245,246,243,0.08)',
++              color: input.trim() && apiOk && !sending ? '#092C25' : C.inkFaint,
++              display: 'flex', alignItems: 'center', justifyContent: 'center',
++              flexShrink: 0,
++            }}
++          >
++            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
++              <path d="M2 21l21-9L2 3v7l15 2-15 2z" />
++            </svg>
++          </button>
++        </div>
++      </div>
++    </div>
++  );
++}
++
++// ---------------------------------------------------------------------
++// Bulle individuelle de message — style chat moderne.
++// ---------------------------------------------------------------------
++function MessageBubble({ role, content, pulsing = false }) {
++  const isUser = role === 'user';
++  return (
++    <div style={{
++      alignSelf: isUser ? 'flex-end' : 'flex-start',
++      maxWidth: '85%',
++      display: 'flex', flexDirection: 'column',
++    }}>
++      <div style={{
++        padding: '10px 13px', borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
++        background: isUser ? C.mint : 'rgba(245,246,243,0.08)',
++        color: isUser ? '#092C25' : C.ink,
++        fontFamily: fontSans, fontSize: 14, lineHeight: 1.5,
++        whiteSpace: 'pre-wrap', wordBreak: 'break-word',
++        border: isUser ? 'none' : `1px solid ${C.border}`,
++        opacity: pulsing ? 0.6 : 1,
++      }}>
++        {content}
++      </div>
++    </div>
++  );
++}
+diff --git a/Strav_pingpang/src/lib/coachAI.js b/Strav_pingpang/src/lib/coachAI.js
+new file mode 100644
+index 0000000..31e3ec7
+--- /dev/null
++++ b/Strav_pingpang/src/lib/coachAI.js
+@@ -0,0 +1,113 @@
++// =====================================================================
++// PING PANG PARIS — Coach IA (Mistral API)
++//
++// Petit client pour l'API Mistral, conditionné pour le ping-pong.
++// Le coach refuse les sujets hors ping-pong, pose des questions sur les
++// matchs, et propose des exercices personnalisés.
++//
++// CONFIGURATION (.env à la racine de Strav_pingpang/) :
++//   VITE_MISTRAL_API_KEY=ta_cle_ici
++//
++// Modèle utilisé : mistral-small-latest (rapide et gratuit jusqu'à un
++// certain quota). Pour un meilleur rendu, passer à mistral-large-latest.
++// =====================================================================
++
++const MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions';
++const MODEL = 'mistral-small-latest';
++
++// System prompt : conditionne le bot au rôle de coach ping-pong personnalisé.
++// On lui demande de poser des questions, d'analyser, et de proposer des
++// exercices concrets — sans répondre aux sujets hors ping-pong.
++const SYSTEM_PROMPT = `Tu es Coach Ping, l'entraîneur IA de l'application Ping Pang Paris, dédié exclusivement au tennis de table (ping-pong).
++
++TON RÔLE
++- Aider le joueur à progresser au tennis de table
++- Analyser ses matchs, ses points forts, ses points faibles
++- Proposer des exercices et plans d'entraînement personnalisés
++- L'encourager et l'orienter vers les bonnes ressources
++
++TA MÉTHODE
++1. Si l'utilisateur arrive sans contexte : pose 2-3 questions courtes pour comprendre son niveau, ses derniers matchs et ce qu'il veut améliorer.
++2. Quand tu as assez d'infos : propose un exercice ou un mini-plan concret (3-5 points max).
++3. Réfère-toi aux vidéos disponibles dans l'app TRAIN quand c'est pertinent : "Tu peux regarder la vidéo sur le top-spin sur balle coupée dans l'onglet INTERMÉDIAIRE" par exemple.
++4. Adopte un ton chaleureux, motivant, sans être condescendant.
++5. Réponses courtes (3-6 phrases max). Pas de pavés.
++6. Utilise des listes à puces quand tu donnes plusieurs conseils ou exercices.
++
++RESTRICTIONS
++- Tu refuses poliment de parler d'autre chose que de tennis de table. Si on te demande la météo, des recettes, du code, etc., recentre la conversation : "Je suis ton coach ping-pong, posons-nous plutôt sur ton jeu — quel a été ton dernier match ?"
++- Tu ne donnes pas d'avis médical. En cas de blessure mentionnée, conseille de consulter un kiné.
++- Tu réponds toujours en français.
++
++CONTENU DISPONIBLE DANS L'APP (vidéos d'entraînement)
++- DÉBUTANT : tenir la raquette, revers (counterhit), coup droit (forehand drive), 4 services simples, premier service
++- INTERMÉDIAIRE : top-spin sur balle coupée, top-spin coup droit & revers, top revers vitesse, backhand flick, lire l'effet d'un service
++- EXPERT : top revers Zhang Jike, top revers Chinese style, pendulum serve pro, secrets pendulum Timo Boll, footwork pro
++
++Premier message : si l'utilisateur dit juste "Salut" ou un message vague, présente-toi en une phrase puis pose 1 ou 2 questions courtes pour démarrer.`;
++
++// ---------------------------------------------------------------------
++// Récupération de la clé API depuis .env (côté Vite). La clé est exposée
++// au client : c'est volontaire pour un MVP. Pour la production, il
++// faudra un proxy côté serveur.
++// ---------------------------------------------------------------------
++export function getApiKey() {
++  try {
++    return import.meta.env.VITE_MISTRAL_API_KEY || '';
++  } catch {
++    return '';
++  }
++}
++
++export function hasApiKey() {
++  return !!getApiKey();
++}
++
++// ---------------------------------------------------------------------
++// Appel principal : envoie l'historique au modèle et renvoie la réponse.
++// `history` est un tableau [{ role: 'user' | 'assistant', content: '...' }, ...]
++// ---------------------------------------------------------------------
++export async function sendToCoach(history) {
++  const apiKey = getApiKey();
++  if (!apiKey) {
++    throw new Error('Clé API Mistral manquante. Ajoute VITE_MISTRAL_API_KEY dans .env');
++  }
++
++  const messages = [
++    { role: 'system', content: SYSTEM_PROMPT },
++    ...history,
++  ];
++
++  const response = await fetch(MISTRAL_API_URL, {
++    method: 'POST',
++    headers: {
++      'Content-Type': 'application/json',
++      'Authorization': `Bearer ${apiKey}`,
++    },
++    body: JSON.stringify({
++      model: MODEL,
++      messages,
++      temperature: 0.7,
++      max_tokens: 500,
++    }),
++  });
++
++  if (!response.ok) {
++    const errText = await response.text().catch(() => '');
++    throw new Error(`Mistral API ${response.status}: ${errText.slice(0, 200)}`);
++  }
++
++  const data = await response.json();
++  const content = data?.choices?.[0]?.message?.content || '';
++  return content.trim();
++}
++
++// ---------------------------------------------------------------------
++// Message d'accueil affiché avant le premier message utilisateur, pour
++// éviter de griller un appel API juste pour saluer.
++// ---------------------------------------------------------------------
++export const WELCOME_MESSAGE = `Salut ! Je suis Coach Ping, ton entraîneur ping-pong personnel 🏓
++
++Pour te proposer un entraînement sur mesure, dis-moi :
++- Quel a été ton dernier match (résultat, ce qui a marché, ce qui a coincé) ?
++- Qu'aimerais-tu améliorer en priorité ?`;
