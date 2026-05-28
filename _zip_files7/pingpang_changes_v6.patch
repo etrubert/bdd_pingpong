@@ -1,0 +1,394 @@
+diff --git a/Strav_pingpang/src/lib/sessions.js b/Strav_pingpang/src/lib/sessions.js
+index 28d065b..354987f 100644
+--- a/Strav_pingpang/src/lib/sessions.js
++++ b/Strav_pingpang/src/lib/sessions.js
+@@ -1,17 +1,22 @@
+ // =====================================================================
+-// PING PANG PARIS — Séances d'entraînement guidées (changement 3)
++// PING PANG PARIS — Séances d'entraînement guidées
+ //
+-// Chaque séance = échauffement → exercices → récupération.
+-// Chaque étape a un emplacement média (image OU video) à remplir plus tard.
++// 3 niveaux : DÉBUTANT, INTERMÉDIAIRE, EXPERT
++// Chaque séance = échauffement → exercices → récupération
++// Les vidéos sont embarquées depuis YouTube (iframe).
+ //
+-// EMPLACEMENTS MÉDIA :
+-//   - step.image : chemin vers une photo, ex '/media/sessions/warmup-1.jpg'
+-//   - step.video : chemin/URL vers une vidéo (mp4 local dans /public/media/...
+-//                  ou URL YouTube/Vimeo). Si présent, prioritaire sur image.
+-//   Laisse les deux à null pour afficher le placeholder "média à venir".
++// FORMAT VIDÉO YOUTUBE
++//   Utiliser l'URL "embed" :  https://www.youtube.com/embed/VIDEO_ID
++//   où VIDEO_ID est ce qui suit "?v=" dans l'URL de partage classique.
++//   Exemple : watch?v=vnaY6ltLY-g  →  embed/vnaY6ltLY-g
+ //
+-// Pour ajouter tes médias : dépose les fichiers dans
+-//   Strav_pingpang/public/media/sessions/  puis renseigne le chemin ici.
++// COMPOSANT MÉDIA (TrainScreen.jsx → SessionMedia)
++//   - step.video : URL YouTube embed (prioritaire si présente)
++//   - step.image : photo locale en fallback (ex '/media/sessions/x.jpg')
++//   - les deux à null = placeholder "PHOTO / VIDÉO À VENIR"
++//
++// Sources : PingSkills (Australie), Tom Lodziak (UK), EmRatThich/PingSunday,
++// Ti Long et chaîne ITTF. Toutes les vidéos sont publiques et embeddable.
+ // =====================================================================
+ 
+ export const SESSION_PHASES = {
+@@ -20,68 +25,226 @@ export const SESSION_PHASES = {
+   cooldown: { label: 'RÉCUPÉRATION', color: '#7DA9F4' },
+ };
+ 
+-// image / video : null = emplacement vide (placeholder affiché).
+ export const SESSIONS = [
++  // -------------------------------------------------------------------
++  // DÉBUTANT — Fondamentaux : grip, posture, premiers gestes
++  // -------------------------------------------------------------------
+   {
+     id: 'fondamentaux',
+     title: 'Séance Fondamentaux',
+     level: 'DÉBUTANT',
+     duration: '30 min',
+-    focus: 'Coup droit & revers de base',
+-    cover: null, // vignette de couverture (image)
++    focus: 'Grip, coup droit, revers et premier service',
++    cover: null,
+     steps: [
+-      { phase: 'warmup',   title: 'Mobilité articulaire',     duration: '5 min',  image: null, video: null,
+-        desc: 'Rotations poignets, épaules et hanches. Préparer le corps au mouvement.' },
+-      { phase: 'warmup',   title: 'Échanges lents au centre',  duration: '5 min',  image: null, video: null,
+-        desc: 'Coup droit contre coup droit, rythme régulier, sans puissance.' },
+-      { phase: 'exercise', title: 'Coup droit en diagonale',   duration: '8 min',  image: null, video: null,
+-        desc: 'Placement régulier en diagonale. Focus sur le point de contact.' },
+-      { phase: 'exercise', title: 'Revers bloc',               duration: '7 min',  image: null, video: null,
+-        desc: 'Bloc revers court contre top-spin. Rester compact près de la table.' },
+-      { phase: 'cooldown', title: 'Étirements & respiration',  duration: '5 min',  image: null, video: null,
+-        desc: 'Étirements avant-bras et épaules. Respiration profonde.' },
++      {
++        phase: 'warmup', title: 'Mobilité articulaire', duration: '5 min',
++        image: null, video: null,
++        desc: 'Rotations poignets, épaules et hanches. Préparer le corps au mouvement.',
++      },
++      {
++        phase: 'warmup', title: 'Échanges lents au centre', duration: '5 min',
++        image: null, video: 'https://www.youtube.com/embed/vnaY6ltLY-g',
++        desc: 'Coup droit contre coup droit, rythme régulier, sans puissance. (PingSkills — Forehand counterhit lesson)',
++      },
++      {
++        phase: 'exercise', title: 'Coup droit en diagonale', duration: '8 min',
++        image: null, video: 'https://www.youtube.com/embed/iYRJ2YV3PGY',
++        desc: 'Placement régulier en diagonale. Focus sur le point de contact. (PingSkills — Forehand & backhand counterhit)',
++      },
++      {
++        phase: 'exercise', title: 'Revers bloc', duration: '7 min',
++        image: null, video: 'https://www.youtube.com/embed/Hx5ZQSsmFjo',
++        desc: 'Bloc revers court, rester compact près de la table. (PingSkills — Forehand & backhand push)',
++      },
++      {
++        phase: 'cooldown', title: 'Étirements & respiration', duration: '5 min',
++        image: null, video: null,
++        desc: 'Étirements avant-bras et épaules. Respiration profonde.',
++      },
+     ],
+   },
+   {
+-    id: 'topspin-power',
++    id: 'service-debutant',
++    title: 'Premier Service',
++    level: 'DÉBUTANT',
++    duration: '25 min',
++    focus: 'Apprendre à servir proprement',
++    cover: null,
++    steps: [
++      {
++        phase: 'warmup', title: 'Échauffement balle main', duration: '5 min',
++        image: null, video: null,
++        desc: 'Contrôle de balle, jonglage et toucher pour réveiller la main.',
++      },
++      {
++        phase: 'exercise', title: 'Service de base', duration: '8 min',
++        image: null, video: 'https://www.youtube.com/embed/NfmPcpi4sfc',
++        desc: 'Les règles et la technique du premier service. (PingSkills — Basic serve)',
++      },
++      {
++        phase: 'exercise', title: '4 services simples', duration: '8 min',
++        image: null, video: 'https://www.youtube.com/embed/oL5BQuBuMHY',
++        desc: 'Backspin, topspin, sidespin, no-spin — varier les effets simplement. (Tom Lodziak)',
++      },
++      {
++        phase: 'cooldown', title: 'Étirements & respiration', duration: '4 min',
++        image: null, video: null,
++        desc: 'Relâchement épaules, poignet, dos.',
++      },
++    ],
++  },
++
++  // -------------------------------------------------------------------
++  // INTERMÉDIAIRE — Top-spin et puissance
++  // -------------------------------------------------------------------
++  {
++    id: 'topspin-intermediaire',
+     title: 'Top-Spin Puissance',
+     level: 'INTERMÉDIAIRE',
+     duration: '45 min',
+-    focus: 'Rotation & accélération',
++    focus: 'Rotation, accélération, top-spin contrôlé',
++    cover: null,
++    steps: [
++      {
++        phase: 'warmup', title: 'Shadow strokes', duration: '5 min',
++        image: null, video: null,
++        desc: 'Mouvement complet sans balle pour aligner la rotation d’épaule.',
++      },
++      {
++        phase: 'warmup', title: 'Top-spin coup droit & revers', duration: '8 min',
++        image: null, video: 'https://www.youtube.com/embed/XFRqT3miJ3I',
++        desc: 'Revue des coups de base puis passage au top-spin. (PingSkills — Training 101)',
++      },
++      {
++        phase: 'exercise', title: 'Top-spin sur balle coupée', duration: '12 min',
++        image: null, video: 'https://www.youtube.com/embed/eLdsH1aFuT4',
++        desc: 'Lift contre balle coupée — méthode basique, spin et vitesse. (Tom Lodziak)',
++      },
++      {
++        phase: 'exercise', title: 'Améliorer son coup droit', duration: '8 min',
++        image: null, video: 'https://www.youtube.com/embed/o6RWbZFB0oE',
++        desc: 'Casser les mauvaises habitudes, créer la bonne mécanique. (Tom Lodziak)',
++      },
++      {
++        phase: 'exercise', title: 'Revers down the line', duration: '7 min',
++        image: null, video: 'https://www.youtube.com/embed/2yZpEHc8vrs',
++        desc: 'Placement et précision du revers en ligne droite. (Tom Lodziak)',
++      },
++      {
++        phase: 'cooldown', title: 'Retour au calme', duration: '5 min',
++        image: null, video: null,
++        desc: 'Échanges lents puis étirements ciblés épaules et lombaires.',
++      },
++    ],
++  },
++  {
++    id: 'vitesse-revers',
++    title: 'Vitesse au Revers',
++    level: 'INTERMÉDIAIRE',
++    duration: '30 min',
++    focus: 'Accélérer son top-spin revers',
++    cover: null,
++    steps: [
++      {
++        phase: 'warmup', title: 'Échauffement progressif', duration: '5 min',
++        image: null, video: null,
++        desc: 'Échanges réguliers, monter en intensité graduellement.',
++      },
++      {
++        phase: 'exercise', title: 'Vitesse du top revers', duration: '12 min',
++        image: null, video: 'https://www.youtube.com/embed/pg-mNoEyO-4',
++        desc: 'Utilisation du poignet et timing pour accélérer. (PingSunday — EmRatThich)',
++      },
++      {
++        phase: 'exercise', title: 'Revers en déplacement', duration: '8 min',
++        image: null, video: 'https://www.youtube.com/embed/iYRJ2YV3PGY',
++        desc: 'Enchaîner revers + déplacement latéral, garder la compacité.',
++      },
++      {
++        phase: 'cooldown', title: 'Relâchement', duration: '5 min',
++        image: null, video: null,
++        desc: 'Mobilité douce, étirements épaules et poignets.',
++      },
++    ],
++  },
++
++  // -------------------------------------------------------------------
++  // EXPERT — Techniques avancées, footwork pro
++  // -------------------------------------------------------------------
++  {
++    id: 'expert-zhang-jike',
++    title: 'Top Revers Pro',
++    level: 'EXPERT',
++    duration: '50 min',
++    focus: 'Technique Zhang Jike et déclinaisons modernes',
+     cover: null,
+     steps: [
+-      { phase: 'warmup',   title: 'Shadow strokes',            duration: '5 min',  image: null, video: null,
+-        desc: 'Mouvement complet sans balle pour aligner la rotation d\u2019épaule.' },
+-      { phase: 'warmup',   title: 'Échanges progressifs',      duration: '7 min',  image: null, video: null,
+-        desc: 'Monter en intensité graduellement, coup droit puis revers.' },
+-      { phase: 'exercise', title: 'Top-spin sur coupé',        duration: '12 min', image: null, video: null,
+-        desc: 'Lift contre balle coupée. Travail du frottement et de la trajectoire.' },
+-      { phase: 'exercise', title: 'Enchaînement CD/revers',    duration: '10 min', image: null, video: null,
+-        desc: 'Alternance top coup droit / bloc revers en déplacement latéral.' },
+-      { phase: 'exercise', title: 'Top-spin à mi-distance',    duration: '6 min',  image: null, video: null,
+-        desc: 'Recul d\u2019un mètre, top puissant. Engager les jambes.' },
+-      { phase: 'cooldown', title: 'Retour au calme',           duration: '5 min',  image: null, video: null,
+-        desc: 'Échanges lents puis étirements ciblés épaules et lombaires.' },
++      {
++        phase: 'warmup', title: 'Activation & shadow strokes', duration: '6 min',
++        image: null, video: null,
++        desc: 'Activation cardio courte puis mise en place de la mécanique.',
++      },
++      {
++        phase: 'exercise', title: 'Top revers Zhang Jike', duration: '12 min',
++        image: null, video: 'https://www.youtube.com/embed/Ugrsk_TDdZk',
++        desc: 'Décomposition complète de la technique de Zhang Jike. (Ti Long)',
++      },
++      {
++        phase: 'exercise', title: 'Top revers pro Chinese style', duration: '10 min',
++        image: null, video: 'https://www.youtube.com/embed/_G3ItT_AJF4',
++        desc: 'Les 3 clés pour un revers agressif moderne. (EmRatThich)',
++      },
++      {
++        phase: 'exercise', title: 'Revers avancé/intermédiaire', duration: '8 min',
++        image: null, video: 'https://www.youtube.com/embed/NrUDpZzI1Fw',
++        desc: 'Ajustements pour passer au niveau supérieur.',
++      },
++      {
++        phase: 'exercise', title: 'Top revers ITTF (Michael Maze)', duration: '5 min',
++        image: null, video: 'https://www.youtube.com/embed/W_yifhqHl5o',
++        desc: 'Démonstration officielle ITTF par Michael Maze.',
++      },
++      {
++        phase: 'cooldown', title: 'Récupération active', duration: '6 min',
++        image: null, video: null,
++        desc: 'Échanges lents, étirements ciblés, respiration.',
++      },
+     ],
+   },
+   {
+-    id: 'service-retour',
+-    title: 'Service & Retour',
+-    level: 'TOUS NIVEAUX',
+-    duration: '35 min',
+-    focus: 'Variations & lecture du jeu',
++    id: 'expert-footwork',
++    title: 'Footwork Pro',
++    level: 'EXPERT',
++    duration: '40 min',
++    focus: 'Déplacements latéraux et patterns chinois',
+     cover: null,
+     steps: [
+-      { phase: 'warmup',   title: 'Échauffement balle main',   duration: '5 min',  image: null, video: null,
+-        desc: 'Contrôle de balle, jonglage et toucher pour réveiller la main.' },
+-      { phase: 'exercise', title: 'Services courts coupés',    duration: '10 min', image: null, video: null,
+-        desc: 'Service court avec rotation. Travailler la 2e rebond sur la table adverse.' },
+-      { phase: 'exercise', title: 'Services longs rapides',    duration: '8 min',  image: null, video: null,
+-        desc: 'Service tendu et profond. Surprendre par le changement de longueur.' },
+-      { phase: 'exercise', title: 'Lecture & retour',          duration: '7 min',  image: null, video: null,
+-        desc: 'Identifier l\u2019effet adverse et choisir le bon retour (poussette/flip).' },
+-      { phase: 'cooldown', title: 'Relâchement',               duration: '5 min',  image: null, video: null,
+-        desc: 'Mobilité douce et respiration pour clore la séance.' },
++      {
++        phase: 'warmup', title: 'Activation jambes', duration: '6 min',
++        image: null, video: null,
++        desc: 'Sauts à la corde, talons-fesses, montées de genoux.',
++      },
++      {
++        phase: 'exercise', title: 'Side-to-side de base à avancé', duration: '12 min',
++        image: null, video: 'https://www.youtube.com/embed/lUTLexlAmSU',
++        desc: 'Progression complète du déplacement latéral. (Ti Long)',
++      },
++      {
++        phase: 'exercise', title: 'Footwork champion (J-P Gatien)', duration: '10 min',
++        image: null, video: 'https://www.youtube.com/embed/2swUt6GTL58',
++        desc: 'Tutoriel par le champion du monde 1993. (ITTF)',
++      },
++      {
++        phase: 'exercise', title: 'Combinaison frappe + déplacement', duration: '6 min',
++        image: null, video: null,
++        desc: 'Enchaîner coup droit et revers avec footwork sur toute la table.',
++      },
++      {
++        phase: 'cooldown', title: 'Étirements complets', duration: '6 min',
++        image: null, video: null,
++        desc: 'Mollets, ischio-jambiers, fléchisseurs de hanche.',
++      },
+     ],
+   },
+ ];
+diff --git a/Strav_pingpang/src/screens/TrainScreen.jsx b/Strav_pingpang/src/screens/TrainScreen.jsx
+index 3a9a21a..cedecf8 100644
+--- a/Strav_pingpang/src/screens/TrainScreen.jsx
++++ b/Strav_pingpang/src/screens/TrainScreen.jsx
+@@ -1,3 +1,4 @@
++import { useMemo, useState } from 'react';
+ import { C, fontDisplay, fontSans, kicker } from '../theme';
+ import { Icon } from '../icons';
+ import { useUI } from '../components/uiContext';
+@@ -96,15 +97,54 @@ function SessionDetail({ session }) {
+ 
+ function SessionsLibrary() {
+   const { openSheet } = useUI();
++  // 3 onglets fixes pour les 3 niveaux d'entraînement.
++  const TABS = ['DÉBUTANT', 'INTERMÉDIAIRE', 'EXPERT'];
++  const [tab, setTab] = useState('DÉBUTANT');
++
++  const filtered = useMemo(
++    () => SESSIONS.filter(s => s.level === tab),
++    [tab]
++  );
++
+   return (
+-    <Card style={{ padding: 20 }}>
+-      <div style={kicker}>SÉANCES GUIDÉES</div>
+-      <div style={{ fontFamily: fontSans, fontSize: 12.5, color: C.inkDim, marginTop: 6, lineHeight: 1.45 }}>
+-        Échauffement → exercices → récupération. Chaque étape avec sa démo vidéo.
++    <Card style={{ padding: 0, overflow: 'hidden' }}>
++      <div style={{ padding: '20px 20px 0' }}>
++        <div style={kicker}>SÉANCES GUIDÉES</div>
++        <div style={{ fontFamily: fontSans, fontSize: 12.5, color: C.inkDim, marginTop: 6, lineHeight: 1.45 }}>
++          Échauffement → exercices → récupération. Vidéos pédagogiques à chaque étape.
++        </div>
++      </div>
++
++      {/* Onglets niveau (changement : 3 vrais onglets) */}
++      <div style={{
++        display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
++        marginTop: 16, borderBottom: `1px solid ${C.border}`,
++      }}>
++        {TABS.map(t => {
++          const active = tab === t;
++          return (
++            <button key={t} onClick={() => setTab(t)} style={{
++              all: 'unset', cursor: 'pointer', textAlign: 'center',
++              fontFamily: fontSans, fontSize: 11.5, fontWeight: 700,
++              letterSpacing: '0.10em',
++              color: active ? C.ink : C.inkDim,
++              padding: '14px 6px 12px',
++              borderBottom: `2px solid ${active ? C.mint : 'transparent'}`,
++              transition: 'color 120ms, border-color 120ms',
++            }}>{t}</button>
++          );
++        })}
+       </div>
+-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+-        {SESSIONS.map(session => {
++
++      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
++        {filtered.length === 0 ? (
++          <div style={{
++            padding: '24px 0', textAlign: 'center',
++            fontFamily: fontSans, fontSize: 13, color: C.inkDim,
++          }}>Aucune séance pour ce niveau.</div>
++        ) : filtered.map(session => {
+           const counts = session.steps.reduce((acc, s) => { acc[s.phase] = (acc[s.phase] || 0) + 1; return acc; }, {});
++          const videoCount = session.steps.filter(s => s.video).length;
+           return (
+             <button key={session.id}
+               onClick={() => openSheet({ title: session.title.toUpperCase(), body: <SessionDetail session={session} /> })}
+@@ -120,8 +160,15 @@ function SessionsLibrary() {
+                     <span style={{ fontFamily: fontSans, fontSize: 11, color: C.warm, fontWeight: 700 }}>{session.duration}</span>
+                   </div>
+                   <div style={{ marginTop: 4, fontFamily: fontSans, fontSize: 12.5, color: C.inkDim }}>{session.focus}</div>
+-                  <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+-                    <span style={{ fontFamily: fontSans, fontSize: 10.5, fontWeight: 700, color: C.ink, background: 'rgba(8,22,17,0.5)', border: `1px solid ${C.border}`, padding: '3px 8px', borderRadius: 7 }}>{session.level}</span>
++                  <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap', alignItems: 'center' }}>
++                    {videoCount > 0 && (
++                      <span style={{
++                        display: 'inline-flex', alignItems: 'center', gap: 4,
++                        fontFamily: fontSans, fontSize: 10.5, fontWeight: 700, color: C.mint,
++                        background: 'rgba(155,201,174,0.10)', border: '1px solid rgba(155,201,174,0.30)',
++                        padding: '3px 8px', borderRadius: 7,
++                      }}>▶ {videoCount} vidéo{videoCount > 1 ? 's' : ''}</span>
++                    )}
+                     {Object.entries(counts).map(([ph, n]) => (
+                       <span key={ph} style={{
+                         fontFamily: fontSans, fontSize: 10.5, fontWeight: 700,
