@@ -1,37 +1,49 @@
-import { useMemo, useState } from 'react';
+// =====================================================================
+// PING PANG PARIS — Écran TRAIN
+// 3 onglets de niveau (DÉBUTANT / INTERMÉDIAIRE / EXPERT).
+// Chaque onglet affiche 5 vignettes vidéo directement, sans regroupement
+// par séance. Clic sur une vignette → lightbox plein écran 16:9 horizontal.
+// =====================================================================
+
+import { useEffect, useMemo, useState } from 'react';
 import { C, fontDisplay, fontSans, kicker } from '../theme';
-import { Icon } from '../icons';
-import { useUI } from '../components/uiContext';
 import Card from '../components/Card';
-import Chip from '../components/Chip';
-import { SESSIONS, SESSION_PHASES } from '../lib/sessions';
+import { VIDEOS } from '../lib/sessions';
 
-// =====================================================================
-// SÉANCES GUIDÉES
-// - Sur la carte de séance : miniature YouTube cliquable (ouvre le sheet)
-// - Dans le sheet : vraie iframe YouTube qui lit la vidéo dans l'app
-// =====================================================================
+const LEVELS = ['DÉBUTANT', 'INTERMÉDIAIRE', 'EXPERT'];
 
-// Extrait l'ID YouTube d'une URL embed/watch/youtu.be. Renvoie null sinon.
+// Extrait l'ID YouTube d'une URL embed / watch / youtu.be. Sinon null.
 function youtubeIdFrom(url) {
   if (!url) return null;
   const m = String(url).match(/(?:youtube\.com\/embed\/|youtu\.be\/|youtube\.com\/watch\?v=)([A-Za-z0-9_-]{6,})/);
   return m ? m[1] : null;
 }
 
-// Miniature YouTube HD : sert d'aperçu sur les cartes cliquables.
-// On NE met PAS l'iframe ici pour ne pas casser le clic du <button> parent.
-function VideoThumbnail({ video, image, height = 150, rounded = 14 }) {
+// ---------------------------------------------------------------------
+// VIGNETTE VIDÉO : miniature YouTube + overlay play. Tente d'abord la
+// miniature HD personnalisée (maxresdefault), bascule sur la première
+// image de la vidéo (1.jpg) puis sur hqdefault si nécessaire.
+// ---------------------------------------------------------------------
+function VideoThumb({ video, height = 180, rounded = 14 }) {
   const ytId = youtubeIdFrom(video);
-  const thumbUrl = image || (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null);
-  if (!thumbUrl) return <MediaPlaceholder height={height} rounded={rounded} />;
+  const [src, setSrc] = useState(() => ytId ? `https://i.ytimg.com/vi/${ytId}/maxresdefault.jpg` : null);
+
+  const onError = () => {
+    if (!ytId || !src) return;
+    if (src.includes('maxresdefault')) setSrc(`https://i.ytimg.com/vi/${ytId}/1.jpg`);
+    else if (src.includes('/1.jpg')) setSrc(`https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`);
+  };
+
   return (
     <div style={{
-      position: 'relative', width: '100%', height, borderRadius: rounded,
-      overflow: 'hidden', background: '#10251d',
+      position: 'relative', width: '100%', height,
+      borderRadius: rounded, overflow: 'hidden',
+      background: '#0E3A30',
     }}>
-      <img src={thumbUrl} alt="" loading="lazy"
-        style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      {src && (
+        <img src={src} alt="" loading="lazy" onError={onError}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      )}
       <div style={{
         position: 'absolute', inset: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -39,7 +51,7 @@ function VideoThumbnail({ video, image, height = 150, rounded = 14 }) {
         pointerEvents: 'none',
       }}>
         <div style={{
-          width: 54, height: 54, borderRadius: '50%',
+          width: 56, height: 56, borderRadius: '50%',
           background: 'rgba(9,44,37,0.78)',
           border: `2px solid ${C.ink}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -54,192 +66,169 @@ function VideoThumbnail({ video, image, height = 150, rounded = 14 }) {
   );
 }
 
-function MediaPlaceholder({ height, rounded }) {
+// ---------------------------------------------------------------------
+// LIGHTBOX VIDÉO PLEIN ÉCRAN — format 16:9 horizontal
+// Couvre toute la fenêtre, fond noir, autoplay activé.
+// Ferme : clic dehors / bouton X / touche Échap.
+// ---------------------------------------------------------------------
+function VideoLightbox({ video, onClose }) {
+  useEffect(() => {
+    if (!video) return undefined;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [video, onClose]);
+
+  if (!video) return null;
+  const src = video.includes('?') ? `${video}&autoplay=1` : `${video}?autoplay=1`;
+
   return (
-    <div style={{
-      width: '100%', height, borderRadius: rounded,
-      background: 'repeating-linear-gradient(45deg, rgba(245,246,243,0.05) 0px, rgba(245,246,243,0.05) 10px, rgba(8,22,17,0.4) 10px, rgba(8,22,17,0.4) 20px)',
-      border: `1px dashed ${C.borderHi}`,
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
-      color: C.inkFaint,
-    }}>
-      <span style={{ color: C.mint, opacity: 0.7 }}>{Icon.bolt(22)}</span>
-      <span style={{ fontFamily: fontSans, fontSize: 11, fontWeight: 700, letterSpacing: '0.10em' }}>PHOTO / VIDÉO À VENIR</span>
-    </div>
-  );
-}
+    <div
+      onClick={onClose}
+      role="dialog" aria-modal="true" aria-label="Lecteur vidéo"
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(0,0,0,0.92)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 16,
+      }}
+    >
+      <button
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
+        aria-label="Fermer la vidéo"
+        style={{
+          position: 'absolute', top: 14, right: 14,
+          width: 40, height: 40, borderRadius: '50%',
+          background: 'rgba(245,246,243,0.12)', border: `1px solid ${C.borderHi}`,
+          color: C.ink, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M6 6l12 12M6 18L18 6" />
+        </svg>
+      </button>
 
-// SessionMedia "vraie lecture" : utilisé DANS le sheet pour les étapes.
-// L'iframe YouTube se charge et est lisible en cliquant play, dans l'app.
-function SessionMedia({ image, video, height = 150, rounded = 14 }) {
-  if (video) {
-    const isEmbed = /youtube|youtu\.be|vimeo/.test(video);
-    return (
-      <div style={{ width: '100%', height, borderRadius: rounded, overflow: 'hidden', background: '#10251d' }}>
-        {isEmbed ? (
-          <iframe
-            src={video} title="Vidéo séance" allowFullScreen
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            style={{ width: '100%', height: '100%', border: 'none' }}
-          />
-        ) : (
-          <video src={video} controls playsInline preload="metadata"
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        )}
-      </div>
-    );
-  }
-  if (image) {
-    return (
-      <div style={{ width: '100%', height, borderRadius: rounded, overflow: 'hidden', background: '#10251d' }}>
-        <img src={image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-      </div>
-    );
-  }
-  return <MediaPlaceholder height={height} rounded={rounded} />;
-}
-
-function SessionDetail({ session }) {
-  const firstVideo = session.steps.find(s => s.video)?.video || null;
-  return (
-    <div style={{ fontFamily: fontSans, color: C.ink }}>
-      <SessionMedia image={session.cover} video={firstVideo} height={200} rounded={16} />
-      <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-        <Chip>{session.level}</Chip>
-        <Chip><span style={{ color: C.cream }}>{Icon.clock(13)}</span> {session.duration}</Chip>
-      </div>
-      <div style={{ marginTop: 12, fontFamily: fontSans, fontSize: 13.5, color: C.inkDim, lineHeight: 1.5 }}>
-        {session.focus}
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 18 }}>
-        {session.steps.map((step, i) => {
-          const phase = SESSION_PHASES[step.phase] || {};
-          const hasVideo = !!step.video;
-          return (
-            <div key={i} style={{
-              borderRadius: 16, overflow: 'hidden',
-              background: 'rgba(8,22,17,0.45)', border: `1px solid ${C.border}`,
-            }}>
-              <SessionMedia image={step.image} video={step.video} height={hasVideo ? 200 : 140} rounded={0} />
-              <div style={{ padding: '14px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{
-                    fontFamily: fontSans, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.10em',
-                    color: '#092C25', background: phase.color || C.mint,
-                    padding: '3px 8px', borderRadius: 999,
-                  }}>{phase.label}</span>
-                  <span style={{ fontFamily: fontSans, fontSize: 11.5, color: C.inkDim }}>{step.duration}</span>
-                </div>
-                <div style={{ marginTop: 8, fontFamily: fontSans, fontWeight: 800, fontSize: 16, color: C.ink, lineHeight: 1.25 }}>
-                  {step.title}
-                </div>
-                <div style={{
-                  marginTop: 8,
-                  paddingTop: hasVideo ? 10 : 0,
-                  borderTop: hasVideo ? `1px solid ${C.border}` : 'none',
-                  fontFamily: fontSans, fontSize: 13.5, color: C.ink,
-                  lineHeight: 1.55, opacity: 0.92,
-                }}>
-                  {step.desc}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: 'min(95vw, calc((90vh) * 16 / 9))',
+          aspectRatio: '16 / 9',
+          background: '#000',
+          borderRadius: 12, overflow: 'hidden',
+          boxShadow: '0 10px 60px rgba(0,0,0,0.6)',
+        }}
+      >
+        <iframe
+          src={src} title="Vidéo" allowFullScreen
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+        />
       </div>
     </div>
   );
 }
 
-function SessionsLibrary() {
-  const { openSheet } = useUI();
-  const TABS = ['DÉBUTANT', 'INTERMÉDIAIRE', 'EXPERT'];
-  const [tab, setTab] = useState('DÉBUTANT');
-
-  const filtered = useMemo(
-    () => SESSIONS.filter(s => s.level === tab),
-    [tab]
-  );
-
+// ---------------------------------------------------------------------
+// CARTE D'UNE VIDÉO : vignette + titre + description courte + durée.
+// Toute la carte est cliquable → ouvre la lightbox.
+// ---------------------------------------------------------------------
+function VideoCard({ item, onPlay }) {
   return (
-    <Card style={{ padding: 0, overflow: 'hidden' }}>
-      <div style={{ padding: '20px 20px 0' }}>
-        <div style={kicker}>SÉANCES GUIDÉES</div>
-        <div style={{ fontFamily: fontSans, fontSize: 12.5, color: C.inkDim, marginTop: 6, lineHeight: 1.45 }}>
-          Échauffement → exercices → récupération. Vidéos pédagogiques à chaque étape.
+    <button
+      onClick={() => onPlay(item.video)}
+      style={{ all: 'unset', cursor: 'pointer', display: 'block', width: '100%' }}
+      aria-label={`Lancer la vidéo : ${item.title}`}
+    >
+      <div style={{
+        borderRadius: 16, overflow: 'hidden',
+        background: 'rgba(8,22,17,0.45)', border: `1px solid ${C.border}`,
+      }}>
+        <VideoThumb video={item.video} height={180} rounded={0} />
+        <div style={{ padding: '12px 14px 14px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
+            <span style={{
+              fontFamily: fontSans, fontWeight: 800, fontSize: 15.5,
+              color: C.ink, lineHeight: 1.25,
+            }}>{item.title}</span>
+            <span style={{
+              flexShrink: 0,
+              fontFamily: fontSans, fontSize: 11, fontWeight: 700,
+              color: C.warm, letterSpacing: '0.04em',
+            }}>{item.duration}</span>
+          </div>
+          <div style={{
+            marginTop: 5,
+            fontFamily: fontSans, fontSize: 12.5, color: C.inkDim,
+            lineHeight: 1.45,
+          }}>{item.desc}</div>
         </div>
       </div>
+    </button>
+  );
+}
 
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
-        marginTop: 16, borderBottom: `1px solid ${C.border}`,
-      }}>
-        {TABS.map(t => {
-          const active = tab === t;
-          return (
-            <button key={t} onClick={() => setTab(t)} style={{
-              all: 'unset', cursor: 'pointer', textAlign: 'center',
-              fontFamily: fontSans, fontSize: 11.5, fontWeight: 700,
-              letterSpacing: '0.10em',
-              color: active ? C.ink : C.inkDim,
-              padding: '14px 6px 12px',
-              borderBottom: `2px solid ${active ? C.mint : 'transparent'}`,
-              transition: 'color 120ms, border-color 120ms',
-            }}>{t}</button>
-          );
-        })}
-      </div>
+// ---------------------------------------------------------------------
+// LIBRARY : onglets + grille de vignettes du niveau actif.
+// ---------------------------------------------------------------------
+function VideosLibrary() {
+  const [tab, setTab] = useState('DÉBUTANT');
+  const [openVideo, setOpenVideo] = useState(null);
 
-      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {filtered.length === 0 ? (
+  const filtered = useMemo(() => VIDEOS.filter(v => v.level === tab), [tab]);
+
+  return (
+    <>
+      <Card style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '20px 20px 0' }}>
+          <div style={kicker}>VIDÉOS D'ENTRAÎNEMENT</div>
           <div style={{
-            padding: '24px 0', textAlign: 'center',
-            fontFamily: fontSans, fontSize: 13, color: C.inkDim,
-          }}>Aucune séance pour ce niveau.</div>
-        ) : filtered.map(session => {
-          const counts = session.steps.reduce((acc, s) => { acc[s.phase] = (acc[s.phase] || 0) + 1; return acc; }, {});
-          const videoCount = session.steps.filter(s => s.video).length;
-          const firstVideo = session.steps.find(s => s.video)?.video || null;
-          return (
-            <button key={session.id}
-              onClick={() => openSheet({ title: session.title.toUpperCase(), body: <SessionDetail session={session} /> })}
-              style={{ all: 'unset', cursor: 'pointer', display: 'block' }}>
-              <div style={{
-                borderRadius: 16, overflow: 'hidden',
-                background: 'rgba(8,22,17,0.45)', border: `1px solid ${C.border}`,
-              }}>
-                <VideoThumbnail image={session.cover} video={firstVideo} height={140} rounded={0} />
-                <div style={{ padding: '14px 16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontFamily: fontSans, fontWeight: 800, fontSize: 16, color: C.ink }}>{session.title}</span>
-                    <span style={{ fontFamily: fontSans, fontSize: 11, color: C.warm, fontWeight: 700 }}>{session.duration}</span>
-                  </div>
-                  <div style={{ marginTop: 4, fontFamily: fontSans, fontSize: 12.5, color: C.inkDim }}>{session.focus}</div>
-                  <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                    {videoCount > 0 && (
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4,
-                        fontFamily: fontSans, fontSize: 10.5, fontWeight: 700, color: C.mint,
-                        background: 'rgba(155,201,174,0.10)', border: '1px solid rgba(155,201,174,0.30)',
-                        padding: '3px 8px', borderRadius: 7,
-                      }}>▶ {videoCount} vidéo{videoCount > 1 ? 's' : ''}</span>
-                    )}
-                    {Object.entries(counts).map(([ph, n]) => (
-                      <span key={ph} style={{
-                        fontFamily: fontSans, fontSize: 10.5, fontWeight: 700,
-                        color: '#092C25', background: SESSION_PHASES[ph]?.color || C.mint,
-                        padding: '3px 8px', borderRadius: 7,
-                      }}>{n} {SESSION_PHASES[ph]?.label.toLowerCase()}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-    </Card>
+            fontFamily: fontSans, fontSize: 12.5, color: C.inkDim,
+            marginTop: 6, lineHeight: 1.45,
+          }}>
+            Apprends les gestes à ton niveau. Tape une vignette pour lancer la vidéo en grand.
+          </div>
+        </div>
+
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+          marginTop: 16, borderBottom: `1px solid ${C.border}`,
+        }}>
+          {LEVELS.map(t => {
+            const active = tab === t;
+            return (
+              <button key={t} onClick={() => setTab(t)} style={{
+                all: 'unset', cursor: 'pointer', textAlign: 'center',
+                fontFamily: fontSans, fontSize: 11.5, fontWeight: 700,
+                letterSpacing: '0.10em',
+                color: active ? C.ink : C.inkDim,
+                padding: '14px 6px 12px',
+                borderBottom: `2px solid ${active ? C.mint : 'transparent'}`,
+                transition: 'color 120ms, border-color 120ms',
+              }}>{t}</button>
+            );
+          })}
+        </div>
+
+        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {filtered.length === 0 ? (
+            <div style={{
+              padding: '24px 0', textAlign: 'center',
+              fontFamily: fontSans, fontSize: 13, color: C.inkDim,
+            }}>Aucune vidéo pour ce niveau.</div>
+          ) : filtered.map(item => (
+            <VideoCard key={item.id} item={item} onPlay={setOpenVideo} />
+          ))}
+        </div>
+      </Card>
+
+      <VideoLightbox video={openVideo} onClose={() => setOpenVideo(null)} />
+    </>
   );
 }
 
@@ -251,13 +240,13 @@ export default function TrainScreen() {
         <div style={{
           fontFamily: fontDisplay, fontWeight: 800, fontSize: 50, lineHeight: 0.95,
           color: C.ink, letterSpacing: '0.02em', marginTop: 6,
-        }}>SÉANCES</div>
+        }}>VIDÉOS</div>
         <div style={{
           fontFamily: fontSans, fontSize: 13, color: C.inkDim, marginTop: 8, lineHeight: 1.5,
-        }}>Programmes guidés : échauffement, exercices et récupération.</div>
+        }}>5 démos par niveau pour progresser.</div>
       </div>
 
-      <SessionsLibrary />
+      <VideosLibrary />
     </div>
   );
 }
