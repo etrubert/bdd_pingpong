@@ -118,9 +118,11 @@ export default function CoachChat({ onClose }) {
               fontFamily: fontDisplay, fontWeight: 800, fontSize: 16,
               color: C.ink, letterSpacing: '0.02em', lineHeight: 1.1,
             }}>COACH PING</div>
-            <div style={{
-              fontFamily: fontSans, fontSize: 11.5, color: C.inkDim, marginTop: 2,
-            }}>{apiOk ? 'En ligne · IA Mistral' : 'Clé API manquante'}</div>
+            {!apiOk && (
+              <div style={{
+                fontFamily: fontSans, fontSize: 11.5, color: C.inkDim, marginTop: 2,
+              }}>Clé API manquante</div>
+            )}
           </div>
           <button
             onClick={onClose}
