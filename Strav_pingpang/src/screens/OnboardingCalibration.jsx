@@ -1,36 +1,40 @@
 // =====================================================================
-// PING PANG PARIS — Étape 3 : calibration ELO (DA capture utilisateur)
+// PING PANG PARIS — Étape 4 : calibration ELO (400 → 1500)
 // =====================================================================
 
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { C, fontDisplay, fontSans, kicker } from '../theme';
-import { calculateInitialElo, getEloRange } from '../lib/eloCalibration';
+import {
+  calculateInitialElo,
+  deriveCalibrationDefaults,
+  getEloRange,
+  ELO_MIN,
+  ELO_MAX,
+} from '../lib/eloCalibration';
 
 const EXPERIENCES = [
-  { value: '<1y',   label: '< 1 an' },
-  { value: '1-3y',  label: '1-3 ans' },
-  { value: '3-5y',  label: '3-5 ans' },
-  { value: '5-10y', label: '5-10 ans' },
-  { value: '10+y',  label: '10+ ans' },
+  { value: '<1y',   label: 'Je débute',           hint: 'Premiers échanges' },
+  { value: '1-3y',  label: 'Moins de 3 ans',      hint: 'Quelques mois / saisons' },
+  { value: '3-5y',  label: '3 à 5 ans',           hint: 'Joueur régulier loisir' },
+  { value: '5-10y', label: '5 à 10 ans',          hint: 'Solide en club' },
+  { value: '10+y',  label: '10 ans et plus',      hint: 'Longue pratique' },
 ];
 
 const FREQUENCIES = [
-  { value: 'rare',     label: 'Rarement' },
-  { value: 'monthly',  label: '1×/mois' },
-  { value: 'weekly',   label: '1×/sem' },
-  { value: '2-3week',  label: '2-3×/sem' },
-  { value: 'daily',    label: 'Quotidien' },
+  { value: 'rare',     label: 'Rarement',        hint: 'Occasionnel' },
+  { value: 'monthly',  label: '1× / mois',       hint: 'Loisir léger' },
+  { value: 'weekly',   label: '1× / semaine',    hint: 'Régulier' },
+  { value: '2-3week',  label: '2–3× / semaine',  hint: 'Sérieux' },
+  { value: 'daily',    label: 'Quasi quotidien', hint: 'Intensif' },
 ];
 
 const LEVELS = [
-  { value: 'leisure',      label: 'Loisir / entre amis uniquement' },
-  { value: 'tournament',   label: 'Tournois loisir / club ouvert' },
-  { value: 'departmental', label: 'Championnat départemental (D1-D4)' },
-  { value: 'regional',     label: 'Régional (R1-R4)' },
-  { value: 'national',     label: 'National / Pro' },
+  { value: 'leisure',      label: 'Uniquement entre amis',              hint: '~400–650' },
+  { value: 'tournament',   label: 'Tournois loisir / opens de club',    hint: '~650–900' },
+  { value: 'departmental', label: 'Championnat départemental (D1–D4)', hint: '~900–1150' },
+  { value: 'regional',     label: 'Régional (R1–R4)',                   hint: '~1150–1350' },
+  { value: 'national',     label: 'National / haut niveau',             hint: '~1350–1500' },
 ];
-
-// ----- Sous-composants UI -----
 
 function Stepper({ total = 4, current = 4 }) {
   return (
@@ -45,24 +49,44 @@ function Stepper({ total = 4, current = 4 }) {
   );
 }
 
-function FieldLabel({ children }) {
-  return <div style={{ ...kicker, marginTop: 18, marginBottom: 10 }}>{children}</div>;
+function FieldLabel({ children, sub }) {
+  return (
+    <div style={{ marginTop: 18, marginBottom: 10 }}>
+      <div style={kicker}>{children}</div>
+      {sub && (
+        <div style={{ fontFamily: fontSans, fontSize: 12, color: C.inkDim, marginTop: 4, lineHeight: 1.4 }}>
+          {sub}
+        </div>
+      )}
+    </div>
+  );
 }
 
-function Pill({ active, onClick, children }) {
+function Pill({ active, onClick, children, hint }) {
   return (
     <button onClick={onClick} style={{
       all: 'unset', cursor: 'pointer',
-      padding: '8px 16px', borderRadius: 999,
+      padding: hint ? '10px 14px' : '8px 16px',
+      borderRadius: 12,
       border: `1px solid ${active ? C.warm : C.border}`,
       background: active ? C.warm : 'rgba(8,22,17,0.45)',
       color: active ? '#092C25' : C.ink,
       fontFamily: fontSans, fontWeight: 700, fontSize: 13,
-    }}>{children}</button>
+      display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2,
+      maxWidth: '100%',
+    }}>
+      <span>{children}</span>
+      {hint && (
+        <span style={{
+          fontSize: 10.5, fontWeight: 500, opacity: active ? 0.75 : 0.65,
+          color: active ? '#092C25' : C.inkDim,
+        }}>{hint}</span>
+      )}
+    </button>
   );
 }
 
-function LevelRow({ active, onClick, children }) {
+function LevelRow({ active, onClick, children, hint }) {
   return (
     <button onClick={onClick} style={{
       all: 'unset', cursor: 'pointer',
@@ -73,18 +97,30 @@ function LevelRow({ active, onClick, children }) {
       color: active ? '#092C25' : C.ink,
       fontFamily: fontSans, fontSize: 14,
       fontWeight: active ? 700 : 500,
-    }}>{children}</button>
+      textAlign: 'left',
+    }}>
+      <div>{children}</div>
+      {hint && (
+        <div style={{
+          marginTop: 4, fontSize: 11.5, fontWeight: 500,
+          opacity: active ? 0.8 : 0.65,
+          color: active ? '#092C25' : C.inkDim,
+        }}>{hint}</div>
+      )}
+    </button>
   );
 }
 
 function SelfRatingSlider({ value, onChange }) {
-  // Étiquette dynamique selon la position
   const label =
-    value < 25 ? 'Débutant+' :
-    value < 50 ? 'Loisir+' :
-    value < 70 ? 'Intermédiaire+' :
-    value < 85 ? 'Confirmé+' :
-                 'Expert+';
+    value < 20 ? 'Débutant' :
+    value < 40 ? 'Loisir' :
+    value < 60 ? 'Intermédiaire' :
+    value < 80 ? 'Confirmé' :
+                 'Très avancé';
+
+  const approxElo = Math.round(ELO_MIN + (value / 100) * (ELO_MAX - ELO_MIN));
+
   return (
     <div style={{ padding: '4px 0' }}>
       <div style={{ position: 'relative', height: 38, display: 'flex', alignItems: 'center' }}>
@@ -115,12 +151,14 @@ function SelfRatingSlider({ value, onChange }) {
         `}</style>
       </div>
       <div style={{
-        display: 'flex', justifyContent: 'space-between',
-        marginTop: 4, fontFamily: fontSans, fontSize: 12, color: C.inkDim,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        marginTop: 6, fontFamily: fontSans, fontSize: 12, color: C.inkDim,
       }}>
-        <span>Débutant</span>
-        <span style={{ color: C.warm, fontWeight: 700 }}>{label}</span>
-        <span>Expert</span>
+        <span>{ELO_MIN}</span>
+        <span style={{ color: C.warm, fontWeight: 700 }}>
+          {label} · ~{approxElo} pts
+        </span>
+        <span>{ELO_MAX}</span>
       </div>
     </div>
   );
@@ -158,39 +196,54 @@ function EloPreviewCard({ estimation }) {
           marginTop: 8, fontFamily: fontSans, fontSize: 12.5,
           color: C.inkDim, lineHeight: 1.5,
         }}>
-          Tes 5 premiers matchs auront un coefficient renforcé pour affiner rapidement.
+          Échelle {ELO_MIN}–{ELO_MAX}. Tes premiers matchs affinent rapidement le score.
         </div>
       </div>
     </div>
   );
 }
 
-// ----- Composant principal -----
-
 export default function OnboardingCalibration({ userId, onComplete, initialAnswers }) {
-  const [experience, setExperience] = useState(initialAnswers?.experience || null);
-  const [frequency,  setFrequency]  = useState(initialAnswers?.frequency  || null);
-  const [level,      setLevel]      = useState(initialAnswers?.level      || null);
-  const [selfRating, setSelfRating] = useState(initialAnswers?.selfRating ?? 50);
+  const defaults = useMemo(
+    () => deriveCalibrationDefaults(initialAnswers || {}),
+    [initialAnswers]
+  );
+
+  const [experience, setExperience] = useState(
+    initialAnswers?.experience || defaults.experience || null
+  );
+  const [frequency, setFrequency] = useState(
+    initialAnswers?.frequency || defaults.frequency || null
+  );
+  // `initialAnswers.level` = auto-éval « Je progresse » (Débutant, Loisir…)
+  // Le niveau compétitif (leisure, regional…) est saisi uniquement ici.
+  const [compLevel, setCompLevel] = useState(
+    initialAnswers?.calibLevel || defaults.calibLevel || null
+  );
+  const [selfRating, setSelfRating] = useState(
+    initialAnswers?.selfRating ?? defaults.selfRating ?? 50
+  );
   const [submitting, setSubmitting] = useState(false);
-  const [error,      setError]      = useState('');
+  const [error, setError] = useState('');
+
+  const progressHint = initialAnswers?.level
+    ? `Profil « ${initialAnswers.level} » : ajuste les réponses ci-dessous si besoin.`
+    : null;
 
   const estimation = useMemo(() => {
-    if (!experience || !frequency || !level) return null;
-    return calculateInitialElo({ experience, frequency, level, selfRating });
-  }, [experience, frequency, level, selfRating]);
+    if (!experience || !frequency || !compLevel) return null;
+    return calculateInitialElo({ experience, frequency, level: compLevel, selfRating });
+  }, [experience, frequency, compLevel, selfRating]);
 
-  const canSubmit = !!experience && !!frequency && !!level;
+  const canSubmit = !!experience && !!frequency && !!compLevel;
 
   const handleSubmit = async () => {
     if (!canSubmit || submitting) return;
     setSubmitting(true);
     setError('');
     try {
-      // La sauvegarde Supabase (profil + ELO) est gérée par le parent
-      // qui dispose du token d'auth via lib/auth.js
       await onComplete?.(estimation.elo, {
-        experience, frequency, level, selfRating,
+        experience, frequency, calibLevel: compLevel, selfRating,
         initialElo: estimation.elo,
       });
     } catch (err) {
@@ -204,56 +257,70 @@ export default function OnboardingCalibration({ userId, onComplete, initialAnswe
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <Stepper total={4} current={4} />
-      <div style={kicker}>ÉTAPE 4 / 4 · QUESTION CALIBRAGE</div>
+      <div style={kicker}>ÉTAPE 4 / 4 · CALIBRAGE ELO</div>
       <div style={{
         fontFamily: fontDisplay, fontWeight: 800, fontSize: 32, lineHeight: 1.05,
         color: C.ink, marginTop: 8, letterSpacing: '0.04em',
       }}>TON EXPÉRIENCE</div>
-      <div style={{ fontFamily: fontSans, fontSize: 13, color: C.inkDim, marginTop: 6 }}>
-        On calibre ton ELO de départ
+      <div style={{ fontFamily: fontSans, fontSize: 13, color: C.inkDim, marginTop: 6, lineHeight: 1.45 }}>
+        On estime ton ELO entre <strong style={{ color: C.ink }}>{ELO_MIN}</strong> et{' '}
+        <strong style={{ color: C.ink }}>{ELO_MAX}</strong> selon tes réponses.
       </div>
+      {progressHint && (
+        <div style={{
+          marginTop: 10, padding: '10px 12px', borderRadius: 10,
+          background: 'rgba(232,201,155,0.08)', border: `1px solid ${C.border}`,
+          fontFamily: fontSans, fontSize: 12.5, color: C.inkDim, lineHeight: 1.45,
+        }}>{progressHint}</div>
+      )}
 
-      {/* Q1 — Expérience */}
-      <FieldLabel>DEPUIS QUAND TU JOUES ?</FieldLabel>
+      <FieldLabel sub="Plus tu débutes, plus l'ELO de départ est bas.">
+        DEPUIS QUAND TU JOUES ?
+      </FieldLabel>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {EXPERIENCES.map(opt => (
           <Pill key={opt.value}
-                active={experience === opt.value}
-                onClick={() => setExperience(opt.value)}>
+            active={experience === opt.value}
+            onClick={() => setExperience(opt.value)}
+            hint={opt.hint}>
             {opt.label}
           </Pill>
         ))}
       </div>
 
-      {/* Q2 — Fréquence */}
-      <FieldLabel>TU JOUES À QUELLE FRÉQUENCE ?</FieldLabel>
+      <FieldLabel sub="La régularité fait monter l'estimation.">
+        TU JOUES À QUELLE FRÉQUENCE ?
+      </FieldLabel>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {FREQUENCIES.map(opt => (
           <Pill key={opt.value}
-                active={frequency === opt.value}
-                onClick={() => setFrequency(opt.value)}>
+            active={frequency === opt.value}
+            onClick={() => setFrequency(opt.value)}
+            hint={opt.hint}>
             {opt.label}
           </Pill>
         ))}
       </div>
 
-      {/* Q3 — Niveau le plus élevé atteint */}
-      <FieldLabel>NIVEAU LE PLUS ÉLEVÉ ATTEINT</FieldLabel>
+      <FieldLabel sub="Le niveau compétitif le plus élevé que tu as pratiqué.">
+        NIVEAU LE PLUS ÉLEVÉ ATTEINT
+      </FieldLabel>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {LEVELS.map(opt => (
           <LevelRow key={opt.value}
-                    active={level === opt.value}
-                    onClick={() => setLevel(opt.value)}>
+            active={compLevel === opt.value}
+            onClick={() => setCompLevel(opt.value)}
+            hint={opt.hint}>
             {opt.label}
           </LevelRow>
         ))}
       </div>
 
-      {/* Q4 — Auto-évaluation */}
-      <FieldLabel>HONNÊTEMENT, TU TE SITUES OÙ ?</FieldLabel>
+      <FieldLabel sub="Ajuste si tu te sens au-dessus ou en-dessous des choix précédents.">
+        HONNÊTEMENT, TU TE SITUES OÙ ?
+      </FieldLabel>
       <SelfRatingSlider value={selfRating} onChange={setSelfRating} />
 
-      {/* Estimation ELO live */}
       {estimation && <EloPreviewCard estimation={estimation} />}
 
       {error && (

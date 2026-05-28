@@ -624,8 +624,9 @@ async function saveProfileToSupabase(data) {
     patch.peak_elo    = data.initialElo;
     patch.elo_rating  = data.initialElo; // compat ancien code (chat, etc.)
   }
-  if (data.level && CALIB_LEVEL_TO_SELF[data.level] && !patch.self_level) {
-    patch.self_level = CALIB_LEVEL_TO_SELF[data.level];
+  const calibLevel = data.calibLevel || data.level;
+  if (calibLevel && CALIB_LEVEL_TO_SELF[calibLevel] && !patch.self_level) {
+    patch.self_level = CALIB_LEVEL_TO_SELF[calibLevel];
   }
 
   await updateProfile(patch);
