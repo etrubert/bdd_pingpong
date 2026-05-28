@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -238,6 +238,33 @@ const STATS = {
   losses:   32,
   winrate:  68,
 };
+
+function localChatKey(contactLike) {
+  return `pp_chat_local_msgs_${contactLike.conversationId || contactLike.full || contactLike.name || 'unknown'}`;
+}
+
+function readLocalChatMessages(contactLike) {
+  try {
+    const raw = localStorage.getItem(localChatKey(contactLike));
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function mergeConversationWithLocal(conversation) {
+  const localMsgs = readLocalChatMessages(conversation);
+  if (!localMsgs.length) return conversation;
+  const mergedMessages = [...(conversation.messages || []), ...localMsgs];
+  const last = mergedMessages[mergedMessages.length - 1];
+  return {
+    ...conversation,
+    messages: mergedMessages,
+    preview: last?.text || conversation.preview,
+    when: last?.when || conversation.when,
+  };
+}
 
 function FriendAvatar({ color, online, size = 56 }) {
   const [light, mid, dark] = color;
@@ -943,6 +970,7 @@ function getNextDays(n = 5) {
 
 function NewChallengeView({ opponent }) {
   const { openSheet, showToast, closeSheet } = useUI();
+  const { profile } = useAuth();
   const oppKey = opponent.full || opponent.name;
   const draft = (challengeDraft && challengeDraft.oppKey === oppKey) ? challengeDraft : null;
   const days = useMemo(() => getNextDays(5), []);
@@ -983,9 +1011,9 @@ function NewChallengeView({ opponent }) {
   const dayObj = days.find(d => d.iso === day) || days[0];
   const recap = `${dayObj.label[0] + dayObj.label.slice(1).toLowerCase()} ${dayObj.num} · ${hour} · ${venue}`;
 
-  const ELO_GAIN = 14;
-  const ELO_LOSS = 12;
-  const PRONO = 52;
+  const myElo = profile?.current_elo ?? profile?.elo_rating ?? 1200;
+  const { gainW: ELO_GAIN, lossL: ELO_LOSS } = eloOutcome(myElo, opponent.elo ?? 1200);
+  const PRONO = winProbability(myElo, opponent.elo ?? 1200);
 
   const FORMATS = [
     { id: 'BO3',   sub: '~20 min' },
@@ -1299,9 +1327,27 @@ const MOCK_THREADS = {
 
 function ChatView({ contact, onBack, backLabel = 'Messages' }) {
   const { openSheet, closeSheet, showToast } = useUI();
+  const cacheKey = useMemo(() => localChatKey(contact), [contact.conversationId, contact.full, contact.name]);
+  const readLocalMessages = useCallback(() => {
+    try {
+      const raw = localStorage.getItem(cacheKey);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, [cacheKey]);
+  const writeLocalMessages = useCallback((localMsgs) => {
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(localMsgs));
+    } catch {}
+  }, [cacheKey]);
   const initialMessages = useMemo(
-    () => (contact.messages?.length ? contact.messages : (MOCK_THREADS[contact.full] || MOCK_THREADS.default)),
-    [contact.conversationId, contact.full, contact.messages],
+    () => [
+      ...(contact.messages?.length ? contact.messages : (MOCK_THREADS[contact.full] || MOCK_THREADS.default)),
+      ...readLocalMessages(),
+    ],
+    [contact.conversationId, contact.full, contact.messages, readLocalMessages],
   );
   const [messages, setMessages] = useState(initialMessages);
   const [draft, setDraft] = useState('');
@@ -1320,9 +1366,13 @@ function ChatView({ contact, onBack, backLabel = 'Messages' }) {
     if (!text) return;
     const now = new Date();
     const when = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-    setMessages(m => [...m, { from: 'me', text, when }]);
+    const newMessage = { from: 'me', text, when };
+    setMessages(m => [...m, newMessage]);
     setDraft('');
-    if (!contact.conversationId) return;
+    if (!contact.conversationId) {
+      writeLocalMessages([...readLocalMessages(), newMessage]);
+      return;
+    }
     try {
       await saveMessage({
         conversationId: contact.conversationId,
@@ -1331,6 +1381,7 @@ function ChatView({ contact, onBack, backLabel = 'Messages' }) {
       });
     } catch (error) {
       console.error(error);
+      writeLocalMessages([...readLocalMessages(), newMessage]);
       showToast({ text: 'Message envoyé (mode hors-ligne).', duration: 2600 });
     }
   };
@@ -2772,7 +2823,7 @@ export function MessagesView({ embedded = false, initialTab = 'tous', hideTabs =
   const reloadBundle = () => {
     loadChatBundle(userId).then((bundle) => {
       if (!bundle) return;
-      setConversations(bundle.conversations);
+      setConversations(bundle.conversations.map(mergeConversationWithLocal));
       setFriends(bundle.friends);
     }).catch(() => {});
   };
@@ -2794,7 +2845,7 @@ export function MessagesView({ embedded = false, initialTab = 'tous', hideTabs =
         const shouldSeed = isEmpty && !alreadySeeded;
         const demo = isEmpty ? getDemoChatBundle() : null;
 
-        setConversations(demo ? demo.conversations : bundle.conversations);
+        setConversations((demo ? demo.conversations : bundle.conversations).map(mergeConversationWithLocal));
         setFriends(demo ? demo.friends : bundle.friends);
         if (shouldSeed) {
           // Premier passage : on remplit les stores localStorage avec la démo

@@ -130,9 +130,27 @@ function mapStatus(status) {
   }
 }
 
-function mapChallenge(challenge, profile, direction, leaderboardRankById) {
+function computeChallengeEloOutcome(myElo = 1200, oppElo = 1200, kFactor = 32) {
+  const expected = 1 / (1 + Math.pow(10, (oppElo - myElo) / 400));
+  return {
+    gainW: Math.max(1, Math.round(kFactor * (1 - expected))),
+    lossL: Math.max(1, Math.round(kFactor * expected)),
+  };
+}
+
+const DEMO_SELF_ELO = 1450;
+
+function withDemoEloImpact(challenge, selfElo = DEMO_SELF_ELO) {
+  const isFriendly = (challenge.enjeu || '').toLowerCase().includes('amical');
+  if (isFriendly) return { ...challenge, gainW: 0, lossL: 0 };
+  const { gainW, lossL } = computeChallengeEloOutcome(selfElo, challenge.elo);
+  return { ...challenge, gainW, lossL };
+}
+
+function mapChallenge(challenge, profile, direction, leaderboardRankById, selfElo) {
   const mappedProfile = mapProfile(profile, leaderboardRankById);
   const status = mapStatus(challenge.status);
+  const { gainW, lossL } = computeChallengeEloOutcome(selfElo, mappedProfile?.elo);
   return {
     id: challenge.id,
     challengeId: challenge.id,
@@ -149,8 +167,8 @@ function mapChallenge(challenge, profile, direction, leaderboardRankById) {
     venue: challenge.proposed_location,
     format: 'BO5',         // pas dans le schema, defaut affichage
     enjeu: 'Classé',       // pas dans le schema, defaut affichage
-    gainW: 14,             // pas dans le schema, valeur indicative
-    lossL: 12,             // pas dans le schema, valeur indicative
+    gainW,
+    lossL,
     summary: challengeSummary(challenge),
     refusalReason: status === 'refused' ? (challenge.message || 'Pas dispo') : null,
     isNew: direction === 'incoming' && status === 'sent',
@@ -331,15 +349,15 @@ export async function loadChatBundle(currentUserId) {
   // Defis - schema utilise challenger_id / challenged_id, status: pending/accepted/declined
   const incoming = challenges
     .filter((c) => c.challenged_id === selfId && c.status === 'pending')
-    .map((c) => mapChallenge(c, profilesById.get(c.challenger_id), 'incoming', leaderboardRankById));
+    .map((c) => mapChallenge(c, profilesById.get(c.challenger_id), 'incoming', leaderboardRankById, self?.elo_rating));
   const outgoing = challenges
     .filter((c) => c.challenger_id === selfId && c.status !== 'accepted' && c.status !== 'completed')
-    .map((c) => mapChallenge(c, profilesById.get(c.challenged_id), 'outgoing', leaderboardRankById));
+    .map((c) => mapChallenge(c, profilesById.get(c.challenged_id), 'outgoing', leaderboardRankById, self?.elo_rating));
   const accepted = challenges
     .filter((c) => c.status === 'accepted' && [c.challenger_id, c.challenged_id].includes(selfId))
     .map((c) => {
       const otherId = c.challenger_id === selfId ? c.challenged_id : c.challenger_id;
-      return mapChallenge(c, profilesById.get(otherId), 'accepted', leaderboardRankById);
+      return mapChallenge(c, profilesById.get(otherId), 'accepted', leaderboardRankById, self?.elo_rating);
     });
 
   return {
@@ -609,8 +627,8 @@ export function getDemoChatBundle() {
   return {
     friends:       DEMO_FRIENDS,
     conversations: applyReadState(DEMO_CONVERSATIONS),
-    incoming:      DEMO_INCOMING,
-    outgoing:      DEMO_OUTGOING,
-    accepted:      DEMO_ACCEPTED,
+    incoming:      DEMO_INCOMING.map((c) => withDemoEloImpact(c)),
+    outgoing:      DEMO_OUTGOING.map((c) => withDemoEloImpact(c)),
+    accepted:      DEMO_ACCEPTED.map((c) => withDemoEloImpact(c)),
   };
 }
