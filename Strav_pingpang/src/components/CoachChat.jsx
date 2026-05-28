@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { C, fontDisplay, fontSans } from '../theme';
 import { sendToCoach, hasApiKey, WELCOME_MESSAGE } from '../lib/coachAI';
+import { useAuth } from '../lib/auth';
 
 const COACH_BALL_SRC = '/media/coach-pingpong-ball.png';
 
@@ -22,6 +23,7 @@ export default function CoachChat({ onClose }) {
 
   const scrollRef = useRef(null);
   const apiOk = hasApiKey();
+  const { profile } = useAuth();
 
   // Auto-scroll vers le bas quand un nouveau message arrive
   useEffect(() => {
@@ -55,7 +57,7 @@ export default function CoachChat({ onClose }) {
       const historyForApi = next
         .filter((m, i) => !(i === 0 && m.role === 'assistant'))
         .map(m => ({ role: m.role, content: m.content }));
-      const reply = await sendToCoach(historyForApi);
+      const reply = await sendToCoach(historyForApi, { profile });
       setMessages([...next, { role: 'assistant', content: reply }]);
     } catch (e) {
       setError(e?.message || 'Erreur inconnue');

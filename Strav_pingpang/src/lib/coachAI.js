@@ -16,8 +16,6 @@ const MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions';
 const MODEL = 'mistral-small-latest';
 
 // System prompt : conditionne le bot au rôle de coach ping-pong personnalisé.
-// On lui demande de poser des questions, d'analyser, et de proposer des
-// exercices concrets — sans répondre aux sujets hors ping-pong.
 const SYSTEM_PROMPT = `Tu es Coach Ping, l'entraîneur IA de l'application Ping Pang Paris, dédié exclusivement au tennis de table (ping-pong).
 
 TON RÔLE
@@ -27,8 +25,9 @@ TON RÔLE
 - L'encourager et l'orienter vers les bonnes ressources
 
 TA MÉTHODE
-1. Si l'utilisateur arrive sans contexte : pose 2-3 questions courtes pour comprendre son niveau, ses derniers matchs et ce qu'il veut améliorer.
-2. Quand tu as assez d'infos : propose un exercice ou un mini-plan concret (3-5 points max).
+1. Utilise toujours le contexte joueur fourni dans "PROFIL_JOUEUR". Ne redemande jamais les infos déjà présentes (niveau, style, fréquence, ELO, club, latéralité).
+2. Si des infos manquent vraiment, pose au maximum 1 question de clarification à la fois.
+3. Quand tu as assez d'infos : propose directement un exercice ou un mini-plan concret (3-5 points max).
 3. Réfère-toi aux vidéos disponibles dans l'app TRAIN quand c'est pertinent : "Tu peux regarder la vidéo sur le top-spin sur balle coupée dans l'onglet INTERMÉDIAIRE" par exemple.
 4. Adopte un ton chaleureux, motivant, sans être condescendant.
 5. Réponses courtes (3-6 phrases max). Pas de pavés.
@@ -44,7 +43,7 @@ CONTENU DISPONIBLE DANS L'APP (vidéos d'entraînement)
 - INTERMÉDIAIRE : top-spin sur balle coupée, top-spin coup droit & revers, top revers vitesse, backhand flick, lire l'effet d'un service
 - EXPERT : top revers Zhang Jike, top revers Chinese style, pendulum serve pro, secrets pendulum Timo Boll, footwork pro
 
-Premier message : si l'utilisateur dit juste "Salut" ou un message vague, présente-toi en une phrase puis pose 1 ou 2 questions courtes pour démarrer.`;
+Premier message : si l'utilisateur dit juste "Salut" ou un message vague, présente-toi en une phrase puis propose directement une première action simple adaptée au profil (sans redemander son niveau).`;
 
 // ---------------------------------------------------------------------
 // Récupération de la clé API depuis .env (côté Vite). La clé est exposée
@@ -67,7 +66,26 @@ export function hasApiKey() {
 // Appel principal : envoie l'historique au modèle et renvoie la réponse.
 // `history` est un tableau [{ role: 'user' | 'assistant', content: '...' }, ...]
 // ---------------------------------------------------------------------
-export async function sendToCoach(history) {
+function buildPlayerContext(profile = null) {
+  if (!profile) return 'PROFIL_JOUEUR: indisponible';
+  const fields = [
+    ['nom', profile.display_name],
+    ['type_joueur', profile.player_type],
+    ['niveau', profile.self_level],
+    ['style', profile.play_style],
+    ['main_dominante', profile.dominant_hand],
+    ['elo', profile.current_elo ?? profile.elo_rating],
+    ['streak', profile.current_streak],
+    ['club', profile.club_name],
+    ['region', profile.region],
+    ['frequence', profile.frequency],
+    ['experience', profile.experience],
+  ].filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== '');
+  if (!fields.length) return 'PROFIL_JOUEUR: indisponible';
+  return `PROFIL_JOUEUR:\n${fields.map(([k, v]) => `- ${k}: ${v}`).join('\n')}`;
+}
+
+export async function sendToCoach(history, { profile = null } = {}) {
   const apiKey = getApiKey();
   if (!apiKey) {
     throw new Error('Clé API Mistral manquante. Ajoute VITE_MISTRAL_API_KEY dans .env');
@@ -75,6 +93,7 @@ export async function sendToCoach(history) {
 
   const messages = [
     { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: buildPlayerContext(profile) },
     ...history,
   ];
 
@@ -108,6 +127,4 @@ export async function sendToCoach(history) {
 // ---------------------------------------------------------------------
 export const WELCOME_MESSAGE = `Salut ! Je suis Coach Ping, ton entraîneur ping-pong personnel 🏓
 
-Pour te proposer un entraînement sur mesure, dis-moi :
-- Quel a été ton dernier match (résultat, ce qui a marché, ce qui a coincé) ?
-- Qu'aimerais-tu améliorer en priorité ?`;
+Dis-moi simplement ce que tu veux bosser en priorité (ex: coup droit sur balles rapides), et je te fais un plan direct.`;
