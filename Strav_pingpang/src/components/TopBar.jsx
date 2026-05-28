@@ -2385,9 +2385,142 @@ function AcceptedChallengeCard({ c, ageMin = 0, onAgenda, onMessage, onMore }) {
   );
 }
 
+// ELO attendu pour un match (formule ELO standard, K=32) :
+// combien on gagne en cas de victoire, combien on perd en cas de défaite.
+function eloOutcome(myElo, oppElo, K = 32) {
+  const expected = 1 / (1 + Math.pow(10, (oppElo - myElo) / 400));
+  return {
+    gainW: Math.max(1, Math.round(K * (1 - expected))),
+    lossL: Math.max(1, Math.round(K * expected)),
+  };
+}
+
+// Probabilité de victoire (%) dérivée de l'écart d'ELO.
+function winProbability(myElo, oppElo) {
+  return Math.round(100 / (1 + Math.pow(10, (oppElo - myElo) / 400)));
+}
+
+// Match proposé par l'app (suggestion de matchmaking, démo).
+const SUGGESTED_MATCH = {
+  id: 'sugg-1', profileId: 'demo-8',
+  full: 'Léa Moreau', from: 'Léa', name: 'Léa',
+  color: COLOR_INDIGO, online: true,
+  elo: 1495, rank: '#205',
+  date: 'Ven 20 · 19h', venue: 'République T2',
+  format: 'BO5', enjeu: 'Classé',
+};
+
+// Notification : l'app te propose un match, avec l'aperçu de l'ELO en jeu.
+function SuggestedMatchCard({ c, gainW, lossL, winProb, onChallenge, onDismiss }) {
+  return (
+    <div style={{
+      position: 'relative', borderRadius: 18, overflow: 'hidden',
+      background: 'linear-gradient(150deg, rgba(232,201,155,0.14), rgba(8,22,17,0.55))',
+      border: '1px solid rgba(232,201,155,0.45)',
+    }}>
+      {/* Bandeau notification */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px',
+        background: 'rgba(232,201,155,0.16)', borderBottom: '1px solid rgba(232,201,155,0.25)',
+        fontFamily: fontSans, fontWeight: 800, fontSize: 11.5,
+        letterSpacing: '0.08em', color: C.warm, textTransform: 'uppercase',
+      }}>
+        <SwordsIcon size={14} />
+        Match suggéré pour toi
+      </div>
+
+      <div style={{ padding: '14px 16px 16px' }}>
+        {/* Adversaire */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
+          <FriendAvatar color={c.color} online={c.online} size={52} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: fontSans, fontWeight: 700, fontSize: 16, color: C.ink }}>
+              On te propose un match contre {c.from}
+            </div>
+            <div style={{ fontFamily: fontSans, fontSize: 13, color: C.inkDim, marginTop: 2 }}>
+              {c.elo} ELO · {c.rank}
+            </div>
+          </div>
+        </div>
+
+        {/* Créneau / lieu / format */}
+        <div style={{
+          display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap',
+          fontFamily: fontSans, fontSize: 13, color: C.ink, fontWeight: 600, marginBottom: 12,
+        }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: C.warm }}>{Icon.calendar(14)} <span style={{ color: C.ink }}>{c.date}</span></span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: C.warm }}>{Icon.pin(14)} <span style={{ color: C.ink }}>{c.venue}</span></span>
+          <span style={{ color: C.inkDim }}>{c.format} · {c.enjeu}</span>
+        </div>
+
+        {/* Aperçu ELO : gain si victoire / perte si défaite */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+          <div style={{
+            flex: 1, padding: '10px 12px', borderRadius: 12,
+            background: 'rgba(61,209,107,0.10)', border: '1px solid rgba(61,209,107,0.30)',
+          }}>
+            <div style={{ fontFamily: fontSans, fontSize: 11, fontWeight: 700, color: C.inkDim, letterSpacing: '0.04em' }}>SI VICTOIRE</div>
+            <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 22, color: '#3DD16B', marginTop: 2 }}>+{gainW} <span style={{ fontSize: 12, fontWeight: 700 }}>ELO</span></div>
+          </div>
+          <div style={{
+            flex: 1, padding: '10px 12px', borderRadius: 12,
+            background: 'rgba(232,155,139,0.10)', border: '1px solid rgba(232,155,139,0.30)',
+          }}>
+            <div style={{ fontFamily: fontSans, fontSize: 11, fontWeight: 700, color: C.inkDim, letterSpacing: '0.04em' }}>SI DÉFAITE</div>
+            <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 22, color: '#E89B8B', marginTop: 2 }}>−{lossL} <span style={{ fontSize: 12, fontWeight: 700 }}>ELO</span></div>
+          </div>
+        </div>
+
+        {winProb != null && (
+          <div style={{ fontFamily: fontSans, fontSize: 12, color: C.inkDim, marginBottom: 14 }}>
+            Pronostic : <span style={{ color: C.ink, fontWeight: 700 }}>{winProb}%</span> de chances de gagner
+          </div>
+        )}
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onChallenge} style={{
+            all: 'unset', cursor: 'pointer', flex: 1, textAlign: 'center',
+            padding: '12px', borderRadius: 12, background: C.warm, color: '#092C25',
+            fontFamily: fontSans, fontWeight: 800, fontSize: 14,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          }}><SwordsIcon size={15} /> Défier</button>
+          <button onClick={onDismiss} style={{
+            all: 'unset', cursor: 'pointer', textAlign: 'center',
+            padding: '12px 18px', borderRadius: 12,
+            background: 'rgba(245,246,243,0.08)', color: C.inkDim,
+            border: `1px solid ${C.border}`,
+            fontFamily: fontSans, fontWeight: 700, fontSize: 14,
+          }}>Ignorer</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepted, setAccepted }) {
   const { openSheet, closeSheet, showToast } = useUI();
+  const { profile } = useAuth();
   const openDefier = () => openSheet({ title: 'Defier', body: <ChallengeView /> });
+
+  // Notification de match suggéré + aperçu ELO calculé selon le classement du joueur.
+  const myElo = profile?.current_elo ?? profile?.elo_rating ?? 1200;
+  const [suggestionDismissed, setSuggestionDismissed] = useState(false);
+  const { gainW: sGain, lossL: sLoss } = eloOutcome(myElo, SUGGESTED_MATCH.elo);
+  const sWinProb = winProbability(myElo, SUGGESTED_MATCH.elo);
+  const openSuggested = () => {
+    openSheet({ title: 'Nouveau defi', body: <NewChallengeView opponent={SUGGESTED_MATCH} /> });
+  };
+  const suggestionCard = !suggestionDismissed ? (
+    <SuggestedMatchCard
+      c={SUGGESTED_MATCH}
+      gainW={sGain}
+      lossL={sLoss}
+      winProb={sWinProb}
+      onChallenge={openSuggested}
+      onDismiss={() => setSuggestionDismissed(true)}
+    />
+  ) : null;
 
   // Le store useIncomingChallenges re-parse depuis localStorage à chaque appel,
   // donc les références d'objets changent. On compare par id pour fiabiliser
@@ -2452,28 +2585,31 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
 
   if (fullyEmpty) {
     return (
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-        padding: '60px 16px 80px', textAlign: 'center',
-      }}>
-        <div style={{ fontFamily: fontSans, fontWeight: 700, fontSize: 15, color: C.ink }}>
-          Aucun défi pour le moment
-        </div>
-        <div style={{ fontFamily: fontSans, fontSize: 13, color: C.inkDim }}>
-          Défie un ami pour lancer une partie.
-        </div>
-        <button onClick={openDefier} style={{
-          marginTop: 18,
-          all: 'unset', cursor: 'pointer', textAlign: 'center',
-          padding: '14px 20px', borderRadius: 12,
-          background: 'transparent', border: `1.5px dashed ${C.warm}`,
-          color: C.warm,
-          fontFamily: fontSans, fontWeight: 700, fontSize: 14,
-          display: 'inline-flex', alignItems: 'center', gap: 10,
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        {suggestionCard}
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+          padding: '40px 16px 80px', textAlign: 'center',
         }}>
-          <SwordsIcon size={16} />
-          Défier un ami
-        </button>
+          <div style={{ fontFamily: fontSans, fontWeight: 700, fontSize: 15, color: C.ink }}>
+            Aucun défi pour le moment
+          </div>
+          <div style={{ fontFamily: fontSans, fontSize: 13, color: C.inkDim }}>
+            Défie un ami pour lancer une partie.
+          </div>
+          <button onClick={openDefier} style={{
+            marginTop: 18,
+            all: 'unset', cursor: 'pointer', textAlign: 'center',
+            padding: '14px 20px', borderRadius: 12,
+            background: 'transparent', border: `1.5px dashed ${C.warm}`,
+            color: C.warm,
+            fontFamily: fontSans, fontWeight: 700, fontSize: 14,
+            display: 'inline-flex', alignItems: 'center', gap: 10,
+          }}>
+            <SwordsIcon size={16} />
+            Défier un ami
+          </button>
+        </div>
       </div>
     );
   }
@@ -2486,6 +2622,9 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      {/* Match suggéré — notification de match proposé + aperçu ELO */}
+      {suggestionCard}
+
       {/* Defier un ami CTA — en haut */}
       <button onClick={openDefier} style={{
         all: 'unset', cursor: 'pointer', textAlign: 'center',

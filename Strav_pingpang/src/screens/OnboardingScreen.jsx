@@ -226,10 +226,12 @@ const AppleIcon = () => (
 );
 
 // ----- Step 1 : Identité -----
-function StepIdentity({ onNext, onBack, initial, currentEmail, onSignOut }) {
-  const [fullName, setFullName] = useState(initial.fullName || '');
-  const [region, setRegion] = useState(initial.region || 'Paris — 11e');
-  const [handedness, setHandedness] = useState(initial.handedness || 'Droitier');
+function StepIdentity({ onNext, onBack, currentEmail, onSignOut }) {
+  // L'étape Identité démarre toujours vierge (nouveau compte comme connexion) :
+  // pas de pré-remplissage depuis le profil existant.
+  const [fullName, setFullName] = useState('');
+  const [region, setRegion] = useState('');
+  const [handedness, setHandedness] = useState(null);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {currentEmail && (
@@ -735,7 +737,6 @@ export default function OnboardingScreen({ onComplete }) {
   else if (step === 1) content = <StepIdentity
     onNext={advance}
     onBack={() => setStep(0)}
-    initial={data}
     currentEmail={profile?.email || data.email}
     onSignOut={handleSignOut}
   />;
