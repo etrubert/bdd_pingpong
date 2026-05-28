@@ -20,7 +20,7 @@ function PeriodTabs({ value, onChange }) {
     { id: 'saison',  label: 'Saison' },
     { id: 'mois',    label: 'Mois' },
     { id: 'semaine', label: 'Semaine' },
-    { id: 'all',     label: 'All time' },
+    { id: 'all',     label: 'Tout' },
   ];
   return (
     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -357,14 +357,14 @@ export default function MatchesScreen() {
       <div style={{
         fontFamily: fontDisplay, fontWeight: 800, fontSize: 28,
         color: C.cream, letterSpacing: '0.08em',
-      }}>SEASON STATS</div>
+      }}>STATS DE LA SAISON</div>
 
       <PeriodTabs value={period} onChange={setPeriod} />
 
       {/* Stats tiles */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-        <StatTile value={won} label={'TOTAL\nWINS'} />
-        <StatTile value={winRate != null ? `${winRate}%` : '—'} label="WIN RATE" />
+        <StatTile value={won} label={'TOTAL\nVICTOIRES'} />
+        <StatTile value={winRate != null ? `${winRate}%` : '—'} label={'%\nVICTOIRES'} />
         <StatTile value={played} label={'MATCHS\nJOUÉS'} />
       </div>
 
@@ -391,7 +391,7 @@ export default function MatchesScreen() {
 
       {/* Recent encounters */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
-        <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 21, color: C.ink, letterSpacing: '0.06em' }}>RECENT ENCOUNTERS</div>
+        <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 21, color: C.ink, letterSpacing: '0.06em' }}>MATCHS RÉCENTS</div>
         <button onClick={() => showToast('Filtrer')} style={{ ...iconBtn, color: C.cream }}>{Icon.filter(20)}</button>
       </div>
 

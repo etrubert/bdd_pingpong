@@ -142,12 +142,12 @@ const MATCHES_ALL = [
 ];
 
 const CONVERSATIONS = [
-  { full: 'Marc Leclerc',   color: COLOR_BLUE,   online: true,  preview: 'Defi propose · Samedi 14h',                  when: '2 min', unread: true,  isDefi: true,  isClub: false, fromMe: false },
+  { full: 'Marc Leclerc',   color: COLOR_BLUE,   online: true,  preview: 'Défi proposé · Samedi 14h',                  when: '2 min', unread: true,  isDefi: true,  isClub: false, fromMe: false },
   { full: 'Theo Rousseau',  color: COLOR_GREEN,  online: true,  preview: 'GG pour hier ! Revanche quand tu veux 🏓',   when: '12 min',unread: true,  isDefi: false, isClub: false, fromMe: false },
-  { full: 'Sophie Martin',  color: COLOR_RED,    online: false, preview: 'Defi a confirmer · Dim. 11h',                when: '1 h',   unread: true,  isDefi: true,  isClub: false, fromMe: false },
-  { full: 'Karim Benali',   color: COLOR_INDIGO, online: true,  preview: 'Toi : Ok ca marche, a demain 👌',            when: '3 h',   unread: false, isDefi: false, isClub: false, fromMe: true  },
+  { full: 'Sophie Martin',  color: COLOR_RED,    online: false, preview: 'Défi à confirmer · Dim. 11h',                when: '1 h',   unread: true,  isDefi: true,  isClub: false, fromMe: false },
+  { full: 'Karim Benali',   color: COLOR_INDIGO, online: true,  preview: 'Toi : Ok ça marche, à demain 👌',            when: '3 h',   unread: false, isDefi: false, isClub: false, fromMe: true  },
   { full: 'Lea Petit',      color: COLOR_BROWN,  online: false, preview: 'Message vocal · 0:24',                       when: 'Hier',  unread: false, isDefi: false, isClub: false, fromMe: false, voice: true },
-  { full: 'Equipe 2 · Marais', color: COLOR_OCHRE,colorB: COLOR_GREEN, online: false, preview: 'Coach : Entrainement jeudi 19h confirme', when: 'Hier', unread: false, isDefi: false, isClub: true, fromMe: false },
+  { full: 'Equipe 2 · Marais', color: COLOR_OCHRE,colorB: COLOR_GREEN, online: false, preview: 'Coach : Entraînement jeudi 19h confirmé', when: 'Hier', unread: false, isDefi: false, isClub: true, fromMe: false },
   { full: 'Antoine D.',     color: COLOR_GREY,   online: false, preview: "Salut, j'ai vu ton profil sur l'app...",     when: '2 j',   unread: false, isDefi: false, isClub: false, fromMe: false, isDemande: true },
 ];
 
@@ -492,7 +492,7 @@ function FriendsListView({ friends: friendsProp }) {
         </div>
         <div style={{ fontFamily: fontSans, fontSize: 13, color: C.inkDim, marginTop: 6 }}>
           {friends.length === 0
-            ? 'Tu n\'as pas encore d\'amis. Cherche-en !'
+            ? 'Ajoute un ami pour commencer.'
             : <><span style={{ color: '#3DD16B' }}>●</span> {onlineCount} en ligne · prêts à jouer</>}
         </div>
       </div>
@@ -523,14 +523,14 @@ function MatchesListView() {
           {STATS.total} matchs
         </div>
         <div style={{ fontFamily: fontSans, fontSize: 13, color: C.inkDim, marginTop: 6 }}>
-          {STATS.wins}V / {STATS.losses}D · {STATS.winrate}% winrate
+          {STATS.wins}V / {STATS.losses}D · {STATS.winrate}% de victoires
         </div>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         {[
           { id: 'all',    label: 'Tous' },
           { id: 'wins',   label: 'Victoires' },
-          { id: 'losses', label: 'Defaites' },
+          { id: 'losses', label: 'Défaites' },
         ].map(t => {
           const active = filter === t.id;
           return (
@@ -573,7 +573,7 @@ function ChallengeView({ friends: friendsProp }) {
     { name: 'Emma C.',    full: 'Emma Chevalier', elo: 1432, online: false, color: COLOR_RED    },
     { name: 'Yanis M.',   full: 'Yanis Mahmoudi', elo: 1488, online: true,  color: COLOR_INDIGO },
   ];
-  const STRANGER = { name: 'Joueur inconnu', full: 'Joueur a inviter', elo: 1450, online: false, color: COLOR_GREY };
+  const STRANGER = { name: 'Joueur inconnu', full: 'Joueur à inviter', elo: 1450, online: false, color: COLOR_GREY };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -1013,11 +1013,11 @@ function NewChallengeView({ opponent }) {
         });
       } catch (error) {
         console.error(error);
-        showToast({ text: 'Défi affiché, mais pas sauvegardé dans Supabase.', duration: 2600 });
+        showToast({ text: 'Défi créé (enregistré sur cet appareil).', duration: 2600 });
         return;
       }
     }
-    showToast(`Defi envoye a ${opponent.full || opponent.name}`);
+    showToast(`Défi envoyé à ${opponent.full || opponent.name}`);
     setTimeout(closeSheet, 300);
   };
 
@@ -1155,7 +1155,7 @@ function NewChallengeView({ opponent }) {
           })}
         </div>
         <div style={{ marginTop: 8, fontFamily: fontSans, fontSize: 12, color: '#3DD16B' }}>
-          ● Creneau correspondant a vos dispos
+          ● Créneau correspondant à tes dispos
         </div>
       </div>
 
@@ -1239,7 +1239,7 @@ function NewChallengeView({ opponent }) {
         paddingTop: 10, borderTop: `1px solid ${C.border}`,
         fontFamily: fontSans, fontSize: 13,
       }}>
-        <span style={{ color: C.inkDim }}>Recap</span>
+        <span style={{ color: C.inkDim }}>Résumé</span>
         <span style={{ color: C.ink, fontWeight: 700 }}>{recap}</span>
       </div>
 
@@ -1275,7 +1275,7 @@ const MOCK_THREADS = {
   'Marc Leclerc': [
     { from: 'them', text: 'Yo, dispo samedi 14h pour un set ?', when: '12:14' },
     { from: 'me',   text: 'Carrement, Le Marais ?', when: '12:18' },
-    { from: 'them', text: 'Defi propose · Samedi 14h', when: '12:20', isDefi: true },
+    { from: 'them', text: 'Défi proposé · Samedi 14h', when: '12:20', isDefi: true },
   ],
   'Theo Rousseau': [
     { from: 'them', text: 'GG pour hier !', when: '09:02' },
@@ -1283,11 +1283,11 @@ const MOCK_THREADS = {
     { from: 'me',   text: 'Avec plaisir, t\'as bien joue', when: '09:10' },
   ],
   'Sophie Martin': [
-    { from: 'them', text: 'Defi a confirmer · Dim. 11h', when: '08:30', isDefi: true },
+    { from: 'them', text: 'Défi à confirmer · Dim. 11h', when: '08:30', isDefi: true },
   ],
   'Karim Benali': [
     { from: 'them', text: 'On se voit demain a 19h ?', when: 'Hier' },
-    { from: 'me',   text: 'Ok ca marche, a demain 👌', when: 'Hier' },
+    { from: 'me',   text: 'Ok ça marche, à demain 👌', when: 'Hier' },
   ],
   'Lea Petit': [
     { from: 'them', text: '[Message vocal · 0:24]', when: 'Hier' },
@@ -1331,7 +1331,7 @@ function ChatView({ contact, onBack, backLabel = 'Messages' }) {
       });
     } catch (error) {
       console.error(error);
-      showToast({ text: 'Message gardé à l’écran, mais pas sauvegardé dans Supabase.', duration: 2600 });
+      showToast({ text: 'Message envoyé (mode hors-ligne).', duration: 2600 });
     }
   };
 
@@ -1596,7 +1596,7 @@ function ClubsTabContent({ clubs = [], announcements = [], training = null, team
             Clubs proches de toi
           </div>
           <div style={{ fontFamily: fontSans, fontSize: 13, color: C.inkDim, marginTop: 6, lineHeight: 1.5 }}>
-            Tu n'es membre d'aucun club. Voici des clubs autour de toi si tu veux te lancer.
+            Aucun club pour l'instant — en voici quelques-uns près de toi.
           </div>
         </div>
 
@@ -1631,7 +1631,7 @@ function ClubsTabContent({ clubs = [], announcements = [], training = null, team
         </div>
 
         <div style={{ fontFamily: fontSans, fontSize: 12, color: C.inkDim, textAlign: 'center', marginTop: 4, lineHeight: 1.5 }}>
-          Données issues de la carte Finder · ouvre Finder pour explorer la carte complète.
+          Source : carte Finder.
         </div>
       </div>
     );
@@ -1644,8 +1644,8 @@ function ClubsTabContent({ clubs = [], announcements = [], training = null, team
         padding: '40px 16px', textAlign: 'center',
         fontFamily: fontSans, fontSize: 14, color: C.inkDim, lineHeight: 1.5,
       }}>
-        Tu n'es membre d'aucun club pour le moment.<br />
-        Va dans Finder pour en trouver un.
+        Aucun club pour le moment.<br />
+        Trouve-en un dans Finder.
       </div>
     );
   }
@@ -2401,7 +2401,7 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
         responded_at: new Date().toISOString(),
       }).catch((error) => {
         console.error(error);
-        showToast({ text: 'Défi accepté ici, mais Supabase ne l’a pas sauvegardé.', duration: 2600 });
+        showToast({ text: 'Défi accepté (enregistré sur cet appareil).', duration: 2600 });
       });
     }
     showToast({
@@ -2425,12 +2425,12 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
               responded_at: new Date().toISOString(),
             }).catch((error) => {
               console.error(error);
-              showToast({ text: 'Défi refusé ici, mais Supabase ne l’a pas sauvegardé.', duration: 2600 });
+              showToast({ text: 'Défi refusé (enregistré sur cet appareil).', duration: 2600 });
             });
           }
           closeSheet();
           showToast({
-            text: `Défi refusé. ${c.from} a été notifié poliment.`,
+            text: `Défi refusé · ${c.from} a été notifié`,
             duration: 3000,
             action: {
               label: 'Annuler',
@@ -2457,10 +2457,10 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
         padding: '60px 16px 80px', textAlign: 'center',
       }}>
         <div style={{ fontFamily: fontSans, fontWeight: 700, fontSize: 15, color: C.ink }}>
-          Aucun défi en attente
+          Aucun défi pour le moment
         </div>
         <div style={{ fontFamily: fontSans, fontSize: 13, color: C.inkDim }}>
-          Va défier un ami pour lancer une partie !
+          Défie un ami pour lancer une partie.
         </div>
         <button onClick={openDefier} style={{
           marginTop: 18,
@@ -2505,7 +2505,7 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: aTraiterEmpty ? C.inkDim : C.warm }}>
             <path d="M17 7L7 17M7 7v10h10"/>
           </svg>
-          <span style={{ color: aTraiterEmpty ? C.inkDim : undefined }}>À TRAITER</span>
+          <span style={{ color: aTraiterEmpty ? C.inkDim : undefined }}>DÉFIS REÇUS</span>
           <span style={{
             fontFamily: fontSans, fontWeight: 800, fontSize: 11,
             color: aTraiterEmpty ? C.inkDim : C.warm,
@@ -2538,7 +2538,7 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: C.warm }}>
               <path d="M4 12.5 10 18l10-12"/>
             </svg>
-            <span style={{ color: C.warm }}>ACCEPTÉS · À VENIR</span>
+            <span style={{ color: C.warm }}>DÉFIS CONFIRMÉS</span>
             <span style={{
               fontFamily: fontSans, fontWeight: 800, fontSize: 11,
               color: C.warm, background: 'rgba(232,201,155,0.14)',
@@ -2549,9 +2549,9 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {accepted.map((c, i) => (
               <AcceptedChallengeCard key={i} c={c}
-                onAgenda={() => showToast('Ajoute a Google Calendar')}
+                onAgenda={() => showToast('Ajouté à Google Calendar')}
                 onMessage={() => openAcceptedChat(c)}
-                onMore={() => showToast('Plus d\'options bientot dispo')}
+                onMore={() => showToast('Bientôt disponible')}
               />
             ))}
           </div>
@@ -2565,7 +2565,7 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: C.inkDim }}>
               <path d="M7 17L17 7M17 7H7m10 0v10"/>
             </svg>
-            <span>EN ATTENTE DE RÉPONSE</span>
+            <span>DÉFIS ENVOYÉS</span>
             <span style={{
               fontFamily: fontSans, fontWeight: 800, fontSize: 11,
               color: C.warm, background: 'rgba(232,201,155,0.14)',
@@ -2591,7 +2591,7 @@ function DefisTabContent({ incoming, setIncoming, outgoing, setOutgoing, accepte
                       responded_at: new Date().toISOString(),
                     }).catch((error) => {
                       console.error(error);
-                      showToast({ text: 'Contre-proposition acceptée ici, mais Supabase ne l’a pas sauvegardée.', duration: 2800 });
+                      showToast({ text: 'Contre-proposition acceptée (enregistrée sur cet appareil).', duration: 2800 });
                     });
                   }
                   showToast(`Créneau ${c.counter?.them || c.date} accepté`);
@@ -2768,7 +2768,7 @@ export function MessagesView({ embedded = false, initialTab = 'tous', hideTabs =
           background: 'rgba(232,155,139,0.08)', border: '1px solid rgba(232,155,139,0.30)',
           color: '#E89B8B', fontFamily: fontSans, fontSize: 12.5,
         }}>
-          Supabase indisponible, affichage des donnees locales.
+          Mode hors-ligne : données de démonstration.
         </div>
       )}
       <SearchInput
@@ -3177,7 +3177,7 @@ function ProfileSheet() {
 
       {/* === SESSION STATS === */}
       <div>
-        <div style={{ ...kicker, marginBottom: 10 }}>SESSION STATS</div>
+        <div style={{ ...kicker, marginBottom: 10 }}>MES STATS</div>
         <div style={{
           padding: '14px 16px', borderRadius: 16,
           background: 'rgba(232,201,155,0.06)',
@@ -3219,7 +3219,7 @@ function ProfileSheet() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
         <ProfileStatCell label="MATCHS JOUÉS" value={matchesPlayed} />
         <ProfileStatCell label="VICTOIRES"    value={matchesWon} />
-        <ProfileStatCell label="WIN RATE"     value={winRate != null ? `${winRate}%` : '—'} />
+        <ProfileStatCell label="% VICTOIRES"  value={winRate != null ? `${winRate}%` : '—'} />
       </div>
 
       {/* === BADGES === */}

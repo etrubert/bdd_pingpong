@@ -178,7 +178,7 @@ function StreakPodium({ players }) {
       padding: '20px 14px 14px', borderRadius: 18,
       background: 'rgba(8,22,17,0.45)', border: `1px solid ${C.border}`,
     }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.25fr 1fr', alignItems: 'end', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.25fr 1fr', alignItems: 'end', justifyItems: 'center', gap: 10 }}>
         <StreakPodiumSpot p={p2} rank={2} size={62} />
         <StreakPodiumSpot p={p1} rank={1} size={80} crown />
         <StreakPodiumSpot p={p3} rank={3} size={62} />
