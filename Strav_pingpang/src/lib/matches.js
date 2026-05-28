@@ -142,10 +142,44 @@ export function subscribeToMyEloUpdates(userId, onUpdate) {
 // jusqu'à ce que l'intégration Supabase complète soit branchée.
 // =====================================================================
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
-// Pas de mock par defaut : nouveaux users = aucun match.
-const DEFAULT_MATCHES = [];
+// Matchs de demo par defaut : la section "Last Match" est toujours remplie
+// pour les nouveaux users tant qu'ils n'ont pas saisi leurs propres matchs.
+const DEFAULT_MATCHES = [
+  {
+    id: 'julien',  name: 'JULIEN B.',  initials: 'JB',
+    when: '2h', where: 'Canal St-Martin', format: 'BO5',
+    score: '3-0', setScore: '11:09',
+    elo: 14, win: true,
+    color: ['#bedba8', '#5a7a3b', '#1a2a0d'],
+    h2h: { count: 5, record: '4-1', winRate: 80 },
+  },
+  {
+    id: 'marie',   name: 'MARIE L.',   initials: 'ML',
+    when: 'Hier', where: 'Parc de la Villette', format: 'BO5',
+    score: '3-1', setScore: '11:05',
+    elo: 12, win: true,
+    color: ['#d6a8a8', '#7a3b3b', '#2a0d0d'],
+    pattern: [true, false, true, true, true, true], record: '5-1',
+  },
+  {
+    id: 'thomas',  name: 'THOMAS R.',  initials: 'TR',
+    when: '3j', where: 'Place de la Bastille', format: 'BO5',
+    score: '1-3', setScore: '08:11',
+    elo: -8, win: false,
+    color: ['#d6c0a8', '#7a5e3b', '#2a1f0d'],
+    pattern: [false, false, true, false, false], record: '1-4',
+    rematch: true,
+  },
+  {
+    id: 'clara',   name: 'CLARA D.',   initials: 'CD',
+    when: 'Sem. dernière', where: 'Luxembourg', format: 'BO3',
+    score: '2-0', setScore: '11:02',
+    elo: 18, win: true,
+    color: ['#a8c2db', '#3b5a7a', '#0d1a2a'],
+  },
+];
 
 const KEY = 'pp_matches';
 let _listeners = [];
@@ -180,6 +214,40 @@ export function useMatches() {
   const addMatch = (m) => _write([{ ...m, id: m.id || `m-${Date.now()}` }, ..._read()]);
 
   return [matches, setMatches, addMatch];
+}
+
+
+// =====================================================================
+// Stats dérivées du store local de matchs.
+// Source UNIQUE partagée par le profil, MatchesScreen et HomeScreen pour
+// rester cohérents partout, et qui fonctionne hors-ligne (pas de Supabase).
+// =====================================================================
+
+// Les matchs sont stockés du plus récent au plus ancien (addMatch prepend).
+export function computeMatchStats(matches) {
+  const list = Array.isArray(matches) ? matches : [];
+  const played = list.length;
+  const won = list.filter(m => m.win).length;
+  const lost = played - won;
+  const winRate = played > 0 ? Math.round((won / played) * 100) : null;
+  // Série de victoires EN COURS : on compte depuis le match le plus récent
+  // jusqu'à la première défaite.
+  let streak = 0;
+  for (const m of list) { if (m.win) streak += 1; else break; }
+  // Meilleure série de victoires consécutives de l'historique.
+  let bestStreak = 0; let run = 0;
+  for (const m of list) { if (m.win) { run += 1; bestStreak = Math.max(bestStreak, run); } else run = 0; }
+  return { played, won, lost, winRate, streak, bestStreak };
+}
+
+// Hook réactif : se recalcule automatiquement à chaque changement du store.
+export function useMatchStats() {
+  const [matches] = useMatches();
+  return useMemo(() => ({
+    ...computeMatchStats(matches),
+    recent: (matches || []).slice(0, 3),
+    matches: matches || [],
+  }), [matches]);
 }
 
 

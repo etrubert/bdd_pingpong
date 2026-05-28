@@ -11,8 +11,10 @@ import { useUI } from './uiContext';
 import { useSharing } from '../lib/sharing';
 import { signOut, useAuth } from '../lib/auth';
 import { useAcceptedChallenges, useIncomingChallenges } from '../lib/challenges';
+import { useNotifications } from '../lib/notifications';
 import { SELF_PROFILE_ID, loadChatBundle, getDemoChatBundle, markConvAsRead, saveChallenge, saveMessage, searchProfiles, startDmWith, updateChallenge } from '../lib/chatData';
 import { selectRows } from '../lib/supabaseClient';
+import { useMatchStats } from '../lib/matches';
 
 // Marker icon for individual tables (small crème dot)
 const tableIcon = L.divIcon({
@@ -3053,26 +3055,22 @@ function ProfileSheet() {
   const [countryRank, setCountryRank] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [pendingDefis, setPendingDefis] = useState(0);
-  const [recentMatches, setRecentMatches] = useState([]);
   const [incoming] = useIncomingChallenges();
+  // Stats de matchs dérivées du store local partagé (MatchesScreen / HomeScreen)
+  // → toujours à jour avec le reste de l'app et fonctionne hors-ligne.
+  const matchStats = useMatchStats();
 
-  // Charge le ranking + derniers matchs depuis Supabase
+  // Charge le classement (rang mondial / national) depuis Supabase
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
     Promise.all([
       selectRows('world_ranking',   { select: 'world_rank',  id: `eq.${userId}`, limit: '1' }),
       selectRows('country_ranking', { select: 'country_rank', id: `eq.${userId}`, limit: '1' }),
-      selectRows('matches', {
-        select: '*', limit: '3',
-        order: 'played_at.desc',
-        or: `(player_a.eq.${userId},player_b.eq.${userId})`,
-      }),
-    ]).then(([w, c, m]) => {
+    ]).then(([w, c]) => {
       if (cancelled) return;
       setWorldRank(w?.[0]?.world_rank ?? null);
       setCountryRank(c?.[0]?.country_rank ?? null);
-      setRecentMatches(m || []);
     }).catch(() => {});
     return () => { cancelled = true; };
   }, [userId]);
@@ -3099,10 +3097,10 @@ function ProfileSheet() {
   // Donn\u00e9es d\u00e9riv\u00e9es du profil
   const elo            = profile?.current_elo ?? profile?.elo_rating ?? 1200;
   const peakElo        = profile?.peak_elo ?? elo;
-  const matchesPlayed  = profile?.matches_played ?? 0;
-  const matchesWon     = profile?.matches_won ?? 0;
-  const currentStreak  = profile?.current_streak ?? 0;
-  const winRate        = matchesPlayed > 0 ? Math.round((matchesWon / matchesPlayed) * 100) : null;
+  const matchesPlayed  = matchStats.played;
+  const matchesWon     = matchStats.won;
+  const currentStreak  = matchStats.streak;
+  const winRate        = matchStats.winRate;
   const fftt           = profile?.fftt_classification || profile?.fftt_license || null;
   const club           = profile?.club_name || null;
   const team           = profile?.team_name || null;
@@ -3268,14 +3266,14 @@ function ProfileSheet() {
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
           <span style={kicker}>DERNIERS MATCHS</span>
-          {recentMatches.length > 0 && (
+          {matchStats.recent.length > 0 && (
             <button onClick={() => openSheet({ title: 'Historique', body: <MatchesListView /> })}
                     style={{ all: 'unset', cursor: 'pointer', color: C.warm, fontFamily: fontSans, fontSize: 12, fontWeight: 700 }}>
               Tout voir
             </button>
           )}
         </div>
-        {recentMatches.length === 0 ? (
+        {matchStats.recent.length === 0 ? (
           <div style={{
             padding: '20px 14px', borderRadius: 12,
             background: 'rgba(8,22,17,0.45)', border: `1px dashed ${C.border}`,
@@ -3285,8 +3283,8 @@ function ProfileSheet() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {recentMatches.map(m => (
-              <RecentMatchRow key={m.id} match={m} userId={userId} />
+            {matchStats.recent.map(m => (
+              <LocalMatchRow key={m.id} m={m} />
             ))}
           </div>
         )}
@@ -3350,14 +3348,10 @@ function ProfileTabBtn({ icon, label, count, active, onClick }) {
   );
 }
 
-function RecentMatchRow({ match, userId }) {
-  const isPlayerA = match.player_a === userId;
-  const won = isPlayerA ? match.sets_a > match.sets_b : match.sets_b > match.sets_a;
-  const eloChange = isPlayerA ? match.elo_change_a : match.elo_change_b;
-  const date = match.played_at ? new Date(match.played_at).toLocaleString('fr-FR', {
-    hour: '2-digit', minute: '2-digit',
-  }) : '';
-  const opponentLabel = isPlayerA ? `vs Joueur B` : `vs Joueur A`; // TODO : récupérer le display_name de l'opposant
+// Ligne "dernier match" basée sur la forme du store local (useMatches) :
+// { name, when, where, score, win, elo }. Cohérent avec MatchesScreen.
+function LocalMatchRow({ m }) {
+  const won = !!m.win;
   return (
     <div style={{
       padding: '12px 14px', borderRadius: 12,
@@ -3370,21 +3364,21 @@ function RecentMatchRow({ match, userId }) {
       }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: fontSans, fontSize: 13.5, fontWeight: 700, color: C.ink }}>
-          {opponentLabel}
+          {m.name || 'Adversaire'}
         </div>
         <div style={{ fontFamily: fontSans, fontSize: 11.5, color: C.inkDim, marginTop: 2 }}>
-          {date}{match.location_name ? ` · ${match.location_name}` : ''}
+          {[m.when, m.where].filter(Boolean).join(' · ')}
         </div>
       </div>
       <div style={{ textAlign: 'right' }}>
         <div style={{ fontFamily: fontDisplay, fontWeight: 800, fontSize: 16, color: C.ink }}>
-          {match.sets_a}:{match.sets_b}
+          {m.score}
         </div>
-        {eloChange != null && (
+        {m.elo != null && (
           <div style={{
             fontFamily: fontSans, fontSize: 11, fontWeight: 700,
-            color: eloChange > 0 ? '#9BC9AE' : eloChange < 0 ? C.loss : C.inkFaint,
-          }}>{eloChange > 0 ? `+${eloChange}` : eloChange}</div>
+            color: m.elo > 0 ? '#9BC9AE' : m.elo < 0 ? C.loss : C.inkFaint,
+          }}>{m.elo > 0 ? `+${m.elo}` : m.elo} ELO</div>
         )}
       </div>
     </div>
@@ -3412,6 +3406,7 @@ export { ProfileSheet };
 export default function TopBar({ topInset = 0 }) {
   const { openSheet } = useUI();
   const { profile } = useAuth();
+  const { total: notifCount } = useNotifications();
   const ref = useRef(null);
   const [hidden, setHidden] = useState(false);
   const userName = profile?.display_name || profile?.email?.split('@')[0] || 'Toi';
@@ -3483,6 +3478,7 @@ export default function TopBar({ topInset = 0 }) {
       })} style={{
         ...iconBtn,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
+        position: 'relative',
       }}>
         <div style={{
           width: 32, height: 32, borderRadius: '50%',
@@ -3492,6 +3488,17 @@ export default function TopBar({ topInset = 0 }) {
           fontFamily: fontSans, fontWeight: 800, fontSize: 13, color: '#fff',
           letterSpacing: 0,
         }}>{userInitial}</div>
+        {notifCount > 0 && (
+          <span style={{
+            position: 'absolute', top: -2, right: -2,
+            minWidth: 17, height: 17, padding: '0 4px', boxSizing: 'border-box',
+            borderRadius: 999,
+            background: '#E64949', color: '#fff',
+            border: '2px solid rgba(8,22,17,0.92)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: fontSans, fontWeight: 800, fontSize: 10, lineHeight: 1,
+          }}>{notifCount > 9 ? '9+' : notifCount}</span>
+        )}
       </button>
       </div>
     </div>

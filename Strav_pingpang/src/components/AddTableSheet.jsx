@@ -16,12 +16,14 @@ import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
 import { C, fontDisplay, fontSans, kicker, inputStyle, btnPrimary, btnGhost } from '../theme';
+import { useUI } from './uiContext';
 import {
   isSupabaseConfigured,
   findNearbyTables,
   uploadTablePhoto,
   addCommunityTable,
 } from '../lib/communityTables';
+import { awardTableBonus, POINTS_PER_TABLE } from '../lib/loginStreak';
 
 const PARIS = [48.8566, 2.3522];
 
@@ -63,6 +65,7 @@ export default function AddTableSheet({ open, onClose, userPos, existingTables, 
   const [error, setError] = useState('');
   const [nearby, setNearby] = useState(null); // null = pas vérifié, [] = ok, [..] = doublon
   const fileInputRef = useRef(null);
+  const { showToast } = useUI() || {};
 
   // Position initiale du pin : GPS si dispo, sinon centre par défaut.
   const initialCenter = useMemo(() => userPos || PARIS, [userPos]);
@@ -148,8 +151,15 @@ export default function AddTableSheet({ open, onClose, userPos, existingTables, 
         photo_url,
         photo_path,
       });
+      // Table acceptée → +5 points au classement de streak (anti-double-comptage par id)
+      const awarded = awardTableBonus(row.id);
       onAdded(row);
       onClose();
+      if (showToast) {
+        showToast(awarded
+          ? `Table ajoutée ✓ +${POINTS_PER_TABLE} pts streak`
+          : 'Table ajoutée ✓');
+      }
     } catch (err) {
       setError(err?.message || "Échec de l'enregistrement.");
       setSubmitting(false);

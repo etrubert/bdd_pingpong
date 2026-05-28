@@ -15,6 +15,11 @@ import { useEffect, useState, useCallback } from 'react';
 
 const KEY_DAYS = 'pp_login_days';      // liste des jours visités (YYYY-MM-DD)
 const KEY_LAST = 'pp_login_last';      // dernier jour enregistré
+const KEY_TABLE_BONUS = 'pp_streak_table_bonus'; // ids des tables déjà récompensées
+
+// Points gagnés au classement de streak pour chaque table publique
+// (photo) ajoutée ET acceptée. Voir awardTableBonus().
+export const POINTS_PER_TABLE = 5;
 
 function todayStr(d = new Date()) {
   return d.toISOString().slice(0, 10); // YYYY-MM-DD
@@ -64,6 +69,37 @@ export function recordVisit() {
   return { current, best, days };
 }
 
+// ---- Bonus "table publique ajoutée et acceptée" ----
+// Chaque table acceptée rapporte POINTS_PER_TABLE points au classement de
+// streak. On mémorise les ids déjà crédités pour ne JAMAIS compter deux fois
+// (réouverture de l'app, refresh de la liste Supabase, etc.).
+function readRewardedIds() {
+  try {
+    const raw = localStorage.getItem(KEY_TABLE_BONUS);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function writeRewardedIds(ids) {
+  try { localStorage.setItem(KEY_TABLE_BONUS, JSON.stringify(ids)); } catch { /* ignore */ }
+}
+
+// Nombre de points bonus accumulés (= POINTS_PER_TABLE × tables acceptées).
+export function getTableBonusPoints() {
+  return readRewardedIds().length * POINTS_PER_TABLE;
+}
+
+// Crédite le bonus pour une table acceptée. Idempotent par id : renvoie true
+// si le bonus a effectivement été ajouté (nouvelle table), false sinon.
+export function awardTableBonus(tableId) {
+  if (!tableId) return false;
+  const ids = readRewardedIds();
+  if (ids.includes(tableId)) return false;
+  ids.push(tableId);
+  writeRewardedIds(ids);
+  return true;
+}
+
 // ---- Saison trimestrielle (Q1 jan-mar, Q2 avr-juin, etc.) ----
 export function currentSeason(d = new Date()) {
   const q = Math.floor(d.getMonth() / 3) + 1;
@@ -78,15 +114,22 @@ export function daysUntilSeasonEnd(d = new Date()) {
   return Math.max(0, Math.ceil((end - d) / 86400000));
 }
 
-// Hook : enregistre la visite au montage, expose current/best streak.
+// Hook : enregistre la visite au montage, expose current/best streak + bonus.
+// `current` = jours consécutifs. `bonus` = points des tables acceptées.
+// `score` = current + bonus → valeur utilisée pour le classement de streak.
 export function useLoginStreak() {
-  const [state, setState] = useState({ current: 0, best: 0, days: [] });
+  const [state, setState] = useState({ current: 0, best: 0, days: [], bonus: 0 });
+
+  const read = useCallback(
+    () => ({ ...recordVisit(), bonus: getTableBonusPoints() }),
+    [],
+  );
 
   useEffect(() => {
-    setState(recordVisit());
-  }, []);
+    setState(read());
+  }, [read]);
 
-  const refresh = useCallback(() => setState(recordVisit()), []);
+  const refresh = useCallback(() => setState(read()), [read]);
 
-  return { ...state, refresh };
+  return { ...state, score: state.current + state.bonus, refresh };
 }

@@ -110,6 +110,9 @@ function StreakSheet({ board, myRank }) {
         <div style={{ fontSize: 13.5, color: C.ink, marginTop: 4 }}>
           Plus que <strong style={{ color: C.streak }}>{daysLeft} jours</strong> avant la remise des codes promo aux 3 meilleurs streaks.
         </div>
+        <div style={{ fontSize: 12.5, color: C.inkDim, marginTop: 8 }}>
+          Astuce : ajoute une table publique avec une photo dans le Finder — chaque table acceptée te rapporte <strong style={{ color: C.streak }}>+5 pts</strong> au classement.
+        </div>
       </div>
 
       {/* Récompenses */}
@@ -231,8 +234,9 @@ function StreakPodiumSpot({ p, rank, size, crown }) {
 
 export default function StreakCard({ displayName }) {
   const { openSheet } = useUI();
-  const { current } = useLoginStreak();
-  const board = buildStreakBoard(current, displayName || 'Toi');
+  const { current, bonus, score } = useLoginStreak();
+  // Le classement se fait sur le score = jours consécutifs + bonus tables.
+  const board = buildStreakBoard(score, displayName || 'Toi');
   const me = board.find(p => p.isMe);
   const myRank = me?.rank ?? null;
   const daysLeft = daysUntilSeasonEnd();
@@ -266,6 +270,15 @@ export default function StreakCard({ displayName }) {
           <div style={{
             fontFamily: fontSans, fontSize: 13, color: C.inkDim, paddingBottom: 6,
           }}>{current <= 1 ? 'jour' : 'jours d\u2019affilée'}</div>
+          {bonus > 0 && (
+            <div style={{
+              marginLeft: 'auto', alignSelf: 'center',
+              fontFamily: fontSans, fontWeight: 800, fontSize: 11,
+              color: C.streak, background: C.streakSoft,
+              border: `1px solid ${C.streakBd}`,
+              padding: '4px 9px', borderRadius: 999, letterSpacing: '0.04em',
+            }}>+{bonus} pts tables</div>
+          )}
         </div>
 
         <div style={{
