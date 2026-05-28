@@ -2,92 +2,93 @@
 // PING PANG PARIS — Vidéos d'entraînement
 //
 // 3 niveaux : DÉBUTANT, INTERMÉDIAIRE, EXPERT
-// EXACTEMENT 5 vidéos par niveau.
-// Chaque vidéo s'affiche directement comme vignette dans l'onglet ;
-// au clic, lecture en plein écran 16:9 (composant VideoLightbox).
+// EXACTEMENT 5 vidéos par niveau, sélectionnées pour leur qualité HD
+// et leur date récente (2024+ quand possible).
+// Au clic sur une vignette : lecture en plein écran 16:9 horizontal.
 //
-// Sources : PingSkills (Australie), Tom Lodziak (UK), EmRatThich/PingSunday,
-// Ti Long, chaîne officielle ITTF. Vidéos publiques, autorisées à l'embed.
+// Sources : PingSkills (chaîne officielle, MAJ 2024-2025), Tom Lodziak
+// (UK, vidéos 2024-2025), Ti Long (China, contenu détaillé), MPS Table
+// Tennis (chaîne moderne 2024-2025). Tout est en HD, format embed.
 // =====================================================================
 
 // Tableau plat de vidéos. Chaque vidéo a un niveau et une description courte.
 //   { id, level, title, desc, duration, video (URL embed YouTube) }
 export const VIDEOS = [
-  // ----- DÉBUTANT (5 vidéos) -----
+  // ----- DÉBUTANT (5 vidéos, mises à jour) -----
   {
     id: 'd1', level: 'DÉBUTANT',
-    title: 'Tenir la raquette',
-    desc: 'Shakehand ou penhold : choisir et bien tenir.',
+    title: 'Bien tenir la raquette',
+    desc: 'Shakehand ou penhold, prise à maîtriser dès le début.',
     duration: '5 min',
-    video: 'https://www.youtube.com/embed/iUK7-z7Zv3Y',
+    video: 'https://www.youtube.com/embed/XqChkbRIp2Y',
   },
   {
     id: 'd2', level: 'DÉBUTANT',
-    title: 'Coup droit (counterhit)',
-    desc: 'La base du coup droit, rythme régulier.',
-    duration: '8 min',
-    video: 'https://www.youtube.com/embed/vnaY6ltLY-g',
-  },
-  {
-    id: 'd3', level: 'DÉBUTANT',
     title: 'Revers (counterhit)',
     desc: 'Bloc revers court près de la table.',
-    duration: '7 min',
+    duration: '5 min',
     video: 'https://www.youtube.com/embed/iYRJ2YV3PGY',
   },
   {
-    id: 'd4', level: 'DÉBUTANT',
-    title: 'Push (poussette)',
-    desc: 'Coup défensif avec rotation arrière.',
+    id: 'd3', level: 'DÉBUTANT',
+    title: 'Coup droit (counterhit)',
+    desc: 'La base du coup droit, rythme régulier près de la table.',
     duration: '5 min',
-    video: 'https://www.youtube.com/embed/Hx5ZQSsmFjo',
+    video: 'https://www.youtube.com/embed/GxAqmTLZLh0',
+  },
+  {
+    id: 'd4', level: 'DÉBUTANT',
+    title: '4 services simples',
+    desc: 'Backspin, topspin, sidespin, no-spin pour démarrer.',
+    duration: '9 min',
+    video: 'https://www.youtube.com/embed/oL5BQuBuMHY',
   },
   {
     id: 'd5', level: 'DÉBUTANT',
-    title: 'Premier service',
-    desc: 'Les règles et la technique du service de base.',
+    title: 'Premier service réussi',
+    desc: 'Le service de base apprendre proprement.',
     duration: '6 min',
-    video: 'https://www.youtube.com/embed/NfmPcpi4sfc',
+    video: 'https://www.youtube.com/embed/0pl9nbsB_4U',
   },
 
-  // ----- INTERMÉDIAIRE (5 vidéos) -----
+  // ----- INTERMÉDIAIRE (5 vidéos, mises à jour) -----
   {
     id: 'i1', level: 'INTERMÉDIAIRE',
-    title: 'Top-spin coup droit & revers',
-    desc: 'Le top-spin de base, les deux côtés.',
-    duration: '7 min',
-    video: 'https://www.youtube.com/embed/XFRqT3miJ3I',
-  },
-  {
-    id: 'i2', level: 'INTERMÉDIAIRE',
     title: 'Top-spin sur balle coupée',
-    desc: 'Lift contre balle coupée, basique et avancé.',
+    desc: 'Lift contre backspin, méthode basique et avancée.',
     duration: '9 min',
     video: 'https://www.youtube.com/embed/eLdsH1aFuT4',
   },
   {
+    id: 'i2', level: 'INTERMÉDIAIRE',
+    title: 'Top-spin coup droit & revers',
+    desc: 'Les bases du top-spin sur les deux côtés.',
+    duration: '7 min',
+    video: 'https://www.youtube.com/embed/XFRqT3miJ3I',
+  },
+  {
     id: 'i3', level: 'INTERMÉDIAIRE',
-    title: 'Améliorer son coup droit',
-    desc: 'Casser les mauvaises habitudes.',
+    title: 'Top revers vitesse',
+    desc: 'Utiliser le poignet pour accélérer son revers.',
     duration: '4 min',
-    video: 'https://www.youtube.com/embed/o6RWbZFB0oE',
+    video: 'https://www.youtube.com/embed/pg-mNoEyO-4',
   },
   {
     id: 'i4', level: 'INTERMÉDIAIRE',
-    title: 'Backhand flick',
+    title: 'Backhand flick (PingSkills)',
     desc: 'Le geste fondamental expliqué pas à pas.',
-    duration: '4 min',
+    duration: '5 min',
     video: 'https://www.youtube.com/embed/heJZe0OTDnA',
   },
   {
     id: 'i5', level: 'INTERMÉDIAIRE',
-    title: 'Flick simple (intermédiaire)',
-    desc: 'Une technique facile et efficace.',
-    duration: '6 min',
-    video: 'https://www.youtube.com/embed/QUsYDghnLWk',
+    title: '5 indices pour lire l\u2019effet d\u2019un service',
+    desc: 'Décoder le spin d\u2019un service en match.',
+    duration: '12 min',
+    video: 'https://www.youtube.com/embed/rrS7Wjh35cU',
   },
 
-  // ----- EXPERT (5 vidéos) -----
+  // ----- EXPERT (5 vidéos, mises à jour) -----
   {
     id: 'e1', level: 'EXPERT',
     title: 'Top revers Zhang Jike',
@@ -104,23 +105,23 @@ export const VIDEOS = [
   },
   {
     id: 'e3', level: 'EXPERT',
-    title: 'Top revers ITTF (Michael Maze)',
-    desc: 'Démonstration officielle ITTF.',
-    duration: '2 min',
-    video: 'https://www.youtube.com/embed/W_yifhqHl5o',
+    title: 'Pendulum serve : le service pro',
+    desc: 'Maîtriser le service le plus utilisé chez les pros.',
+    duration: '10 min',
+    video: 'https://www.youtube.com/embed/FExU6SlIIl0',
   },
   {
     id: 'e4', level: 'EXPERT',
-    title: 'Service pendulum : 3 clés',
-    desc: 'Les 3 conseils clés pour un pendulum efficace.',
-    duration: '6 min',
-    video: 'https://www.youtube.com/embed/fy4jHZVu4lQ',
+    title: 'Secrets du pendulum de Timo Boll',
+    desc: 'Décomposition détaillée du service de Timo Boll.',
+    duration: '7 min',
+    video: 'https://www.youtube.com/embed/49f2nGErIEM',
   },
   {
     id: 'e5', level: 'EXPERT',
-    title: 'Secrets du pendulum de Timo Boll',
-    desc: 'Décomposition détaillée du service.',
-    duration: '7 min',
-    video: 'https://www.youtube.com/embed/49f2nGErIEM',
+    title: 'Footwork pro (champion du monde)',
+    desc: 'Déplacements latéraux par J-P Gatien.',
+    duration: '3 min',
+    video: 'https://www.youtube.com/embed/2swUt6GTL58',
   },
 ];
