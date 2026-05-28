@@ -350,14 +350,14 @@ export default function HomeScreen({ onNav }) {
           {/* Win rate + matchs joués en deux mini-stats */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
             <div>
-              <div style={{ fontFamily: fontSans, fontSize: 9.5, color: C.inkDim, letterSpacing: '0.10em', fontWeight: 700 }}>% VICTOIRES</div>
-              <div style={{ fontFamily: fontSans, fontWeight: 800, fontSize: 14, color: C.ink, marginTop: 2 }}>
+              <div style={{ fontFamily: fontSans, fontSize: 9.5, color: C.inkDim, letterSpacing: '0.08em', fontWeight: 700, whiteSpace: 'nowrap' }}>VICTOIRES</div>
+              <div style={{ fontFamily: fontSans, fontWeight: 800, fontSize: 14, color: C.ink, marginTop: 3 }}>
                 {playedCount ? `${winRatePct}%` : '—'}
               </div>
             </div>
             <div>
-              <div style={{ fontFamily: fontSans, fontSize: 9.5, color: C.inkDim, letterSpacing: '0.10em', fontWeight: 700 }}>MATCHS</div>
-              <div style={{ fontFamily: fontSans, fontWeight: 800, fontSize: 14, color: C.ink, marginTop: 2 }}>
+              <div style={{ fontFamily: fontSans, fontSize: 9.5, color: C.inkDim, letterSpacing: '0.08em', fontWeight: 700, whiteSpace: 'nowrap' }}>MATCHS</div>
+              <div style={{ fontFamily: fontSans, fontWeight: 800, fontSize: 14, color: C.ink, marginTop: 3 }}>
                 {playedCount}
               </div>
             </div>

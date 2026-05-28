@@ -512,7 +512,7 @@ function Podium({ players }) {
     }}>
       <div style={{
         display: 'grid', gridTemplateColumns: '1fr 1.25fr 1fr',
-        alignItems: 'end', gap: 12,
+        alignItems: 'end', justifyItems: 'center', gap: 12,
       }}>
         <PodiumSpot p={p2} rank={2} accent="silver" size={70} />
         <PodiumSpot p={p1} rank={1} accent="gold" size={92} crown />
@@ -556,6 +556,7 @@ function PodiumSpot({ p, rank, accent, size, crown }) {
         fontSize: isGold ? 14 : 13, color: C.ink,
         textAlign: 'center', lineHeight: 1.15,
         maxWidth: size + 26, wordWrap: 'break-word',
+        minHeight: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>{shortenName(p.display_name)}</div>
       <div style={{
         fontFamily: fontDisplay, fontWeight: 800,
